@@ -1,5 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
+import { StatTiles } from '@/components/dashboard/StatTiles'
 import { KPICards } from '@/components/dashboard/KPICards'
+import { PipelineDonut } from '@/components/dashboard/PipelineDonut'
+import { TopBranchen } from '@/components/dashboard/TopBranchen'
 import { ActivityFeed } from '@/components/dashboard/ActivityFeed'
 import { TodayPanel } from '@/components/dashboard/TodayPanel'
 import { TodoWidget } from '@/components/dashboard/TodoWidget'
@@ -27,29 +30,28 @@ export default async function DashboardPage() {
   })
 
   return (
-    <div>
+    <div className="space-y-5">
       {/* Page header */}
-      <div className="mb-8">
+      <div>
         <h1 className="text-3xl font-black text-white tracking-tight leading-none">Dashboard</h1>
         <p className="text-sm text-white/30 mt-2 capitalize font-medium">{today}</p>
       </div>
 
       <ReminderBanner />
 
-      <div className="mb-5">
-        <KPICards leads={all} />
+      <StatTiles leads={all} />
+
+      <KPICards leads={all} />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <PipelineDonut leads={all} />
+        <TopBranchen leads={all} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <div className="lg:col-span-1">
-          <TodayPanel leads={all} />
-        </div>
-        <div className="lg:col-span-1">
-          <TodoWidget />
-        </div>
-        <div className="lg:col-span-1">
-          <ActivityFeed leads={all} compact />
-        </div>
+        <TodayPanel leads={all} />
+        <TodoWidget />
+        <ActivityFeed leads={all} compact />
       </div>
     </div>
   )

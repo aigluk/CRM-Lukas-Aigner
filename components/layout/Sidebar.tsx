@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
-  LayoutDashboard, Users, Calendar, BarChart2, Zap, LogOut, Settings,
+  LayoutDashboard, Users, Calendar, Zap, LogOut, Settings,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Logo from '@/components/Logo'
@@ -12,7 +12,6 @@ const NAV = [
   { href: '/',          label: 'Dashboard', icon: LayoutDashboard },
   { href: '/leads',     label: 'Leads',     icon: Users },
   { href: '/calendar',  label: 'Kalender',  icon: Calendar },
-  { href: '/reports',   label: 'Reports',   icon: BarChart2 },
   { href: '/generator', label: 'Generator', icon: Zap },
 ]
 
