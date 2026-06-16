@@ -14,7 +14,7 @@ export function LeadTable({
   if (leads.length === 0) {
     return (
       <div className="bg-panel rounded-2xl py-16 text-center">
-        <p className="text-gray-700 text-sm">Keine Leads in dieser Kategorie.</p>
+        <p className="text-white/40 text-sm font-medium">Keine Leads in dieser Kategorie.</p>
       </div>
     )
   }
@@ -24,7 +24,7 @@ export function LeadTable({
       {/* Header */}
       <div className="hidden md:grid grid-cols-[1fr_160px_140px_160px_32px] gap-4 px-5 py-3 border-b border-panel-2">
         {['Unternehmen', 'Ansprechpartner', 'Branche', 'Kontakt', ''].map((h, i) => (
-          <span key={i} className="text-[10px] font-bold text-gray-700 uppercase tracking-widest">{h}</span>
+          <span key={i} className="text-[10px] font-bold text-white/25 uppercase tracking-widest">{h}</span>
         ))}
       </div>
 
@@ -43,24 +43,24 @@ export function LeadTable({
               {/* Company */}
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-white truncate">{lead.name}</p>
-                <p className="text-xs text-gray-600 truncate mt-0.5">
+                <p className="text-xs text-white/35 truncate mt-0.5">
                   {lead.city || lead.region || '—'}
                 </p>
               </div>
 
               {/* CEO */}
               <div className="hidden md:block min-w-0">
-                <p className="text-sm text-gray-400 truncate">{lead.ceos || lead.owner || '—'}</p>
+                <p className="text-sm text-white/50 truncate">{lead.ceos || lead.owner || '—'}</p>
               </div>
 
               {/* Branche badge */}
               <div className="hidden md:block min-w-0">
                 {lead.branche || lead.industry ? (
-                  <span className="text-[10px] font-semibold bg-panel-hover text-gray-400 px-2 py-1 rounded-lg">
+                  <span className="text-[10px] font-semibold bg-panel-hover text-white/50 px-2 py-1 rounded-lg">
                     {lead.branche || lead.industry}
                   </span>
                 ) : (
-                  <span className="text-gray-700 text-xs">—</span>
+                  <span className="text-white/20 text-xs">—</span>
                 )}
               </div>
 
@@ -70,7 +70,7 @@ export function LeadTable({
                   <a
                     href={`tel:${lead.phone}`}
                     onClick={e => e.stopPropagation()}
-                    className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-accent transition-colors truncate"
+                    className="flex items-center gap-1.5 text-xs text-white/40 hover:text-accent transition-colors truncate"
                   >
                     <Phone size={11} className="shrink-0" />
                     <span className="truncate">{lead.phone}</span>
@@ -79,19 +79,19 @@ export function LeadTable({
                   <a
                     href={`mailto:${lead.email || lead.email_general}`}
                     onClick={e => e.stopPropagation()}
-                    className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-accent transition-colors truncate"
+                    className="flex items-center gap-1.5 text-xs text-white/40 hover:text-accent transition-colors truncate"
                   >
                     <Mail size={11} className="shrink-0" />
                     <span className="truncate">{lead.email || lead.email_general}</span>
                   </a>
                 ) : (
-                  <span className="text-gray-700 text-xs">—</span>
+                  <span className="text-white/20 text-xs">—</span>
                 )}
               </div>
 
               {/* Arrow */}
               <div className="flex justify-end">
-                <ChevronRight size={15} className="text-gray-700 group-hover:text-gray-400 transition-colors" />
+                <ChevronRight size={15} className="text-white/20 group-hover:text-white/50 transition-colors" />
               </div>
             </li>
           )

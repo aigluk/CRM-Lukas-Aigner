@@ -6,6 +6,9 @@ export interface Todo {
   id: string
   text: string
   done: boolean
+  notes?: string
+  reminderDate?: string
+  reminderTime?: string
 }
 
 const KEY = 'la-crm-todos'
@@ -34,6 +37,15 @@ export function useTodos() {
   function remove(id: string) {
     setTodos(prev => prev.filter(t => t.id !== id))
   }
+  function update(id: string, patch: Partial<Todo>) {
+    setTodos(prev => prev.map(t => t.id === id ? { ...t, ...patch } : t))
+  }
 
-  return { todos, add, toggle, remove }
+  function isDue(t: Todo): boolean {
+    if (t.done || !t.reminderDate) return false
+    const time = t.reminderTime || '00:00'
+    return new Date(`${t.reminderDate}T${time}`).getTime() <= Date.now()
+  }
+
+  return { todos, add, toggle, remove, update, isDue }
 }

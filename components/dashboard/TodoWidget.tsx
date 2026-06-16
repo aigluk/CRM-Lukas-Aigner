@@ -1,12 +1,15 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, X, ListTodo } from 'lucide-react'
-import { useTodos } from '@/lib/useTodos'
+import { Plus, ListTodo, Bell } from 'lucide-react'
+import { useTodos, Todo } from '@/lib/useTodos'
+import { TodoDetailModal } from './TodoDetailModal'
+import { formatDate } from '@/lib/utils'
 
 export function TodoWidget() {
-  const { todos, add, toggle, remove } = useTodos()
+  const { todos, add, toggle, remove, update, isDue } = useTodos()
   const [text, setText] = useState('')
+  const [selected, setSelected] = useState<Todo | null>(null)
 
   function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -15,7 +18,16 @@ export function TodoWidget() {
   }
 
   return (
-    <div className="bg-panel rounded-2xl p-5 flex flex-col h-full">
+    <div className="bg-panel rounded-2xl p-5 flex flex-col">
+      {selected && (
+        <TodoDetailModal
+          todo={selected}
+          onClose={() => setSelected(null)}
+          onSave={patch => update(selected.id, patch)}
+          onDelete={() => { remove(selected.id); setSelected(null) }}
+        />
+      )}
+
       <div className="flex items-center gap-2 mb-4">
         <ListTodo size={14} className="text-accent" />
         <h2 className="text-sm font-black text-white">To-Do</h2>
@@ -38,31 +50,40 @@ export function TodoWidget() {
         </button>
       </form>
 
-      <div className="flex-1 overflow-y-auto space-y-1 -mx-1 px-1">
+      <div className="max-h-80 overflow-y-auto space-y-1 -mx-1 px-1">
         {todos.length === 0 ? (
-          <p className="text-xs text-white/15 text-center py-6 font-medium">Keine offenen Aufgaben.</p>
+          <p className="text-sm text-white/40 text-center py-6 font-medium">Keine offenen Aufgaben.</p>
         ) : (
-          todos.map(t => (
-            <div key={t.id} className="flex items-center gap-2.5 group px-2 py-2 rounded-xl hover:bg-panel-hover transition-colors">
-              <button
-                onClick={() => toggle(t.id)}
-                className={`w-4.5 h-4.5 rounded-full shrink-0 flex items-center justify-center transition-all ${
-                  t.done ? 'bg-accent-green' : 'bg-dark'
-                }`}
+          todos.map(t => {
+            const due = isDue(t)
+            return (
+              <div
+                key={t.id}
+                onClick={() => setSelected(t)}
+                className="flex items-center gap-2.5 group px-2 py-2 rounded-xl hover:bg-panel-hover transition-colors cursor-pointer"
               >
-                {t.done && <span className="w-1.5 h-1.5 rounded-full bg-dark" />}
-              </button>
-              <span className={`flex-1 text-sm font-medium truncate ${t.done ? 'text-white/20 line-through' : 'text-white/70'}`}>
-                {t.text}
-              </span>
-              <button
-                onClick={() => remove(t.id)}
-                className="opacity-0 group-hover:opacity-100 text-white/20 hover:text-accent transition-all shrink-0"
-              >
-                <X size={13} />
-              </button>
-            </div>
-          ))
+                <button
+                  onClick={e => { e.stopPropagation(); toggle(t.id) }}
+                  className={`w-4.5 h-4.5 rounded-full shrink-0 flex items-center justify-center transition-all ${
+                    t.done ? 'bg-accent-green' : 'bg-dark'
+                  }`}
+                >
+                  {t.done && <span className="w-1.5 h-1.5 rounded-full bg-dark" />}
+                </button>
+                <div className="flex-1 min-w-0">
+                  <span className={`block text-sm font-medium truncate ${t.done ? 'text-white/25 line-through' : 'text-white/80'}`}>
+                    {t.text}
+                  </span>
+                  {t.reminderDate && !t.done && (
+                    <span className={`flex items-center gap-1 text-[10px] font-bold mt-0.5 ${due ? 'text-accent' : 'text-white/25'}`}>
+                      <Bell size={9} />
+                      {formatDate(t.reminderDate)}{t.reminderTime ? ` · ${t.reminderTime}` : ''}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )
+          })
         )}
       </div>
     </div>

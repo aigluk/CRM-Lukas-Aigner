@@ -3,6 +3,7 @@ import { KPICards } from '@/components/dashboard/KPICards'
 import { ActivityFeed } from '@/components/dashboard/ActivityFeed'
 import { TodayPanel } from '@/components/dashboard/TodayPanel'
 import { TodoWidget } from '@/components/dashboard/TodoWidget'
+import { ReminderBanner } from '@/components/dashboard/ReminderBanner'
 import type { Lead } from '@/lib/types'
 
 export default async function DashboardPage() {
@@ -40,6 +41,8 @@ export default async function DashboardPage() {
           </span>
         </div>
       </div>
+
+      <ReminderBanner />
 
       <div className="mb-5">
         <KPICards leads={all} />

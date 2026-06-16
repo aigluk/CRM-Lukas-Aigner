@@ -179,9 +179,9 @@ export function SettingsView() {
 
           <div className="pt-2 space-y-1">
             {loadingUsers ? (
-              <p className="text-xs text-white/15 text-center py-4">Lädt…</p>
+              <p className="text-sm text-white/40 text-center py-4 font-medium">Lädt…</p>
             ) : users.length === 0 ? (
-              <p className="text-xs text-white/15 text-center py-4">Keine Benutzer.</p>
+              <p className="text-sm text-white/40 text-center py-4 font-medium">Keine Benutzer.</p>
             ) : (
               users.map(u => (
                 <div key={u.id} className="flex items-center gap-3 bg-dark rounded-xl px-3.5 py-3">

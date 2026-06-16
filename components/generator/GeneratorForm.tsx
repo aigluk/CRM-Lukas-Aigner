@@ -207,7 +207,7 @@ export function GeneratorForm() {
                     </button>
                   ))}
                 </div>
-                <p className="text-[10px] text-white/15 mt-2">
+                <p className="text-[11px] text-white/35 mt-2">
                   Kein Ort gewählt = ganzes Land
                 </p>
               </div>
@@ -303,7 +303,7 @@ export function GeneratorForm() {
                     </button>
                   )}
                 </div>
-                <p className="text-[10px] text-white/15 mt-3 font-medium truncate">Suche: {result.query}</p>
+                <p className="text-[11px] text-white/35 mt-3 font-medium truncate">Suche: {result.query}</p>
               </div>
 
               {/* Lead list */}
@@ -339,7 +339,7 @@ export function GeneratorForm() {
                 <Zap size={22} className="text-white/15" />
               </div>
               <p className="text-sm font-bold text-white/20">Branche & Region wählen</p>
-              <p className="text-xs text-white/12 mt-1">dann Leads generieren</p>
+              <p className="text-xs text-white/35 mt-1">dann Leads generieren</p>
             </div>
           )}
 
@@ -347,7 +347,7 @@ export function GeneratorForm() {
             <div className="bg-panel rounded-2xl flex flex-col items-center justify-center py-24 text-center">
               <Loader2 size={28} className="text-accent animate-spin mb-4" />
               <p className="text-sm font-bold text-white/30">Generiere Leads…</p>
-              <p className="text-xs text-white/15 mt-1">Google Maps wird durchsucht</p>
+              <p className="text-xs text-white/40 mt-1">Google Maps wird durchsucht</p>
             </div>
           )}
         </div>

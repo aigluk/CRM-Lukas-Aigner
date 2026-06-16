@@ -10,14 +10,14 @@ export function ActivityFeed({ leads, compact }: { leads: Lead[]; compact?: bool
 
   if (compact) {
     return (
-      <div className="bg-panel rounded-2xl p-5 flex flex-col h-full">
+      <div className="bg-panel rounded-2xl p-5 flex flex-col">
         <div className="flex items-center gap-2 mb-4">
           <Activity size={14} className="text-white/30" />
           <h2 className="text-sm font-black text-white">Letzte Aktivitäten</h2>
         </div>
-        <div className="flex-1 overflow-y-auto space-y-1">
+        <div className="max-h-80 overflow-y-auto space-y-1">
           {recent.length === 0 ? (
-            <p className="text-xs text-white/15 text-center py-6 font-medium">Noch keine Leads vorhanden.</p>
+            <p className="text-sm text-white/40 text-center py-6 font-medium">Noch keine Leads vorhanden.</p>
           ) : (
             recent.map(lead => {
               const sc = STATUS_COLORS[lead.status]
@@ -43,7 +43,7 @@ export function ActivityFeed({ leads, compact }: { leads: Lead[]; compact?: bool
       </div>
 
       {recent.length === 0 ? (
-        <div className="px-6 pb-12 pt-4 text-center text-white/20 text-sm">
+        <div className="px-6 pb-12 pt-4 text-center text-white/40 text-sm font-medium">
           Noch keine Leads vorhanden.
         </div>
       ) : (

@@ -4,15 +4,15 @@ import { LeadStatus } from '@/lib/types'
 import { STATUSES, STATUS_LABELS } from '@/lib/constants'
 
 const ACTIVE_STYLE: Record<LeadStatus, string> = {
-  'NEU':             'bg-white text-[#1A1A1A]',
-  'ERST KONTAKT':    'bg-white text-[#1A1A1A]',
-  'ZWEITER KONTAKT': 'bg-white text-[#1A1A1A]',
-  'VERKAUFSGESPRÄCH':'bg-accent text-white',
-  'CLOSING CALL':    'bg-accent text-white',
-  'ABSCHLUSS':       'bg-accent-green text-[#1A1A1A]',
-  'KEIN INTERESSE':  'bg-[#383838] text-white/50',
-  'BESTANDSKUNDE':   'bg-accent-green text-[#1A1A1A]',
-  'NO GO':           'bg-[#2C2C2C] text-white/30',
+  'NEU':             'bg-white text-dark',
+  'ERST KONTAKT':    'bg-white text-dark',
+  'ZWEITER KONTAKT': 'bg-white text-dark',
+  'VERKAUFSGESPRÄCH':'bg-white text-dark',
+  'CLOSING CALL':    'bg-white text-dark',
+  'ABSCHLUSS':       'bg-accent-green text-dark',
+  'KEIN INTERESSE':  'bg-white text-dark',
+  'BESTANDSKUNDE':   'bg-accent-green text-dark',
+  'NO GO':           'bg-accent text-white',
 }
 
 export function PipelineTabs({
