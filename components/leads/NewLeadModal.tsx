@@ -72,7 +72,7 @@ export function NewLeadModal({ onClose, onCreate }: Props) {
       <div className="bg-panel w-full sm:max-w-xl rounded-t-2xl sm:rounded-2xl max-h-[94vh] overflow-y-auto shadow-2xl">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-rim-subtle">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-white/6">
           <div>
             <h2 className="text-base font-black text-white">Neuer Lead</h2>
             <p className="text-xs text-white/30 mt-0.5">Kontakt manuell erfassen</p>

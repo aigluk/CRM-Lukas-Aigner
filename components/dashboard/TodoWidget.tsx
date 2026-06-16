@@ -18,7 +18,7 @@ export function TodoWidget() {
   }
 
   return (
-    <div className="bg-panel rounded-2xl p-5 flex flex-col">
+    <div className="bg-white rounded-2xl p-5 flex flex-col">
       {selected && (
         <TodoDetailModal
           todo={selected}
@@ -30,7 +30,7 @@ export function TodoWidget() {
 
       <div className="flex items-center gap-2 mb-4">
         <ListTodo size={14} className="text-accent" />
-        <h2 className="text-sm font-black text-white">To-Do</h2>
+        <h2 className="text-sm font-black text-dark">To-Do</h2>
       </div>
 
       <form onSubmit={submit} className="flex items-center gap-2 mb-3">
@@ -39,7 +39,7 @@ export function TodoWidget() {
           value={text}
           onChange={e => setText(e.target.value)}
           placeholder="Neue Aufgabe…"
-          className="flex-1 bg-dark rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all"
+          className="flex-1 bg-dark/5 rounded-xl px-3 py-2.5 text-sm text-dark placeholder-dark/30 outline-none focus:ring-1 focus:ring-accent transition-all"
         />
         <button
           type="submit"
@@ -52,7 +52,7 @@ export function TodoWidget() {
 
       <div className="max-h-80 overflow-y-auto space-y-1 -mx-1 px-1">
         {todos.length === 0 ? (
-          <p className="text-sm text-white/40 text-center py-6 font-medium">Keine offenen Aufgaben.</p>
+          <p className="text-sm text-dark/35 text-center py-6 font-medium">Keine offenen Aufgaben.</p>
         ) : (
           todos.map(t => {
             const due = isDue(t)
@@ -60,22 +60,22 @@ export function TodoWidget() {
               <div
                 key={t.id}
                 onClick={() => setSelected(t)}
-                className="flex items-center gap-2.5 group px-2 py-2 rounded-xl hover:bg-panel-hover transition-colors cursor-pointer"
+                className="flex items-center gap-2.5 group px-2 py-2 rounded-xl hover:bg-dark/5 transition-colors cursor-pointer"
               >
                 <button
                   onClick={e => { e.stopPropagation(); toggle(t.id) }}
                   className={`w-4.5 h-4.5 rounded-full shrink-0 flex items-center justify-center transition-all ${
-                    t.done ? 'bg-accent-green' : 'bg-dark'
+                    t.done ? 'bg-accent-green' : 'bg-dark/10'
                   }`}
                 >
                   {t.done && <span className="w-1.5 h-1.5 rounded-full bg-dark" />}
                 </button>
                 <div className="flex-1 min-w-0">
-                  <span className={`block text-sm font-medium truncate ${t.done ? 'text-white/25 line-through' : 'text-white/80'}`}>
+                  <span className={`block text-sm font-medium truncate ${t.done ? 'text-dark/30 line-through' : 'text-dark'}`}>
                     {t.text}
                   </span>
                   {t.reminderDate && !t.done && (
-                    <span className={`flex items-center gap-1 text-[10px] font-bold mt-0.5 ${due ? 'text-accent' : 'text-white/25'}`}>
+                    <span className={`flex items-center gap-1 text-[10px] font-bold mt-0.5 ${due ? 'text-accent' : 'text-dark/35'}`}>
                       <Bell size={9} />
                       {formatDate(t.reminderDate)}{t.reminderTime ? ` · ${t.reminderTime}` : ''}
                     </span>

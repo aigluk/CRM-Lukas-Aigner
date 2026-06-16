@@ -94,16 +94,16 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
       {/* Search */}
       <div className="mt-4 mb-4 flex gap-3">
         <div className="relative max-w-sm w-full">
-          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-600 pointer-events-none" />
+          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none" />
           <input
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Suchen..."
-            className="w-full bg-panel border border-rim-subtle rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-gray-700 outline-none focus:border-rim transition-colors"
+            className="w-full bg-panel rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-white/25 outline-none focus:ring-1 focus:ring-accent transition-all"
           />
         </div>
-        <div className="flex items-center text-xs text-gray-600">
+        <div className="flex items-center text-xs text-white/35 font-medium">
           {filtered.length} {filtered.length === 1 ? 'Lead' : 'Leads'}
         </div>
       </div>

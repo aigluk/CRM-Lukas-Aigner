@@ -1,7 +1,19 @@
-import { Lead } from '@/lib/types'
+import { Lead, LeadStatus } from '@/lib/types'
 import { STATUS_COLORS, STATUS_LABELS } from '@/lib/constants'
 import { formatDate } from '@/lib/utils'
 import { Activity } from 'lucide-react'
+
+const DOT_ON_WHITE: Record<LeadStatus, string> = {
+  'NEU':              'bg-dark/30',
+  'ERST KONTAKT':     'bg-dark/50',
+  'VERKAUFSGESPRÄCH': 'bg-accent',
+  'ZWEITER KONTAKT':  'bg-dark/70',
+  'CLOSING CALL':     'bg-accent',
+  'ABSCHLUSS':        'bg-accent-green',
+  'KEIN INTERESSE':   'bg-dark/15',
+  'BESTANDSKUNDE':    'bg-accent-green',
+  'NO GO':            'bg-dark/10',
+}
 
 export function ActivityFeed({ leads, compact }: { leads: Lead[]; compact?: boolean }) {
   const recent = [...leads]
@@ -10,22 +22,21 @@ export function ActivityFeed({ leads, compact }: { leads: Lead[]; compact?: bool
 
   if (compact) {
     return (
-      <div className="bg-panel rounded-2xl p-5 flex flex-col">
+      <div className="bg-white rounded-2xl p-5 flex flex-col">
         <div className="flex items-center gap-2 mb-4">
-          <Activity size={14} className="text-white/30" />
-          <h2 className="text-sm font-black text-white">Letzte Aktivitäten</h2>
+          <Activity size={14} className="text-accent" />
+          <h2 className="text-sm font-black text-dark">Letzte Aktivitäten</h2>
         </div>
         <div className="max-h-80 overflow-y-auto space-y-1">
           {recent.length === 0 ? (
-            <p className="text-sm text-white/40 text-center py-6 font-medium">Noch keine Leads vorhanden.</p>
+            <p className="text-sm text-dark/35 text-center py-6 font-medium">Noch keine Leads vorhanden.</p>
           ) : (
             recent.map(lead => {
-              const sc = STATUS_COLORS[lead.status]
               return (
-                <div key={lead.id} className="flex items-center gap-2.5 px-1 py-2 rounded-xl hover:bg-panel-hover transition-colors">
-                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${sc.dot}`} />
-                  <span className="text-sm font-bold text-white truncate flex-1">{lead.name}</span>
-                  <span className="text-[10px] text-white/20 shrink-0">{formatDate(lead.status_date || lead.updated_at)}</span>
+                <div key={lead.id} className="flex items-center gap-2.5 px-1 py-2 rounded-xl hover:bg-dark/5 transition-colors">
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${DOT_ON_WHITE[lead.status]}`} />
+                  <span className="text-sm font-bold text-dark truncate flex-1">{lead.name}</span>
+                  <span className="text-[10px] text-dark/30 shrink-0">{formatDate(lead.status_date || lead.updated_at)}</span>
                 </div>
               )
             })

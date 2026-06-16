@@ -29,17 +29,9 @@ export default async function DashboardPage() {
   return (
     <div>
       {/* Page header */}
-      <div className="flex items-start justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-black text-white tracking-tight leading-none">Dashboard</h1>
-          <p className="text-sm text-white/30 mt-2 capitalize font-medium">{today}</p>
-        </div>
-        <div className="hidden sm:flex items-center gap-2 bg-panel rounded-xl px-4 py-2">
-          <span className="w-2 h-2 rounded-full bg-accent-green shrink-0" />
-          <span className="text-xs font-semibold text-white/40">
-            {all.length} Leads
-          </span>
-        </div>
+      <div className="mb-8">
+        <h1 className="text-3xl font-black text-white tracking-tight leading-none">Dashboard</h1>
+        <p className="text-sm text-white/30 mt-2 capitalize font-medium">{today}</p>
       </div>
 
       <ReminderBanner />

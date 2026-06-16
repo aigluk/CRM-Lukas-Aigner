@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import { Lead } from '@/lib/types'
-import { STATUSES, STATUS_LABELS, STATUS_COLORS } from '@/lib/constants'
+import { STATUSES, STATUS_LABELS } from '@/lib/constants'
 
 function DonutChart({ segments }: { segments: { color: string; pct: number; label: string; count: number }[] }) {
   let offset = 0
@@ -32,13 +32,13 @@ function DonutChart({ segments }: { segments: { color: string; pct: number; labe
           return el
         })}
       </svg>
-      <ul className="space-y-1.5 flex-1 min-w-[140px]">
+      <ul className="space-y-1.5 flex-1 min-w-35">
         {segments.map((s, i) => (
           <li key={i} className="flex items-center gap-2 text-xs">
             <span className="w-2 h-2 rounded-full shrink-0" style={{ background: s.color }} />
-            <span className="text-gray-400 flex-1 truncate">{s.label}</span>
+            <span className="text-white/50 flex-1 truncate">{s.label}</span>
             <span className="font-bold text-white ml-auto">{s.count}</span>
-            <span className="text-gray-600 w-9 text-right">{s.pct.toFixed(0)}%</span>
+            <span className="text-white/30 w-9 text-right">{s.pct.toFixed(0)}%</span>
           </li>
         ))}
       </ul>
@@ -47,13 +47,15 @@ function DonutChart({ segments }: { segments: { color: string; pct: number; labe
 }
 
 const STATUS_HEX: Record<string, string> = {
-  'NEU':                '#666666',
-  'IN KONTAKT':         '#CCCCCC',
-  'TERMIN FIXIERT':     '#FF5252',
-  'ABSCHLUSS / ABSAGE': '#B9FBC0',
-  'KEIN INTERESSE':     '#383838',
-  'BESTANDSKUNDE':      '#B9FBC0',
-  'NO GO':              '#282828',
+  'NEU':              'rgba(255,255,255,0.35)',
+  'ERST KONTAKT':     'rgba(255,255,255,0.55)',
+  'VERKAUFSGESPRÄCH': '#FF5252',
+  'ZWEITER KONTAKT':  'rgba(255,255,255,0.75)',
+  'CLOSING CALL':     '#FF5252',
+  'ABSCHLUSS':        '#B9FBC0',
+  'KEIN INTERESSE':   'rgba(255,255,255,0.15)',
+  'BESTANDSKUNDE':    '#B9FBC0',
+  'NO GO':            'rgba(255,255,255,0.08)',
 }
 
 export function ReportsView({ leads }: { leads: Lead[] }) {
@@ -111,7 +113,7 @@ export function ReportsView({ leads }: { leads: Lead[] }) {
         <div className="bg-panel rounded-2xl p-6">
           <h2 className="text-sm font-semibold text-white mb-5">Status Verteilung</h2>
           {total === 0 ? (
-            <p className="text-gray-600 text-sm">Keine Daten.</p>
+            <p className="text-white/40 text-sm font-medium">Keine Daten.</p>
           ) : (
             <DonutChart segments={statusSegments} />
           )}
@@ -121,7 +123,7 @@ export function ReportsView({ leads }: { leads: Lead[] }) {
         <div className="bg-panel rounded-2xl p-6">
           <h2 className="text-sm font-semibold text-white mb-5">Top Branchen</h2>
           {brancheMap.length === 0 ? (
-            <p className="text-gray-600 text-sm">Keine Daten.</p>
+            <p className="text-white/40 text-sm font-medium">Keine Daten.</p>
           ) : (
             <ul className="space-y-2">
               {brancheMap.map(([b, count]) => {
@@ -129,12 +131,12 @@ export function ReportsView({ leads }: { leads: Lead[] }) {
                 return (
                   <li key={b}>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs text-gray-400">{b}</span>
+                      <span className="text-xs text-white/50">{b}</span>
                       <span className="text-xs font-bold text-white">{count}</span>
                     </div>
-                    <div className="h-1.5 bg-rim-subtle rounded-full overflow-hidden">
+                    <div className="h-1.5 bg-white/8 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-accent/60 rounded-full transition-all"
+                        className="h-full bg-accent rounded-full transition-all"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
@@ -160,11 +162,11 @@ export function ReportsView({ leads }: { leads: Lead[] }) {
                   className="w-full rounded-t-lg transition-all"
                   style={{
                     height: `${Math.max(pct * 1.2, count > 0 ? 4 : 0)}%`,
-                    background: STATUS_HEX[s] ?? '#333',
-                    opacity: count > 0 ? 0.85 : 0.2,
+                    background: STATUS_HEX[s] ?? 'rgba(255,255,255,0.1)',
+                    opacity: count > 0 ? 1 : 0.3,
                   }}
                 />
-                <span className="text-[9px] font-semibold text-gray-600 uppercase text-center leading-tight">
+                <span className="text-[9px] font-semibold text-white/30 uppercase text-center leading-tight">
                   {STATUS_LABELS[s]}
                 </span>
               </div>
