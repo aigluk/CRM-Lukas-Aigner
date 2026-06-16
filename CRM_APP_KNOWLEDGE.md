@@ -1,16 +1,17 @@
-# HF Media Lead CRM — App Knowledge File
-> Updated: 2026-04-03 | Version: v3.x
+# Lukas Aigner CRM — App Knowledge File
+> Updated: 2026-06-15 | Version: v4.0 (Next.js Rebuild)
 > This file is a living reference for future AI sessions. Update whenever major changes are made.
 
 ---
 
 ## 1. Projekt-Übersicht
 
-**App-Name:** Lead CRM Engine (HF Media)  
-**URL (Produktion):** https://hf-media-recruiting.vercel.app  
-**GitHub Repo:** https://github.com/aigluk/hf-media-recruiting  
+**App-Name:** Lukas Aigner CRM  
+**Kurzform:** LA CRM  
+**URL (Produktion):** https://lukas-aigner-crm.vercel.app *(nach Rename)*  
+**GitHub Repo:** https://github.com/aigluk/lukas-aigner-crm *(nach Rename)*  
 **Deployment:** Vercel (auto-deploy via GitHub main branch push)  
-**Stack:** Single-Page HTML + Vanilla JS + CSS (kein Framework), Vercel Serverless Functions (Node.js API routes), Vercel KV (Redis-kompatibel) für persistente Datenspeicherung
+**Stack:** Next.js 15 App Router + TypeScript + Tailwind CSS v4 + Supabase (PostgreSQL + Auth) + Vercel
 
 ---
 
@@ -18,52 +19,93 @@
 
 ```
 /
-├── public/
-│   └── index.html          ← Gesamte Frontend-App (HTML + CSS + JS, single-file)
-├── api/
-│   ├── leads.js            ← GET/POST Leads aus/in Vercel KV
+├── app/
+│   ├── (auth)/login/           ← Login-Screen (Supabase Auth)
+│   ├── (dashboard)/
+│   │   ├── layout.tsx          ← Sidebar + MobileNav Layout
+│   │   ├── page.tsx            ← Dashboard (KPIs + Activity Feed)
+│   │   ├── leads/page.tsx      ← Pipeline + Tabelle + Detail Modal
+│   │   ├── calendar/page.tsx   ← Tag/Woche/Monat Kalender
+│   │   ├── reports/page.tsx    ← Analytics + Charts
+│   │   └── generator/page.tsx  ← Lead Generator (Outscraper)
+│   ├── api/
+│   │   ├── leads/route.ts      ← GET/POST/PATCH/DELETE Leads (Supabase)
+│   │   ├── generate/route.ts   ← Lead-Generierung via Outscraper
+│   │   └── generate-message/route.ts ← LinkedIn-DM via Claude AI
+│   ├── globals.css             ← Tailwind v4 @theme + global styles
+│   └── layout.tsx              ← Root Layout (Inter Font, Metadata)
+├── components/
+│   ├── Logo.tsx                ← SVG Logo (currentColor)
+│   ├── layout/
+│   │   ├── Sidebar.tsx         ← Desktop Sidebar (220px)
+│   │   └── MobileNav.tsx       ← Mobile Bottom Nav
+│   ├── dashboard/
+│   │   ├── KPICards.tsx        ← 6 KPI-Karten
+│   │   └── ActivityFeed.tsx    ← Letzte Aktivitäten
 │   ├── leads/
-│   │   └── replace.js      ← PUT: Gesamte Lead-Liste überschreiben (für Delete)
-│   ├── generate.js         ← Lead-Generierung via Outscraper API
-│   ├── generate-message.js ← LinkedIn-Nachricht via Anthropic Claude API
-│   └── auth.js             ← Passwort-Authentifizierung gegen CRM_PASSWORD Env
-├── vercel.json             ← Vercel-Konfig (rewrites, headers)
-├── package.json
-└── CRM_APP_KNOWLEDGE.md    ← DIESE DATEI
+│   │   ├── LeadsView.tsx       ← Client-Komponente (State, Filter, CRUD)
+│   │   ├── PipelineTabs.tsx    ← Status-Tabs mit Count-Badges
+│   │   ├── LeadTable.tsx       ← Lead-Tabelle (responsive)
+│   │   └── LeadDetailModal.tsx ← Detail + Edit Modal
+│   ├── calendar/
+│   │   └── CalendarView.tsx    ← Tag/Woche/Monat Views
+│   ├── reports/
+│   │   └── ReportsView.tsx     ← Donut Charts + Bar Chart
+│   └── generator/
+│       └── GeneratorForm.tsx   ← Generator UI + Ergebnisliste
+├── lib/
+│   ├── supabase/
+│   │   ├── client.ts           ← Browser Supabase Client
+│   │   └── server.ts           ← Server Supabase Client (SSR)
+│   ├── types.ts                ← Lead, LeadStatus, LeadUpdate Typen
+│   ├── constants.ts            ← STATUSES, STATUS_COLORS, BRANCHES
+│   └── utils.ts                ← normalizeStatus, formatDate, cn, etc.
+├── supabase/
+│   ├── schema.sql              ← DB Schema (einmalig ausführen)
+│   └── migrate-from-kv.mjs    ← Datenmigration von altem Vercel KV
+├── middleware.ts               ← Supabase Auth Guard
+├── next.config.ts
+├── tailwind.config (in globals.css via @theme)
+└── CRM_APP_KNOWLEDGE.md        ← DIESE DATEI
 ```
 
 ---
 
 ## 3. Authentifizierung
 
-- **Login:** Master-Passwort (gesetzt als Vercel Environment Variable `CRM_PASSWORD`)
-- Das Passwort wird client-seitig via `/api/auth` validiert, Response gibt `{ok: true/false}`
-- Login-Screen mit Passwort-Toggle (Auge-Icon via Lucide)
+- **Provider:** Supabase Auth (Email + Password)
+- **Setup:** Einen User im Supabase Dashboard anlegen (Authentication → Users)
+- **Schutz:** `middleware.ts` leitet nicht-authentifizierte Requests auf `/login` um
+- **Logout:** Supabase `signOut()` in Sidebar
 
 ---
 
-## 4. Datenstruktur (Leads)
+## 4. Datenstruktur (Leads in Supabase)
 
-Leads werden als **JSON-Array** in Vercel KV unter dem Key `crm_global_leads_v1` gespeichert.
+Tabelle: `public.leads` — vollständiges Schema in `supabase/schema.sql`
 
-**Lead-Objekt (Felder):**
-```json
+**Wichtige Felder:**
+```typescript
 {
-  "name": "Firmenname",
-  "ceos": "Max Mustermann",
-  "owner": "Alternativfeld für Inhaber",
-  "industry": "Restaurant",
-  "branche": "Alternativfeld Branche",
-  "region": "Linz",
-  "address": "Musterstraße 1, 4020 Linz",
-  "phone": "+43 123 456789",
-  "email": "info@firma.at",
-  "website": "https://firma.at",
-  "linkedin": "https://linkedin.com/in/...",
-  "status": "NEU / OFFEN",
-  "note": "Dealnotiz",
-  "notes": "Längere Notiz / Termininfos",
-  "description": "Firmenbeschreibung"
+  id: uuid (auto)
+  user_id: uuid (FK auth.users)
+  name: string               // Unternehmensname
+  ceos: string               // Ansprechpartner / Geschäftsführer
+  branche: string            // Branche (normalisiert)
+  region: string             // Adresse / Region
+  city: string               // Stadt
+  phone: string
+  email: string              // Haupt-Email
+  email_general: string      // info@, office@
+  email_ceo: string          // CEO-Email
+  website: string
+  status: LeadStatus         // normalisiert (s. Abschnitt 5)
+  status_date: timestamptz   // Datum der letzten Statusänderung
+  note: string               // Deal Note
+  notes: string              // Notizen
+  appointment_date: string   // Termin-Datum
+  appointment_from: string   // Von-Zeit
+  appointment_to: string     // Bis-Zeit
 }
 ```
 
@@ -71,14 +113,17 @@ Leads werden als **JSON-Array** in Vercel KV unter dem Key `crm_global_leads_v1`
 
 ## 5. CRM Status-Pipeline
 
-Statuses (normalisiert via `normalizeStatus()`):
-| Raw Input | Normalisiert |
-|---|---|
-| "NEU", "NEU / OFFEN", "Neu/Offen", etc. | `NEU` |
-| "IN KONTAKT", "In Kontakt", "INKONTAKT" | `IN KONTAKT` |
-| "TERMIN FIXIERT", "Termin fixiert" | `TERMIN FIXIERT` |
-| "KEIN INTERESSE", "Kein Interesse" | `KEIN INTERESSE` |
-| "ABSCHLUSS / ABSAGE", "Abschluss" | `ABSCHLUSS / ABSAGE` |
+| Status | Bedeutung | Farbe |
+|---|---|---|
+| `NEU` | Frischer Lead | Weiß |
+| `IN KONTAKT` | Kontakt aufgenommen | Blau (#60A5FA) |
+| `TERMIN FIXIERT` | Termin vereinbart | Rot (#FF5252) |
+| `ABSCHLUSS / ABSAGE` | Deal gewonnen oder verloren | Mint (#B9FBC0) |
+| `KEIN INTERESSE` | Abgelehnt | Grau |
+| `BESTANDSKUNDE` | Aktiver Kunde | Gelb (#FBBF24) |
+| `NO GO` | Blacklist | Dunkelgrau |
+
+Normalisierung via `lib/utils.ts → normalizeStatus()`
 
 ---
 
@@ -86,135 +131,75 @@ Statuses (normalisiert via `normalizeStatus()`):
 
 | Endpunkt | Methode | Beschreibung |
 |---|---|---|
-| `/api/auth` | POST | Passwort prüfen |
-| `/api/leads` | GET | Alle Leads laden |
-| `/api/leads` | POST | Leads speichern (volle Liste) |
-| `/api/leads/replace` | PUT | Leads ersetzen (für Delete-Operationen) |
-| `/api/generate` | POST | Leads via Outscraper generieren |
-| `/api/generate-message` | POST | LinkedIn-DM via Claude generieren |
+| `/api/leads` | GET | Alle Leads laden (Supabase) |
+| `/api/leads` | POST | Leads einfügen (Batch oder Single, Merge-Logik) |
+| `/api/leads` | PATCH | Lead aktualisieren (id + fields) |
+| `/api/leads` | DELETE | Lead löschen (?id=uuid) |
+| `/api/generate` | POST | Leads via Outscraper + Firmenbuch generieren |
+| `/api/generate-message` | POST | LinkedIn-DM via Claude AI (claude-haiku-4-5) |
 
 ---
 
-## 7. Frontend-Architektur (index.html)
+## 7. CI-Design
 
-### State-Management
-```javascript
-const state = {
-  leads: [],        // aktuell geladene Leads
-  activeTab: 'NEU', // aktive Pipeline-Spalte
-  password: ''      // auth token
-};
-window.__leads = state.leads; // globaler Index-Zugriff für onclick-Handler
-```
+**Primärfarbe:** `#FF5252` (Coral Red — Accent)  
+**Sekundärfarbe:** `#B9FBC0` (Mint Green — Success)  
+**Background:** `#1A1A1A` (Deep Black)  
+**Surface:** `#222222` (Panel / Karten)  
+**Font:** Inter (Google Fonts via next/font)  
+**Icons:** Lucide React  
+**Logo:** Geometrisches "S" Lightning-Bolt SVG (`currentColor` → weiß auf dunkel)
 
-### Wichtige JS-Funktionen
-| Funktion | Beschreibung |
-|---|---|
-| `login()` | Authentifizierung |
-| `logout()` | Session beenden |
-| `syncDatabase()` | Leads von KV laden |
-| `syncLeads(arr)` | Leads in KV speichern |
-| `normalizeStatus(s)` | Status-String normalisieren |
-| `updateKPIs()` | Dashboard-Metriken aktualisieren |
-| `renderTable()` | Lead-Tabelle rendern |
-| `renderCalendar()` | Kalender rendern (calView: day/week/month) |
-| `renderActivityFeed()` | Aktivitäts-Feed rendern |
-| `renderReports()` | Analytics rendern |
-| `showLeadDetail(idx)` | Lead-Detail-Modal öffnen |
-| `showStatusLeads(status)` | Status-Filter-Modal öffnen |
-| `openNewAppointment()` | Neuer-Termin-Modal öffnen |
-| `saveAppt()` | Termin speichern + Lead-Status updaten |
-| `deleteLead(idx)` | Lead löschen (via replace API) |
-| `addToCalendar(idx)` | .ics Datei exportieren |
-| `renderDayView(grid,...)` | Tagesansicht rendern |
-| `renderWeekView(grid,...)` | Wochenansicht rendern |
-| `renderMonthView(grid,...)` | Monatsansicht rendern |
-| `calNav(dir, reset)` | Kalender-Monat navigieren |
-| `setCalView(view)` | Kalender-Ansicht wechseln (day/week/month) |
-| `switchView(view)` | Hauptansicht wechseln |
-| `closeModal(id)` / `openModal(id)` | Modals öffnen/schließen |
-
-### Views / Sections
-- `view-dashboard` — KPI-Karten + Aktivitäts-Feed
-- `view-leads` — Pipeline-Tabs + Lead-Tabelle
-- `view-calendar` — Kalender (Tag/Woche/Monat)
-- `view-reports` — Analytics/Donut-Charts
-- `view-generator` — Lead-Generierungs-Formular
+Tailwind v4 Theme-Tokens (in `app/globals.css`):
+- `accent` → #FF5252
+- `accent-green` → #B9FBC0  
+- `dark` → #1A1A1A
+- `panel` → #222222
+- `panel-hover` → #2C2C2C
+- `rim` → #383838
+- `rim-subtle` → #2A2A2A
 
 ---
 
-## 8. CI-Design
-
-**Primärfarbe:** `#0E2A47` (Navy Dark Blue)  
-**Primary Hover:** `#0a1f35`  
-**Blau-Abstufungen für KPIs:**
-- Neue Leads: `#c8d8e8` (Rand), `#4a7fa5` (Icon)
-- In Akquise: `#3a6ea5`  
-- Termin Fixiert: `#0E2A47`
-- Abschlüsse: `#16a34a` (Grün)
-- Orange für TERMIN FIXIERT Events im Kalender: `#f97316`
-
-**Font:** Inter (Google Fonts)  
-**Icons:** Lucide Icons (via CDN)
-
----
-
-## 9. Modals / Popups
-
-| Modal ID | Beschreibung | JS-Funktion |
-|---|---|---|
-| `leadModal` | Lead-Detailansicht | `showLeadDetail(idx)` |
-| `statusModal` | Leads nach Status filtern | `showStatusLeads(status)` |
-| `apptModal` | Neuer Termin anlegen | `openNewAppointment()` |
-| `pitchModal` | LinkedIn-Pitch generieren | `openModal(idx)` |
-
----
-
-## 10. Bekannte technische Details & Gotchas
-
-- **onclick-Handler:** Immer `window.__leads[idx]` oder `state.leads[idx]` verwenden — NIEMALS JSON.stringify in onclick (crasht bei Sonderzeichen)
-- **KV-Client:** Muss als Singleton initialisiert werden: `const kv = createClient({ url, token })` — nicht mehrfach instanziieren
-- **Status-Normalisierung:** `normalizeStatus()` muss überall verwendet werden, da Leads unterschiedliche Schreibweisen haben können
-- **calView:** Globale Variable `let calView = 'day'` — AUSSERHALB von `calNav()` deklariert (sonst JS-Syntax-Error!)
-- **renderCalendar Aufruf:** Immer nach `setCalView()` oder `calNav()` aufrufen
-- **Responsive Breakpoints:** 1100px (3-col metrics), 900px (sidebar hidden), 600px (mobile)
-- **Authentifizierung:** Login-Screen hat Passwort-Toggle (Auge-Icon, `id="eyeIcon"`)
-
----
-
-## 11. Vercel Environment Variables
+## 8. Vercel Environment Variables
 
 | Variable | Beschreibung |
 |---|---|
-| `CRM_PASSWORD` | Master-Passwort für Login |
-| `KV_REST_API_URL` | Vercel KV API URL |
-| `KV_REST_API_TOKEN` | Vercel KV API Token |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase Project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase Anon Key |
 | `OUTSCRAPER_API_KEY` | Outscraper für Lead-Generierung |
+| `OPENDATA_HOST_API_KEY` | Firmenbuch Austria API |
+| `APOLLO_API_KEY` | Apollo.io (Fallback CEO/Email) |
 | `ANTHROPIC_API_KEY` | Claude API für LinkedIn-Nachrichten |
 
 ---
 
-## 12. Letzte Änderungen (Chronologie)
+## 9. Setup-Anleitung (einmalig)
+
+1. **Supabase Projekt erstellen** → `supabase/schema.sql` im SQL Editor ausführen
+2. **Supabase User anlegen** → Authentication → Users → Add User
+3. **Vercel Env Vars setzen** → SUPABASE_URL + SUPABASE_ANON_KEY
+4. **Datenmigration** (optional) → `node supabase/migrate-from-kv.mjs`
+5. **GitHub Push** → Vercel deployed automatisch
+
+---
+
+## 10. Bekannte technische Details
+
+- **Middleware:** Schützt alle Routen außer `/login` und statischen Assets
+- **RLS:** Row Level Security in Supabase — jeder User sieht nur seine eigenen Leads
+- **Merge-Logik:** POST `/api/leads` merged Leads anhand Name+Website-Key, schützt user-gesetzte Status
+- **normalizeStatus():** Immer verwenden — Leads können unterschiedliche Schreibweisen haben
+- **Server Components:** Dashboard und Leads-Seiten laden Daten server-seitig (schnell, kein Flash)
+- **Client Components:** LeadsView, CalendarView, GeneratorForm, Sidebar — brauchen User-Interaktion
+- **Tailwind v4:** Konfiguration in `app/globals.css` via `@theme {}`, kein tailwind.config.ts
+
+---
+
+## 11. Änderungschronologie
 
 | Datum | Änderung |
 |---|---|
-| 2026-04-03 | Initiales Setup: Lead-Generierung, KV-Sync, Outscraper-Integration |
-| 2026-04-03 | Pipeline-Rendering-Fix: JSON.stringify → window.__leads[idx] |
-| 2026-04-03 | Delete-Funktion: /api/leads/replace.js Endpunkt erstellt |
-| 2026-04-03 | Kalender: Mono-Design, orange nur TERMIN FIXIERT |
-| 2026-04-03 | Responsives Layout: Media-Queries für mobile/tablet |
-| 2026-04-03 | Kalender: JS-gerendert mit Live-Datum, Mini-Cal mit Navigation |
-| 2026-04-03 | CI-Farbe: #0E2A47 Navy als --primary gesetzt |
-| 2026-04-03 | Login: Passwort-Toggle (Auge-Icon) |
-| 2026-04-03 | Bug-Fix: calView-Deklaration war innerhalb calNav() — JS komplett kaputt |
-| 2026-04-03 | Kalender: Tag/Woche/Monat Ansichten mit echten Zeitslots |
-| 2026-04-03 | Dashboard: Metric Cards mit CI-Blautönen und Detail-Buttons |
-| 2026-04-03 | Modals: Lead-Detail, Status-Liste, Neuer Termin |
-| 2026-04-03 | Aktivitäts-Feed: Echte Lead-Daten, sortiert nach Status |
-| 2026-04-03 | Action Icons: Overflow-Fix (kein Clipping beim Hover) |
-| 2026-04-03 | Dynamic Branch Filter: Populates from current lead data |
-| 2026-04-03 | Deal Note Modal: Pop-up for larger text editing |
-| 2026-04-04 | Lead Import: Manual CSV/Excel/PDF upload with duplicate check |
-| 2026-04-04 | statusDate: Tracks the day a lead changed its CRM status |
-| 2026-04-04 | Calendar Fix: Only shows confirmed appointments (TERMIN FIXIERT) |
-| 2026-04-04 | UI Details: Separated City/Address, removed LinkedIn, fixed arrows |
+| 2026-04-03 | Initiales Setup: HTML-Monolith, Vercel KV, Outscraper |
+| 2026-04-04 | Lead Import, statusDate, Calendar Fix |
+| 2026-06-15 | **Vollständiger Rebuild:** Next.js 15 + Tailwind v4 + Supabase, CI-Redesign (LA Branding) |

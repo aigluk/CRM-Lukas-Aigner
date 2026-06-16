@@ -45,7 +45,7 @@ VARIANTE 2 (Direkt & Persönlich - Du-Form):
 - Starte direkt (ohne "Danke fürs Vernetzen").
 - Sprich den [CEO/Kontakt] per "Du" an (Hallo [Vorname]).
 - Fokussiere dich auf ein typisches Branchen-Problem (Bsp: Gastronomie = Personalmangel/Köche; Immobilien = gute Makler finden; Industrie = Fachkräftemangel).
-- Biete an, wie HF Media dabei helfen kann, und frage unverbindlich nach Interesse.
+- Biete an, wie Lukas Aigner dabei helfen kann, und frage unverbindlich nach Interesse.
 
 VARIANTE 3 (Extrem kurz & knackig - Sie-Form):
 - Maximal 3-4 kurze Sätze.
@@ -68,9 +68,9 @@ ${currentMessage}
 
 WICHTIGE REGELN:
 1. Absolut KEINE Emojis!
-2. Schreibe immer in der Ich-Form ("ich" statt "wir"), außer bei "Wir von HF Media".
+2. Schreibe immer in der Ich-Form ("ich" statt "wir"), außer bei "Wir von LA".
 3. Kurz, modern, direkt und nicht schleimig.
-4. HF Media Link einbinden: https://www.hfmedia.at/recruiting
+4. LA CRM Link nicht einbinden
 
 Gib NUR die Nachricht zurück (ohne Anführungszeichen, ohne Einleitungsvokabeln).`;
   } else {

@@ -1,0 +1,20 @@
+export default function Logo({ className = 'h-8 w-auto' }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 1080 1080"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-label="Lukas Aigner CRM"
+    >
+      <polygon
+        fill="currentColor"
+        points="778.73 456.88 486.36 456.88 604.46 147.27 990.54 0 660.64 0 473.2 0 236.36 620.89 348.58 620.89 423.8 620.89 778.73 620.89 778.73 1080 1017.92 456.88 910.89 456.88 778.73 456.88"
+      />
+      <polygon
+        fill="currentColor"
+        points="370.17 761.47 182.74 761.47 62.08 1077.77 171.52 1077.77 249.52 1077.77 595.15 1077.77 293.42 962.67 370.17 761.47"
+      />
+    </svg>
+  )
+}

@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+@theme {
+  /* Brand palette */
+  --color-accent:        #FF5252;
+  --color-accent-hover:  #e04444;
+  --color-accent-green:  #B9FBC0;
+
+  /* Dark background scale */
+  --color-dark:          #1A1A1A;
+  --color-panel:         #222222;
+  --color-panel-2:       #262626;
+  --color-panel-hover:   #2C2C2C;
+
+  /* Borders */
+  --color-rim:           #383838;
+  --color-rim-subtle:    #2A2A2A;
+
+  /* Font */
+  --font-family-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background: #1A1A1A;
+    color: #FFFFFF;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Thin dark scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #333; border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: #444; }
+
+  /* Hide scrollbar but keep scroll on pipeline tabs */
+  .scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }
+  .scrollbar-none::-webkit-scrollbar { display: none; }
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+
+  /* Fade-up animation for view transitions */
+  .animate-fade-up {
+    animation: fadeUp 0.25s ease-out;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Shimmer for loading states */
+  .shimmer {
+    background: linear-gradient(90deg, #222 25%, #2C2C2C 50%, #222 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  @keyframes shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+}

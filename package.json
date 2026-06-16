@@ -1,17 +1,29 @@
 {
-  "name": "hf-media-recruiting",
+  "name": "lukas-aigner-crm",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
-    "@vercel/kv": "^3.0.0",
-    "xlsx": "^0.18.5"
+    "@supabase/ssr": "^0.6.0",
+    "@supabase/supabase-js": "^2.50.0",
+    "lucide-react": "^0.511.0",
+    "next": "^15.5.19",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "^15.5.19",
+    "playwright": "^1.61.0",
+    "tailwindcss": "^4",
+    "typescript": "^5"
   }
 }

@@ -19,9 +19,9 @@ export default async function handler(req, res) {
     // Build the .ics string
     let ics = "BEGIN:VCALENDAR\r\n";
     ics += "VERSION:2.0\r\n";
-    ics += "PRODID:-//HF Media Lead Gen//CRM Sync//EN\r\n";
+    ics += "PRODID:-//Lukas Aigner CRM//CRM Sync//EN\r\n";
     ics += "CALSCALE:GREGORIAN\r\n";
-    ics += "X-WR-CALNAME:HF Media CRM Termine\r\n";
+    ics += "X-WR-CALNAME:LA CRM Termine\r\n";
     ics += "X-WR-TIMEZONE:Europe/Vienna\r\n";
     ics += "METHOD:PUBLISH\r\n";
     ics += "REFRESH-INTERVAL;VALUE=DURATION:PT15M\r\n";
@@ -59,7 +59,7 @@ export default async function handler(req, res) {
       if (!dtStart || !dtEnd) return;
 
       const nowStr = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-      const uid = (l.name || 'unbekannt').replace(/\s+/g,'').toLowerCase() + '-' + l.appointmentDate.replace(/\D/g,'') + '@hf-media.crm';
+      const uid = (l.name || 'unbekannt').replace(/\s+/g,'').toLowerCase() + '-' + l.appointmentDate.replace(/\D/g,'') + '@la.crm';
 
       ics += "BEGIN:VEVENT\r\n";
       ics += `UID:${uid}\r\n`;
@@ -93,7 +93,7 @@ export default async function handler(req, res) {
     ics += "END:VCALENDAR\r\n";
 
     res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
-    res.setHeader('Content-Disposition', 'attachment; filename="hf-media-crm.ics"');
+    res.setHeader('Content-Disposition', 'attachment; filename="la-crm.ics"');
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate'); // Avoid stale caching
     return res.status(200).send(ics);
 

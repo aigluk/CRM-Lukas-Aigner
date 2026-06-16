@@ -3,7 +3,7 @@ import { kv } from '@vercel/kv';
 const PASS = process.env.CRM_PASSWORD || 'nordstein2026';
 const META_APP_ID = process.env.META_APP_ID || '';
 const META_APP_SECRET = process.env.META_APP_SECRET || '';
-const REDIRECT_URI = process.env.META_REDIRECT_URI || 'https://hf-media-recruiting.vercel.app/api/meta/callback';
+const REDIRECT_URI = process.env.META_REDIRECT_URI || 'https://lukas-aigner-crm.vercel.app/api/meta/callback';
 
 export default async function handler(req, res) {
   if (req.headers.authorization !== `Bearer ${PASS}` && !req.url.includes('code=')) {
@@ -30,7 +30,7 @@ export default async function handler(req, res) {
         <ul>
           <li><code>META_APP_ID</code> – deine Facebook App ID</li>
           <li><code>META_APP_SECRET</code> – dein Facebook App Secret</li>
-          <li><code>META_REDIRECT_URI</code> – https://hf-media-recruiting.vercel.app/api/meta/callback</li>
+          <li><code>META_REDIRECT_URI</code> – https://lukas-aigner-crm.vercel.app/api/meta/callback</li>
         </ul>
         <p>Dann Vercel neu deployen.</p>
         <a href="/#metasync">← Zurück zur App</a>
