@@ -21,21 +21,21 @@ export function ActivityFeed({ leads, compact }: { leads: Lead[]; compact?: bool
 
   if (compact) {
     return (
-      <div className="bg-panel rounded-2xl p-5 flex flex-col">
-        <div className="flex items-center gap-2 mb-4">
+      <div className="bg-panel rounded-2xl p-5 flex flex-col h-full">
+        <div className="flex items-center gap-2 mb-4 shrink-0">
           <Activity size={14} className="text-accent" />
           <h2 className="text-sm font-bold text-white">Letzte Aktivitäten</h2>
         </div>
-        <div className="flex-1 overflow-y-auto space-y-1 min-h-0 max-h-72">
+        <div className="flex-1 overflow-y-auto space-y-1 min-h-0">
           {recent.length === 0 ? (
             <p className="text-sm text-white/35 text-center py-6 font-medium">Noch keine Leads vorhanden.</p>
           ) : (
             recent.map(lead => (
-              <div key={lead.id} className="flex items-center gap-2.5 px-1 py-2 rounded-xl hover:bg-panel-hover transition-colors">
+              <a key={lead.id} href="/leads" className="flex items-center gap-2.5 px-1 py-2 rounded-xl hover:bg-panel-hover transition-colors">
                 <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${DOT[lead.status]}`} />
                 <span className="text-sm font-medium text-white truncate flex-1">{lead.name}</span>
                 <span className="text-[11px] text-white/30 shrink-0">{formatDate(lead.status_date || lead.updated_at)}</span>
-              </div>
+              </a>
             ))
           )}
         </div>

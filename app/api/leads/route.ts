@@ -7,17 +7,19 @@ const DEV_USER_ID = 'dev-local'
 
 async function getAuthClient() {
   if (DEV) return { supabase: null, user: { id: DEV_USER_ID } as any }
-  const supabase = await createClient()
-  // Use getClaims (local JWT validation, no network call) — same as middleware
-  const { data: claimsData, error } = await supabase.auth.getClaims()
-  const sub = claimsData?.claims?.sub
-  if (error || !sub) {
-    // Fallback: try getUser (network call)
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    if (userError || !user) return { supabase: null, user: null }
+  try {
+    const supabase = await createClient()
+    // Try fast local JWT validation first
+    const claimsResult = await supabase.auth.getClaims().catch(() => ({ data: null, error: null }))
+    const sub = (claimsResult.data as any)?.claims?.sub
+    if (sub) return { supabase, user: { id: sub as string } }
+    // Fallback: server-side verification
+    const { data: { user }, error } = await supabase.auth.getUser()
+    if (error || !user) return { supabase: null, user: null }
     return { supabase, user }
+  } catch {
+    return { supabase: null, user: null }
   }
-  return { supabase, user: { id: sub as string } }
 }
 
 // GET — fetch all leads

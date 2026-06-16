@@ -28,7 +28,7 @@ export default async function DashboardPage() {
   })
 
   return (
-    <div className="space-y-5">
+    <div className="flex flex-col gap-5">
       <div>
         <h1 className="text-3xl font-black text-white tracking-tight leading-none">Dashboard</h1>
         <p className="text-sm text-white/30 mt-2 capitalize font-medium">{today}</p>
@@ -40,7 +40,8 @@ export default async function DashboardPage() {
 
       <KPICards leads={all} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      {/* Bottom row — grows to fill remaining viewport height */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 min-h-95">
         <TodayPanel leads={all} />
         <TodoWidget />
         <ActivityFeed leads={all} compact />
