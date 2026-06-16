@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
-  LayoutDashboard, Users, Calendar, BarChart2, Zap, LogOut,
+  LayoutDashboard, Users, Calendar, BarChart2, Zap, LogOut, Settings,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Logo from '@/components/Logo'
@@ -66,8 +66,17 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Logout */}
-      <div className="p-3 pb-6">
+      {/* Account */}
+      <div className="p-3 pb-6 space-y-1">
+        <Link
+          href="/settings"
+          className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-bold transition-all ${
+            isActive('/settings') ? 'bg-accent text-white' : 'text-white/25 hover:text-white hover:bg-panel-hover'
+          }`}
+        >
+          <Settings size={16} strokeWidth={isActive('/settings') ? 2.5 : 2} />
+          Einstellungen
+        </Link>
         <button
           onClick={logout}
           className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-bold text-white/25 hover:text-white hover:bg-panel-hover transition-all w-full"

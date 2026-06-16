@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Users, Calendar, BarChart2, Zap } from 'lucide-react'
+import { LayoutDashboard, Users, Calendar, BarChart2, Zap, Settings } from 'lucide-react'
 
 const NAV = [
   { href: '/',          label: 'Dashboard', icon: LayoutDashboard },
@@ -10,6 +10,7 @@ const NAV = [
   { href: '/calendar',  label: 'Kalender',  icon: Calendar },
   { href: '/reports',   label: 'Reports',   icon: BarChart2 },
   { href: '/generator', label: 'Generator', icon: Zap },
+  { href: '/settings',  label: 'Profil',    icon: Settings },
 ]
 
 export function MobileNav() {
