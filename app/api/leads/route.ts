@@ -8,9 +8,16 @@ const DEV_USER_ID = 'dev-local'
 async function getAuthClient() {
   if (DEV) return { supabase: null, user: { id: DEV_USER_ID } as any }
   const supabase = await createClient()
-  const { data: { user }, error } = await supabase.auth.getUser()
-  if (error || !user) return { supabase: null, user: null }
-  return { supabase, user }
+  // Use getClaims (local JWT validation, no network call) — same as middleware
+  const { data: claimsData, error } = await supabase.auth.getClaims()
+  const sub = claimsData?.claims?.sub
+  if (error || !sub) {
+    // Fallback: try getUser (network call)
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (userError || !user) return { supabase: null, user: null }
+    return { supabase, user }
+  }
+  return { supabase, user: { id: sub as string } }
 }
 
 // GET — fetch all leads
@@ -49,12 +56,11 @@ export async function POST(req: NextRequest) {
   if (Array.isArray(body.leads)) {
     const rows = body.leads.map((l: any) => ({
       ...l,
-      user_id:    user.id,
-      status:     normalizeStatus(l.status),
+      user_id:     user.id,
+      status:      normalizeStatus(l.status),
       status_date: new Date().toISOString(),
     }))
 
-    // Fetch existing leads to avoid duplicates (match by name + website)
     const { data: existing } = await supabase
       .from('leads')
       .select('id, name, website, status, notes, note, appointment_date, appointment_from, appointment_to')
@@ -73,7 +79,6 @@ export async function POST(req: NextRequest) {
       const key = buildKey(row)
       const ex  = existingMap.get(key)
       if (ex) {
-        // Preserve user-set status, notes, appointments
         const incomingIsNew = !row.status || row.status === 'NEU'
         const existingIsUserSet = ex.status && ex.status !== 'NEU'
         if (incomingIsNew && existingIsUserSet) {
@@ -89,11 +94,9 @@ export async function POST(req: NextRequest) {
       }
     })
 
-    const results: any[] = []
     if (toInsert.length) {
-      const { data, error } = await supabase.from('leads').insert(toInsert).select()
+      const { error } = await supabase.from('leads').insert(toInsert)
       if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-      results.push(...(data ?? []))
     }
     if (toUpdate.length) {
       for (const u of toUpdate) {
@@ -106,7 +109,14 @@ export async function POST(req: NextRequest) {
   }
 
   // Single insert
-  const lead = { ...body, user_id: user.id, status: normalizeStatus(body.status) }
+  const { status_date, ...rest } = body
+  const lead = {
+    ...rest,
+    user_id:     user.id,
+    status:      normalizeStatus(body.status),
+    status_date: new Date().toISOString(),
+  }
+
   const { data, error } = await supabase.from('leads').insert(lead).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ lead: data }, { status: 201 })

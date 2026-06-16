@@ -1,6 +1,7 @@
+import Link from 'next/link'
 import { Lead } from '@/lib/types'
 import { isSameDay } from '@/lib/utils'
-import { CalendarClock, Phone } from 'lucide-react'
+import { CalendarClock, Phone, ArrowRight } from 'lucide-react'
 
 export function TodayPanel({ leads }: { leads: Lead[] }) {
   const today = new Date()
@@ -10,22 +11,23 @@ export function TodayPanel({ leads }: { leads: Lead[] }) {
 
   return (
     <div className="bg-panel rounded-2xl p-5 flex flex-col">
-      <div className="flex items-center gap-2 mb-4">
+      <Link href="/calendar" className="flex items-center gap-2 mb-4 group">
         <CalendarClock size={14} className="text-accent" />
-        <h2 className="text-sm font-black text-white">Heute</h2>
-      </div>
+        <h2 className="text-sm font-bold text-white flex-1">Heute</h2>
+        <ArrowRight size={13} className="text-white/20 group-hover:text-white/50 transition-colors" />
+      </Link>
 
-      <div className="max-h-80 overflow-y-auto space-y-2">
+      <div className="flex-1 overflow-y-auto space-y-2 min-h-0 max-h-72">
         {appts.length === 0 ? (
           <p className="text-sm text-white/35 text-center py-6 font-medium">Keine Termine heute.</p>
         ) : (
           appts.map(l => (
             <div key={l.id} className="flex items-center gap-3 bg-dark rounded-xl px-3.5 py-2.5">
               <div className="bg-accent rounded-lg px-2 py-1 shrink-0">
-                <p className="text-[11px] font-black text-white">{l.appointment_from || '—'}</p>
+                <p className="text-[11px] font-bold text-white">{l.appointment_from || '—'}</p>
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold text-white truncate">{l.name}</p>
+                <p className="text-sm font-semibold text-white truncate">{l.name}</p>
                 {l.phone && (
                   <a href={`tel:${l.phone}`} className="flex items-center gap-1 text-[11px] text-white/40 hover:text-accent transition-colors">
                     <Phone size={10} />{l.phone}

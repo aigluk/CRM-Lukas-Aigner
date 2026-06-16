@@ -2,9 +2,8 @@ import { LeadStatus } from './types'
 
 export const STATUSES: LeadStatus[] = [
   'NEU',
-  'ERST KONTAKT',
   'VERKAUFSGESPRÄCH',
-  'ZWEITER KONTAKT',
+  'FOLLOW UP',
   'CLOSING CALL',
   'ABSCHLUSS',
   'KEIN INTERESSE',
@@ -14,9 +13,8 @@ export const STATUSES: LeadStatus[] = [
 
 export const STATUS_LABELS: Record<LeadStatus, string> = {
   'NEU':             'Neu',
-  'ERST KONTAKT':    'Erst Kontakt',
   'VERKAUFSGESPRÄCH':'Verkaufsgespräch',
-  'ZWEITER KONTAKT': 'Zweiter Kontakt',
+  'FOLLOW UP':       'Follow Up',
   'CLOSING CALL':    'Closing Call',
   'ABSCHLUSS':       'Abschluss',
   'KEIN INTERESSE':  'Kein Interesse',
@@ -26,9 +24,8 @@ export const STATUS_LABELS: Record<LeadStatus, string> = {
 
 export const STATUS_COLORS: Record<LeadStatus, { bg: string; text: string; dot: string }> = {
   'NEU':             { bg: 'bg-white/7',         text: 'text-white/45',     dot: 'bg-white/35'    },
-  'ERST KONTAKT':    { bg: 'bg-white/12',        text: 'text-white/65',     dot: 'bg-white/55'    },
   'VERKAUFSGESPRÄCH':{ bg: 'bg-accent/15',       text: 'text-accent',       dot: 'bg-accent'      },
-  'ZWEITER KONTAKT': { bg: 'bg-white/16',        text: 'text-white',        dot: 'bg-white'       },
+  'FOLLOW UP':       { bg: 'bg-white/16',        text: 'text-white',        dot: 'bg-white'       },
   'CLOSING CALL':    { bg: 'bg-accent/20',       text: 'text-accent',       dot: 'bg-accent'      },
   'ABSCHLUSS':       { bg: 'bg-accent-green/15', text: 'text-accent-green', dot: 'bg-accent-green'},
   'KEIN INTERESSE':  { bg: 'bg-white/4',         text: 'text-white/22',     dot: 'bg-white/18'    },

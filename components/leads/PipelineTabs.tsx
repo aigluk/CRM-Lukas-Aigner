@@ -5,9 +5,8 @@ import { STATUSES, STATUS_LABELS } from '@/lib/constants'
 
 const ACTIVE_STYLE: Record<LeadStatus, string> = {
   'NEU':             'bg-white text-dark',
-  'ERST KONTAKT':    'bg-white text-dark',
-  'ZWEITER KONTAKT': 'bg-white text-dark',
   'VERKAUFSGESPRÄCH':'bg-white text-dark',
+  'FOLLOW UP':       'bg-white text-dark',
   'CLOSING CALL':    'bg-white text-dark',
   'ABSCHLUSS':       'bg-accent-green text-dark',
   'KEIN INTERESSE':  'bg-white text-dark',
@@ -33,7 +32,7 @@ export function PipelineTabs({
           <button
             key={status}
             onClick={() => onStatusChange(status)}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all shrink-0 ${
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all shrink-0 ${
               active
                 ? ACTIVE_STYLE[status]
                 : 'bg-panel text-white/25 hover:text-white/50 hover:bg-panel-hover'

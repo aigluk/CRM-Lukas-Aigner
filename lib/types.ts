@@ -1,8 +1,7 @@
 export type LeadStatus =
   | 'NEU'
-  | 'ERST KONTAKT'
   | 'VERKAUFSGESPRÄCH'
-  | 'ZWEITER KONTAKT'
+  | 'FOLLOW UP'
   | 'CLOSING CALL'
   | 'ABSCHLUSS'
   | 'KEIN INTERESSE'

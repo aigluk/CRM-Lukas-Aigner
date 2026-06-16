@@ -1,8 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { StatTiles } from '@/components/dashboard/StatTiles'
 import { KPICards } from '@/components/dashboard/KPICards'
-import { PipelineDonut } from '@/components/dashboard/PipelineDonut'
-import { TopBranchen } from '@/components/dashboard/TopBranchen'
 import { ActivityFeed } from '@/components/dashboard/ActivityFeed'
 import { TodayPanel } from '@/components/dashboard/TodayPanel'
 import { TodoWidget } from '@/components/dashboard/TodoWidget'
@@ -31,7 +29,6 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-5">
-      {/* Page header */}
       <div>
         <h1 className="text-3xl font-black text-white tracking-tight leading-none">Dashboard</h1>
         <p className="text-sm text-white/30 mt-2 capitalize font-medium">{today}</p>
@@ -42,11 +39,6 @@ export default async function DashboardPage() {
       <StatTiles leads={all} />
 
       <KPICards leads={all} />
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <PipelineDonut leads={all} />
-        <TopBranchen leads={all} />
-      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <TodayPanel leads={all} />

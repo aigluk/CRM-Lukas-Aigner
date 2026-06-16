@@ -2,15 +2,13 @@ import { LeadStatus } from './types'
 
 export function normalizeStatus(status?: string | null): LeadStatus {
   const s = (status ?? '').toLowerCase().trim()
-  if (s.includes('closing') || s.includes('abschluss call'))                       return 'CLOSING CALL'
-  if (s.includes('zweiter') || s.includes('2. kontakt') || s.includes('follow'))   return 'ZWEITER KONTAKT'
-  if (s.includes('erst') || s.includes('in kontakt'))                              return 'ERST KONTAKT'
-  if (s.includes('verkauf') || s.includes('gespräch') || s.includes('termin'))     return 'VERKAUFSGESPRÄCH'
-  if (s.includes('kontakt'))                                                        return 'ERST KONTAKT'
-  if (s.includes('abschluss') || s.includes('absage') || s.includes('deal won'))   return 'ABSCHLUSS'
-  if (s.includes('kein') || s.includes('interesse'))                               return 'KEIN INTERESSE'
-  if (s.includes('bestand'))                                                        return 'BESTANDSKUNDE'
-  if (s.includes('no go') || s.includes('nogo') || s.includes('blacklist'))        return 'NO GO'
+  if (s.includes('closing') || s.includes('abschluss call'))                  return 'CLOSING CALL'
+  if (s.includes('follow') || s.includes('zweiter') || s.includes('nachfass')) return 'FOLLOW UP'
+  if (s.includes('verkauf') || s.includes('gespräch') || s.includes('termin') || s.includes('erst') || s.includes('kontakt')) return 'VERKAUFSGESPRÄCH'
+  if (s.includes('abschluss') || s.includes('deal won'))                       return 'ABSCHLUSS'
+  if (s.includes('kein') || s.includes('interesse'))                           return 'KEIN INTERESSE'
+  if (s.includes('bestand'))                                                   return 'BESTANDSKUNDE'
+  if (s.includes('no go') || s.includes('nogo') || s.includes('blacklist'))   return 'NO GO'
   return 'NEU'
 }
 

@@ -24,7 +24,7 @@ const EMPTY = {
 
 function Label({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
-    <label className="flex items-center gap-1.5 text-[10px] font-black text-white/25 uppercase tracking-widest mb-1.5">
+    <label className="flex items-center gap-1.5 text-[11px] font-medium text-white/35 mb-1.5">
       {icon}{text}
     </label>
   )
@@ -51,14 +51,14 @@ export function NewLeadModal({ onClose, onCreate }: Props) {
       const res = await fetch('/api/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, status_date: new Date().toISOString() }),
+        body: JSON.stringify({ ...form }),
       })
-      if (!res.ok) throw new Error()
-      const { lead } = await res.json()
-      onCreate(lead)
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || `Fehler ${res.status}`)
+      onCreate(json.lead)
       onClose()
-    } catch {
-      setError('Speichern fehlgeschlagen. Bitte erneut versuchen.')
+    } catch (err: any) {
+      setError(err?.message || 'Speichern fehlgeschlagen. Bitte erneut versuchen.')
     } finally {
       setSaving(false)
     }

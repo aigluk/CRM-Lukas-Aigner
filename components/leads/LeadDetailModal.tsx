@@ -237,7 +237,7 @@ export function LeadDetailModal({
 
           {/* Status */}
           <div>
-            <label className="block text-[10px] font-bold text-white/25 uppercase tracking-widest mb-2">Status</label>
+            <label className="block text-[11px] font-medium text-white/35 mb-2">Status</label>
             {editing ? (
               <div className="flex flex-wrap gap-2">
                 {STATUSES.map(s => (
