@@ -58,7 +58,7 @@ export function TimePicker({ value, onChange, label, openUp }: { value: string; 
       </button>
 
       {open && (
-        <div className={`absolute z-50 ${openUp ? 'bottom-full mb-2' : 'mt-2'} bg-panel border border-rim-subtle rounded-2xl p-4 shadow-2xl`}>
+        <div className={`absolute z-50 ${openUp ? 'bottom-full mb-2' : 'mt-2'} bg-[#363636] border border-white/15 rounded-2xl p-4 shadow-[0_20px_60px_rgba(0,0,0,0.85)]`}>
           <div className="flex items-center gap-2">
             <TimeColumn values={HOURS} value={h} onChange={nh => onChange(`${nh}:${closestM}`)} unit="Std" />
             <span className="text-white/20 font-black text-2xl pb-6">:</span>
@@ -148,7 +148,7 @@ export function DatePicker({ value, onChange, label, openUp }: { value: string; 
       </button>
 
       {open && (
-        <div className={`absolute z-50 ${openUp ? 'bottom-full mb-2' : 'mt-2'} bg-panel rounded-2xl p-4 shadow-2xl w-64`}>
+        <div className={`absolute z-50 ${openUp ? 'bottom-full mb-2' : 'mt-2'} bg-[#363636] border border-white/15 rounded-2xl p-4 shadow-[0_20px_60px_rgba(0,0,0,0.85)] w-64`}>
           <div className="flex items-center justify-between mb-3">
             <button type="button" onClick={prevMonth} className="p-1 text-white/30 hover:text-white transition-colors">
               <ChevronLeft size={15} />

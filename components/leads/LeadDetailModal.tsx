@@ -3,11 +3,11 @@
 import { useState } from 'react'
 import { Lead, LeadStatus } from '@/lib/types'
 import { STATUSES, STATUS_LABELS, STATUS_COLORS } from '@/lib/constants'
-import { formatDate } from '@/lib/utils'
+import { formatDate, formatRelativeDateTime } from '@/lib/utils'
 import {
   X, Edit3, Save, Trash2, Phone, Mail, Globe,
   MapPin, User, Building2, FileText, Calendar,
-  ExternalLink, CheckSquare, Square, Zap, Plus,
+  ExternalLink, CheckSquare, Square, Zap, Plus, Tag,
 } from 'lucide-react'
 import { DatePicker, TimePicker } from '@/components/ui/DateTimePicker'
 
@@ -53,12 +53,13 @@ function Field({
 }
 
 export function LeadDetailModal({
-  lead, onClose, onUpdate, onDelete,
+  lead, onClose, onUpdate, onDelete, branches = [],
 }: {
   lead: Lead
   onClose: () => void
   onUpdate: (id: string, updates: Partial<Lead>) => Promise<void>
   onDelete: (id: string) => Promise<void>
+  branches?: string[]
 }) {
   const [editing, setEditing]     = useState(false)
   const [form, setForm]           = useState<Partial<Lead>>({ ...lead })
@@ -284,7 +285,38 @@ export function LeadDetailModal({
             <Field label="Website" icon={<Globe size={11} />}
               value={form.website ?? ''} editing={editing} onChange={v => set('website', v)}
               href={lead.website} type="url" />
+
+            {/* Branche — editable with datalist suggestions */}
+            <div>
+              <label className="flex items-center gap-1.5 text-xs font-bold text-white/25 mb-1.5">
+                <Tag size={11} />Branche
+              </label>
+              {editing ? (
+                <>
+                  <input
+                    type="text"
+                    value={form.branche ?? ''}
+                    onChange={e => set('branche', e.target.value as Lead['branche'])}
+                    list="branche-suggestions"
+                    placeholder="z. B. Photovoltaik"
+                    className="w-full bg-dark rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:ring-1 focus:ring-accent transition-all"
+                  />
+                  <datalist id="branche-suggestions">
+                    {branches.map(b => <option key={b} value={b} />)}
+                  </datalist>
+                </>
+              ) : (
+                <p className="text-sm text-white/50">{lead.branche || '—'}</p>
+              )}
+            </div>
           </div>
+
+          {/* Last edited */}
+          {lead.updated_at && (
+            <p className="text-xs text-white/20 font-medium">
+              Zuletzt bearbeitet: {formatRelativeDateTime(lead.updated_at)}
+            </p>
+          )}
 
           {/* Appointment — view mode */}
           {!callMode && !editing && lead.appointment_date && (

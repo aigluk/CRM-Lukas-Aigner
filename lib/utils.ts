@@ -12,6 +12,20 @@ export function normalizeStatus(status?: string | null): LeadStatus {
   return 'NEU'
 }
 
+export function formatRelativeDateTime(date?: string | null): string {
+  if (!date) return '—'
+  const d = new Date(date)
+  const now = new Date()
+  const isToday = d.toDateString() === now.toDateString()
+  const yesterday = new Date(now)
+  yesterday.setDate(yesterday.getDate() - 1)
+  const isYesterday = d.toDateString() === yesterday.toDateString()
+  const time = d.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' })
+  if (isToday)     return `Heute, ${time}`
+  if (isYesterday) return `Gestern, ${time}`
+  return d.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' }) + `, ${time}`
+}
+
 export function formatDate(date?: string | null): string {
   if (!date) return '—'
   return new Date(date).toLocaleDateString('de-AT', {

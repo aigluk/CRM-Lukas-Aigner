@@ -361,6 +361,7 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
           onClose={() => setSelectedLead(null)}
           onUpdate={handleUpdate}
           onDelete={handleDelete}
+          branches={branches}
         />
       )}
 

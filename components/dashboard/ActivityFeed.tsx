@@ -1,6 +1,6 @@
 import { Lead, LeadStatus } from '@/lib/types'
 import { STATUS_COLORS, STATUS_LABELS } from '@/lib/constants'
-import { formatDate } from '@/lib/utils'
+import { formatRelativeDateTime } from '@/lib/utils'
 import { Activity } from 'lucide-react'
 
 const DOT: Record<LeadStatus, string> = {
@@ -34,7 +34,7 @@ export function ActivityFeed({ leads, compact }: { leads: Lead[]; compact?: bool
               <a key={lead.id} href="/leads" className="flex items-center gap-2.5 px-1 py-2 rounded-xl hover:bg-panel-hover transition-colors">
                 <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${DOT[lead.status]}`} />
                 <span className="text-sm font-medium text-white truncate flex-1">{lead.name}</span>
-                <span className="text-[11px] text-white/30 shrink-0">{formatDate(lead.status_date || lead.updated_at)}</span>
+                <span className="text-[11px] text-white/30 shrink-0">{formatRelativeDateTime(lead.updated_at || lead.status_date)}</span>
               </a>
             ))
           )}
@@ -82,7 +82,7 @@ export function ActivityFeed({ leads, compact }: { leads: Lead[]; compact?: bool
                 </span>
 
                 <span className="text-[11px] text-white/30 text-right md:text-left">
-                  {formatDate(lead.status_date || lead.updated_at)}
+                  {formatRelativeDateTime(lead.updated_at || lead.status_date)}
                 </span>
               </div>
             )
