@@ -5,7 +5,7 @@ import { Lead } from '@/lib/types'
 import {
   Zap, Plus, Loader2, MapPin, Phone, Mail,
   ExternalLink, User, Building2, CheckCircle,
-  Clock, X, RotateCcw, GripVertical,
+  Clock, X, RotateCcw,
 } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -35,6 +35,8 @@ type BranchItem = {
   custom: boolean
 }
 
+type FilterMode = 'all' | 'email' | 'ceo'
+
 // ── Static data ────────────────────────────────────────────────────────────────
 
 const DEFAULT_LABELS = [
@@ -57,28 +59,6 @@ const RADII = [
   { value: '10', label: '10 km' }, { value: '25', label: '25 km' },
   { value: '50', label: '50 km' }, { value: '0', label: 'Überall' },
 ]
-
-// City → country code for KPI stats
-const CITY_COUNTRY: Record<string, string> = {
-  Wien: 'AT', Graz: 'AT', Linz: 'AT', Salzburg: 'AT', Innsbruck: 'AT', Klagenfurt: 'AT', 'St. Pölten': 'AT', Wels: 'AT',
-  München: 'DE', Berlin: 'DE', Hamburg: 'DE', Frankfurt: 'DE', Stuttgart: 'DE', Düsseldorf: 'DE', Köln: 'DE', Nürnberg: 'DE',
-  Zürich: 'CH', Genf: 'CH', Basel: 'CH', Bern: 'CH', Lausanne: 'CH', Zug: 'CH',
-  Dubai: 'AE', 'Abu Dhabi': 'AE', Sharjah: 'AE',
-  Limassol: 'CY', Nikosia: 'CY', Paphos: 'CY', Larnaka: 'CY',
-  Marbella: 'ES', Barcelona: 'ES', Madrid: 'ES', Ibiza: 'ES', Mallorca: 'ES',
-  Miami: 'US', 'New York': 'US', 'Los Angeles': 'US', Chicago: 'US', 'Las Vegas': 'US',
-}
-
-// Country code → lat/lng for map dots
-const COUNTRY_COORDS: Record<string, { lat: number; lng: number; label: string }> = {
-  AT: { lat: 47.5, lng: 14.5, label: 'AT' },
-  DE: { lat: 51.2, lng: 10.5, label: 'DE' },
-  CH: { lat: 47.0, lng: 8.2,  label: 'CH' },
-  AE: { lat: 25.2, lng: 55.3, label: 'AE' },
-  CY: { lat: 35.1, lng: 33.4, label: 'CY' },
-  ES: { lat: 40.4, lng: -3.7, label: 'ES' },
-  US: { lat: 39.5, lng: -98.4, label: 'US' },
-}
 
 const LS_BRANCHES = 'la-crm-gen-branches-v2'
 const LS_RECENT   = 'la-crm-gen-recent'
@@ -105,58 +85,6 @@ function timeAgo(ts: number) {
   return `vor ${Math.floor(h / 24)} Tagen`
 }
 
-// equirectangular → SVG (520×260)
-function toXY(lat: number, lng: number) {
-  return { x: (lng + 180) / 360 * 520, y: (90 - lat) / 180 * 260 }
-}
-
-// ── World map ─────────────────────────────────────────────────────────────────
-
-function WorldDotMap({ countryCounts }: { countryCounts: Record<string, number> }) {
-  const maxCount = Math.max(...Object.values(countryCounts), 1)
-
-  // Simplified continent polygon coordinates (equirectangular 520×260)
-  const continents = [
-    // North America
-    '17,27 188,27 181,61 173,69 149,81 144,94 108,101 90,84 75,55',
-    // Greenland
-    '179,10 236,10 234,25 192,39',
-    // South America
-    '142,116 159,123 210,123 202,162 166,209 144,188',
-    // Europe
-    '246,78 246,61 260,55 272,51 280,46 289,43 300,43 303,48 295,61 295,72 287,72 280,75 274,77 254,78',
-    // Africa
-    '235,77 335,77 332,108 322,144 311,181 282,181 236,181 235,108',
-    // Asia (simplified)
-    '296,29 470,29 470,70 432,108 418,123 404,141 375,119 361,137 347,123 340,98 332,94 318,82 311,79 296,72',
-    // Australia
-    '425,144 482,144 482,195 455,188 425,173',
-  ]
-
-  return (
-    <svg viewBox="0 0 520 260" xmlns="http://www.w3.org/2000/svg" className="w-full rounded-xl overflow-hidden">
-      <rect width="520" height="260" fill="#0d1117" />
-      {continents.map((pts, i) => (
-        <polygon key={i} points={pts} fill="#1c2230" stroke="#252e3e" strokeWidth="0.8" />
-      ))}
-      {Object.entries(COUNTRY_COORDS).map(([code, { lat, lng, label }]) => {
-        const count = countryCounts[code] || 0
-        if (!count) return null
-        const { x, y } = toXY(lat, lng)
-        const r = Math.max(5, Math.min(16, 5 + (count / maxCount) * 11))
-        return (
-          <g key={code}>
-            <circle cx={x} cy={y} r={r + 6} fill="#E8003D" opacity="0.12" />
-            <circle cx={x} cy={y} r={r} fill="#E8003D" opacity="0.85" />
-            <text x={x} y={y - r - 3} fill="white" fontSize="7.5" textAnchor="middle" opacity="0.7" fontWeight="bold">{label}</text>
-            <text x={x} y={y + 2.5} fill="white" fontSize="6.5" textAnchor="middle" opacity="0.9" fontWeight="bold">{count}</text>
-          </g>
-        )
-      })}
-    </svg>
-  )
-}
-
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function GeneratorForm() {
@@ -179,11 +107,12 @@ export function GeneratorForm() {
   const addInputRef = useRef<HTMLInputElement>(null)
 
   // Drag & drop
-  const dragIdRef = useRef<string | null>(null)
+  const dragIdRef   = useRef<string | null>(null)
   const [dragOverId, setDragOverId] = useState<string | null>(null)
 
-  // KPI stats from saved leads
-  const [allLeads, setAllLeads]         = useState<Lead[]>([])
+  // Lead selection + filter
+  const [filterMode, setFilterMode]     = useState<FilterMode>('all')
+  const [selectedIdx, setSelectedIdx]   = useState<Set<number>>(new Set())
 
   useEffect(() => {
     const stored = ls<BranchItem[]>(LS_BRANCHES, [])
@@ -193,7 +122,6 @@ export function GeneratorForm() {
         : DEFAULT_LABELS.map(l => ({ id: l, label: l, custom: false }))
     )
     setRecentSearches(ls<RecentSearch[]>(LS_RECENT, []))
-    fetch('/api/leads').then(r => r.json()).then(d => setAllLeads(d.leads || [])).catch(() => {})
   }, [])
 
   useEffect(() => { if (addingBranch) addInputRef.current?.focus() }, [addingBranch])
@@ -211,8 +139,7 @@ export function GeneratorForm() {
   function addBranch() {
     const b = newBranchInput.trim()
     if (!b) return
-    const existing = branches.find(x => x.id === b)
-    if (!existing) {
+    if (!branches.find(x => x.id === b)) {
       saveBranches([...branches, { id: b, label: b, custom: true }])
     }
     setNewBranchInput(''); setAddingBranch(false)
@@ -226,11 +153,13 @@ export function GeneratorForm() {
 
   function restoreDefaults() {
     const customOnes = branches.filter(b => b.custom)
-    const restored = DEFAULT_LABELS.map(l => ({ id: l, label: l, custom: false }))
-    saveBranches([...restored, ...customOnes])
+    saveBranches([
+      ...DEFAULT_LABELS.map(l => ({ id: l, label: l, custom: false })),
+      ...customOnes,
+    ])
   }
 
-  // ── Drag & drop reorder ────────────────────────────────────────────────────
+  // ── Drag & drop ────────────────────────────────────────────────────────────
 
   function reorderBranch(fromId: string, toId: string) {
     setBranches(prev => {
@@ -245,25 +174,31 @@ export function GeneratorForm() {
     })
   }
 
-  // ── KPI derived values ─────────────────────────────────────────────────────
+  // ── Filtered leads (indices into result.leads) ─────────────────────────────
 
-  const totalLeads   = allLeads.length
-  const newThisWeek  = allLeads.filter(l => Date.now() - new Date(l.created_at).getTime() < 7 * 86400000).length
+  const filteredIndices = result
+    ? result.leads
+        .map((l, i) => ({ l, i }))
+        .filter(({ l }) => {
+          if (filterMode === 'email') return !!(l.email || (l as any).email_general)
+          if (filterMode === 'ceo')   return !!l.ceos
+          return true
+        })
+        .map(({ i }) => i)
+    : []
 
-  const cityCounts = allLeads.reduce<Record<string, number>>((acc, l) => {
-    if (l.city) acc[l.city] = (acc[l.city] || 0) + 1
-    return acc
-  }, {})
-  const topCities = Object.entries(cityCounts).sort((a, b) => b[1] - a[1]).slice(0, 5)
-  const maxCityCount = topCities[0]?.[1] || 1
-  const topCity = topCities[0]?.[0] || '—'
+  const allFilteredSelected =
+    filteredIndices.length > 0 && filteredIndices.every(i => selectedIdx.has(i))
 
-  // Country distribution for map
-  const countryCounts = allLeads.reduce<Record<string, number>>((acc, l) => {
-    const code = l.city ? CITY_COUNTRY[l.city] : undefined
-    if (code) acc[code] = (acc[code] || 0) + 1
-    return acc
-  }, {})
+  function toggleIdx(i: number) {
+    setSelectedIdx(prev => {
+      const next = new Set(prev)
+      next.has(i) ? next.delete(i) : next.add(i)
+      return next
+    })
+  }
+  function selectAll()   { setSelectedIdx(new Set(filteredIndices)) }
+  function deselectAll() { setSelectedIdx(new Set()) }
 
   // ── Recent search helpers ──────────────────────────────────────────────────
 
@@ -282,7 +217,7 @@ export function GeneratorForm() {
   function applyRecent(r: RecentSearch) {
     setBranche(r.branche); setCountryId(r.countryId)
     setCity(r.city); setCustomCity(r.customCity); setRadius(r.radius)
-    setResult(null); setSaved(false)
+    setResult(null); setSaved(false); setSelectedIdx(new Set())
   }
 
   // ── API calls ──────────────────────────────────────────────────────────────
@@ -290,7 +225,8 @@ export function GeneratorForm() {
   async function generate(e: React.FormEvent) {
     e.preventDefault()
     if (!branche) return
-    setLoading(true); setError(''); setResult(null); setSaved(false)
+    setLoading(true); setError(''); setResult(null)
+    setSaved(false); setSelectedIdx(new Set()); setFilterMode('all')
     try {
       const res  = await fetch('/api/generate', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -300,6 +236,8 @@ export function GeneratorForm() {
       if (!res.ok) throw new Error(data.error || 'Fehler beim Generieren.')
       setResult(data)
       saveRecent(data)
+      // Pre-select all leads
+      setSelectedIdx(new Set(Array.from({ length: data.leads.length }, (_, i) => i)))
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -308,18 +246,18 @@ export function GeneratorForm() {
   }
 
   async function saveLeads() {
-    if (!result?.leads.length) return
+    if (!result || !selectedIdx.size) return
+    const toSave = [...selectedIdx].sort((a, b) => a - b).map(i => result.leads[i]).filter(Boolean)
+    if (!toSave.length) return
     setSaving(true)
     try {
       const res  = await fetch('/api/leads', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ leads: result.leads }),
+        body: JSON.stringify({ leads: toSave }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Fehler beim Speichern.')
       setSaved(true)
-      // Refresh KPI data
-      fetch('/api/leads').then(r => r.json()).then(d => setAllLeads(d.leads || [])).catch(() => {})
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -369,7 +307,6 @@ export function GeneratorForm() {
               )}
             </div>
 
-            {/* Flat branch list — all draggable */}
             <div className="flex flex-wrap gap-1.5">
               {branches.map(item => (
                 <div
@@ -385,9 +322,7 @@ export function GeneratorForm() {
                     dragIdRef.current = null; setDragOverId(null)
                   }}
                   onDragEnd={() => { dragIdRef.current = null; setDragOverId(null) }}
-                  className={`relative group/pill transition-all ${
-                    dragOverId === item.id ? 'ring-1 ring-accent/60 rounded-xl' : ''
-                  }`}
+                  className={`relative group/pill transition-all ${dragOverId === item.id ? 'ring-1 ring-accent/60 rounded-xl' : ''}`}
                 >
                   <button
                     type="button"
@@ -399,7 +334,6 @@ export function GeneratorForm() {
                   <button
                     type="button"
                     onClick={() => removeBranch(item.id)}
-                    title="Entfernen"
                     className="absolute right-1.5 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover/pill:opacity-100 hover:bg-white/20 transition-all"
                   >
                     <X size={8} className="text-white/60" />
@@ -408,7 +342,6 @@ export function GeneratorForm() {
               ))}
             </div>
 
-            {/* Add branch */}
             <div className="mt-4">
               {addingBranch ? (
                 <div className="flex items-center gap-2">
@@ -425,13 +358,9 @@ export function GeneratorForm() {
                     className="flex-1 bg-dark rounded-xl px-3 py-2 text-xs text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent"
                   />
                   <button type="button" onClick={addBranch}
-                    className="bg-accent text-white text-xs font-bold px-3 py-2 rounded-xl hover:bg-accent-hover transition-all">
-                    OK
-                  </button>
+                    className="bg-accent text-white text-xs font-bold px-3 py-2 rounded-xl hover:bg-accent-hover transition-all">OK</button>
                   <button type="button" onClick={() => setAddingBranch(false)}
-                    className="text-white/30 hover:text-white px-2 py-2 rounded-xl transition-colors">
-                    <X size={13} />
-                  </button>
+                    className="text-white/30 hover:text-white px-2 py-2 rounded-xl transition-colors"><X size={13} /></button>
                 </div>
               ) : (
                 <button
@@ -497,7 +426,7 @@ export function GeneratorForm() {
                 className="flex-1 bg-transparent text-xs text-white placeholder-white/20 outline-none"
               />
               {customCity && (
-                <button type="button" onClick={() => setCustomCity('')} className="text-white/25 hover:text-white/60 text-xs">
+                <button type="button" onClick={() => setCustomCity('')} className="text-white/25 hover:text-white/60">
                   <X size={11} />
                 </button>
               )}
@@ -531,7 +460,6 @@ export function GeneratorForm() {
             </div>
           </div>
 
-          {/* Generate */}
           <button
             type="submit"
             disabled={loading || !branche}
@@ -553,58 +481,19 @@ export function GeneratorForm() {
             </div>
           )}
 
-          {/* Empty state — KPI cards + map */}
+          {/* Empty state */}
           {!result && !loading && !error && (
             <>
-              {/* KPI tiles */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="bg-panel rounded-2xl p-4">
-                  <p className="text-2xl font-black text-white leading-none">{totalLeads}</p>
-                  <p className="text-[10px] font-black text-white/25 uppercase tracking-widest mt-1.5">Leads gesamt</p>
+              <div className="bg-panel rounded-2xl flex items-center gap-5 px-6 py-6">
+                <div className="w-10 h-10 rounded-xl bg-dark flex items-center justify-center shrink-0">
+                  <Zap size={18} className="text-white/10" />
                 </div>
-                <div className="bg-panel rounded-2xl p-4">
-                  <p className="text-2xl font-black text-accent-green leading-none">{newThisWeek}</p>
-                  <p className="text-[10px] font-black text-white/25 uppercase tracking-widest mt-1.5">Diese Woche</p>
-                </div>
-                <div className="bg-panel rounded-2xl p-4 min-w-0">
-                  <p className="text-lg font-black text-white leading-none truncate">{topCity}</p>
-                  <p className="text-[10px] font-black text-white/25 uppercase tracking-widest mt-1.5">Top Stadt</p>
+                <div>
+                  <p className="text-sm font-black text-white/25">Branche &amp; Region wählen</p>
+                  <p className="text-xs text-white/15 mt-0.5">Ergebnisse erscheinen hier zur Vorschau &amp; Auswahl</p>
                 </div>
               </div>
 
-              {/* World map */}
-              <div className="bg-panel rounded-2xl p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-xs font-black text-white/40 uppercase tracking-widest">Lead-Verteilung</p>
-                  {totalLeads === 0 && (
-                    <p className="text-[10px] text-white/20">Generiere & speichere Leads um die Karte zu befüllen</p>
-                  )}
-                </div>
-                <WorldDotMap countryCounts={countryCounts} />
-              </div>
-
-              {/* City distribution bars */}
-              {topCities.length > 0 && (
-                <div className="bg-panel rounded-2xl p-5">
-                  <p className="text-xs font-black text-white/40 uppercase tracking-widest mb-4">Top Städte</p>
-                  <div className="space-y-2.5">
-                    {topCities.map(([c, count]) => (
-                      <div key={c} className="flex items-center gap-3">
-                        <span className="text-xs text-white/50 w-24 truncate shrink-0">{c}</span>
-                        <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-accent rounded-full transition-all"
-                            style={{ width: `${(count / maxCityCount) * 100}%` }}
-                          />
-                        </div>
-                        <span className="text-xs font-bold text-white/30 w-5 text-right shrink-0">{count}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Recent searches */}
               {recentSearches.length > 0 && (
                 <div className="bg-panel rounded-2xl overflow-hidden">
                   <div className="flex items-center gap-2 px-5 py-4 border-b border-white/5">
@@ -648,19 +537,6 @@ export function GeneratorForm() {
                   </div>
                 </div>
               )}
-
-              {/* Empty placeholder when no leads and no recent */}
-              {totalLeads === 0 && recentSearches.length === 0 && (
-                <div className="bg-panel rounded-2xl flex items-center gap-5 px-6 py-6">
-                  <div className="w-10 h-10 rounded-xl bg-dark flex items-center justify-center shrink-0">
-                    <Zap size={18} className="text-white/10" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-black text-white/25">Branche &amp; Region wählen</p>
-                    <p className="text-xs text-white/15 mt-0.5">dann Leads generieren</p>
-                  </div>
-                </div>
-              )}
             </>
           )}
 
@@ -684,75 +560,116 @@ export function GeneratorForm() {
             </div>
           )}
 
-          {/* Results */}
+          {/* Leadpool — results with selection */}
           {result && (
             <>
-              <div className="bg-panel rounded-2xl p-5">
-                <div className="flex items-center gap-5">
-                  <div>
-                    <p className="text-2xl font-black text-white leading-none">{result.total}</p>
-                    <p className="text-[10px] font-black text-white/25 uppercase tracking-widest mt-1">Leads</p>
-                  </div>
-                  <div className="w-px h-8 bg-white/6" />
-                  <div>
-                    <p className="text-2xl font-black text-accent-green leading-none">{result.emailFound}</p>
-                    <p className="text-[10px] font-black text-white/25 uppercase tracking-widest mt-1">E-Mails</p>
-                  </div>
-                  <div className="w-px h-8 bg-white/6" />
-                  <div>
-                    <p className="text-2xl font-black text-white/40 leading-none">{result.ceoFound}</p>
-                    <p className="text-[10px] font-black text-white/25 uppercase tracking-widest mt-1">CEOs</p>
-                  </div>
+              {/* Filter + action bar */}
+              <div className="bg-panel rounded-2xl p-4">
+                {/* Filter chips */}
+                <div className="flex items-center gap-1.5 mb-3 flex-wrap">
+                  <button onClick={() => setFilterMode('all')}
+                    className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-all ${filterMode === 'all' ? 'bg-accent text-white' : 'bg-dark text-white/35 hover:text-white/70'}`}>
+                    Alle ({result.total})
+                  </button>
+                  {result.emailFound > 0 && (
+                    <button onClick={() => setFilterMode('email')}
+                      className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-all ${filterMode === 'email' ? 'bg-accent-green text-dark' : 'bg-dark text-white/35 hover:text-white/70'}`}>
+                      Mit E-Mail ({result.emailFound})
+                    </button>
+                  )}
+                  {result.ceoFound > 0 && (
+                    <button onClick={() => setFilterMode('ceo')}
+                      className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-all ${filterMode === 'ceo' ? 'bg-dark text-white' : 'bg-dark text-white/35 hover:text-white/70'}`}>
+                      Mit CEO ({result.ceoFound})
+                    </button>
+                  )}
                   <div className="flex-1" />
+                  <button
+                    onClick={allFilteredSelected ? deselectAll : selectAll}
+                    className="text-[11px] font-bold text-white/30 hover:text-white transition-colors"
+                  >
+                    {allFilteredSelected ? 'Auswahl aufheben' : 'Alle auswählen'}
+                  </button>
+                </div>
+
+                {/* Import action */}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-white/30 font-medium">
+                    <span className="text-white font-bold">{selectedIdx.size}</span> von {result.total} ausgewählt
+                  </span>
                   {saved ? (
                     <div className="flex items-center gap-2 text-accent-green text-sm font-black">
                       <CheckCircle size={14} />Gespeichert
                     </div>
                   ) : (
                     <button
-                      onClick={saveLeads} disabled={saving}
-                      className="flex items-center gap-2 bg-accent-green/15 hover:bg-accent-green/25 text-accent-green disabled:opacity-40 text-sm font-black px-4 py-2.5 rounded-xl transition-all shrink-0"
+                      onClick={saveLeads}
+                      disabled={saving || !selectedIdx.size}
+                      className="flex items-center gap-2 bg-accent-green/15 hover:bg-accent-green/25 text-accent-green disabled:opacity-30 text-sm font-black px-4 py-2.5 rounded-xl transition-all shrink-0"
                     >
                       {saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
-                      In CRM speichern
+                      {selectedIdx.size > 0 ? `${selectedIdx.size} importieren` : 'Auswählen & importieren'}
                     </button>
                   )}
                 </div>
               </div>
 
+              {/* Lead rows */}
               <div className="bg-panel rounded-2xl overflow-hidden">
-                {result.leads.map((lead, i) => {
-                  const domain = getDomain(lead.website)
-                  const email  = lead.email || (lead as any).email_general
+                {filteredIndices.map((idx, j) => {
+                  const lead    = result.leads[idx]
+                  const domain  = getDomain(lead.website)
+                  const email   = lead.email || (lead as any).email_general
+                  const checked = selectedIdx.has(idx)
                   return (
                     <div
-                      key={i}
-                      className={`px-5 py-4 hover:bg-panel-hover transition-colors ${
-                        i < result.leads.length - 1 ? 'border-b border-white/4' : ''
-                      }`}
+                      key={idx}
+                      onClick={() => toggleIdx(idx)}
+                      className={`px-4 py-3.5 flex items-start gap-3 cursor-pointer transition-colors ${
+                        checked ? 'bg-accent/7' : 'hover:bg-panel-hover'
+                      } ${j < filteredIndices.length - 1 ? 'border-b border-white/4' : ''}`}
                     >
-                      <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-dark flex items-center justify-center shrink-0 mt-0.5">
-                          <Building2 size={14} className="text-white/20" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start gap-3 justify-between">
-                            <p className="text-sm font-bold text-white leading-snug truncate">{lead.name}</p>
-                            {email && (
-                              <span className="text-[10px] font-black bg-accent-green/12 text-accent-green px-2 py-0.5 rounded-lg shrink-0">E-Mail</span>
-                            )}
-                          </div>
-                          {(lead.city || lead.region) && (
-                            <p className="text-xs text-white/30 mt-0.5 flex items-center gap-1">
-                              <MapPin size={9} />{lead.city || lead.region}
-                            </p>
+                      {/* Selection circle */}
+                      <div className={`w-5 h-5 rounded-full shrink-0 mt-0.5 transition-all ${
+                        checked ? 'bg-accent' : 'bg-white/10'
+                      }`} />
+
+                      <div className="w-7 h-7 rounded-xl bg-dark flex items-center justify-center shrink-0 mt-0.5">
+                        <Building2 size={13} className="text-white/20" />
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start gap-2 justify-between">
+                          <p className="text-sm font-bold text-white leading-snug truncate">{lead.name}</p>
+                          {email && (
+                            <span className="text-[10px] font-black bg-accent-green/12 text-accent-green px-2 py-0.5 rounded-lg shrink-0">E-Mail</span>
                           )}
-                          <div className="flex items-center gap-4 mt-2 flex-wrap">
-                            {lead.ceos && <span className="flex items-center gap-1 text-xs text-white/30"><User size={10} />{lead.ceos}</span>}
-                            {lead.phone && <a href={`tel:${lead.phone}`} onClick={e => e.stopPropagation()} className="flex items-center gap-1 text-xs text-white/30 hover:text-accent transition-colors"><Phone size={10} />{lead.phone}</a>}
-                            {email && <a href={`mailto:${email}`} onClick={e => e.stopPropagation()} className="flex items-center gap-1 text-xs text-white/30 hover:text-accent-green transition-colors truncate max-w-48"><Mail size={10} />{email}</a>}
-                            {domain && <a href={lead.website!} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="flex items-center gap-1 text-xs text-white/20 hover:text-white/50 transition-colors"><ExternalLink size={10} />{domain}</a>}
-                          </div>
+                        </div>
+                        {(lead.city || lead.region) && (
+                          <p className="text-xs text-white/30 mt-0.5 flex items-center gap-1">
+                            <MapPin size={9} />{lead.city || lead.region}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                          {lead.ceos && <span className="flex items-center gap-1 text-xs text-white/30"><User size={10} />{lead.ceos}</span>}
+                          {lead.phone && (
+                            <a href={`tel:${lead.phone}`} onClick={e => e.stopPropagation()}
+                              className="flex items-center gap-1 text-xs text-white/30 hover:text-accent transition-colors">
+                              <Phone size={10} />{lead.phone}
+                            </a>
+                          )}
+                          {email && (
+                            <a href={`mailto:${email}`} onClick={e => e.stopPropagation()}
+                              className="flex items-center gap-1 text-xs text-white/30 hover:text-accent-green transition-colors truncate max-w-48">
+                              <Mail size={10} />{email}
+                            </a>
+                          )}
+                          {domain && (
+                            <a href={lead.website!} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
+                              className="flex items-center gap-1 text-xs text-white/20 hover:text-white/50 transition-colors">
+                              <ExternalLink size={10} />{domain}
+                            </a>
+                          )}
                         </div>
                       </div>
                     </div>

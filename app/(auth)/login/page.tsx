@@ -7,11 +7,11 @@ import { createClient } from '@/lib/supabase/client'
 import Logo from '@/components/Logo'
 
 export default function LoginPage() {
-  const [email, setEmail]     = useState('')
+  const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
-  const [showPw, setShowPw]   = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError]     = useState('')
+  const [showPw, setShowPw]     = useState(false)
+  const [loading, setLoading]   = useState(false)
+  const [error, setError]       = useState('')
   const router   = useRouter()
   const supabase = createClient()
 
@@ -19,42 +19,32 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
-
     const { error } = await supabase.auth.signInWithPassword({ email, password })
-
     if (error) {
       setError('E-Mail oder Passwort falsch.')
       setLoading(false)
       return
     }
-
     router.push('/')
     router.refresh()
   }
 
   return (
     <div className="min-h-screen bg-dark flex items-center justify-center p-4">
-      {/* Background glow */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-150 h-100 bg-accent/5 rounded-full blur-3xl" />
-      </div>
+      <div className="w-full max-w-xs">
 
-      <div className="w-full max-w-sm relative">
         {/* Logo */}
-        <div className="flex flex-col items-center mb-8">
-          <Logo className="h-12 w-auto text-accent mb-4" />
-          <h1 className="text-xl font-black text-white tracking-tight">Lukas Aigner CRM</h1>
-          <p className="text-white/30 text-sm mt-1 font-medium">Lead Management System</p>
+        <div className="flex justify-center mb-10">
+          <Logo className="h-16 w-auto text-accent" />
         </div>
 
-        {/* Card */}
-        <div className="bg-panel rounded-2xl p-8">
-          <p className="text-sm font-black text-white mb-6">Anmelden</p>
+        {/* Form card */}
+        <div className="bg-panel rounded-2xl p-7 space-y-4">
+          <p className="text-base font-black text-white mb-1">Anmelden</p>
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            {/* Email */}
+          <form onSubmit={handleLogin} className="space-y-3">
             <div>
-              <label className="block text-[10px] font-black text-white/25 uppercase tracking-widest mb-2">
+              <label className="block text-[10px] font-black text-white/25 uppercase tracking-widest mb-1.5">
                 E-Mail
               </label>
               <input
@@ -68,9 +58,8 @@ export default function LoginPage() {
               />
             </div>
 
-            {/* Password */}
             <div>
-              <label className="block text-[10px] font-black text-white/25 uppercase tracking-widest mb-2">
+              <label className="block text-[10px] font-black text-white/25 uppercase tracking-widest mb-1.5">
                 Passwort
               </label>
               <div className="relative">
@@ -94,7 +83,6 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Error */}
             {error && (
               <div className="flex items-center gap-2 text-accent text-sm py-1 font-medium">
                 <AlertCircle size={15} className="shrink-0" />
@@ -102,13 +90,12 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* Submit */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-accent hover:opacity-90 text-white font-black py-3 px-6 rounded-xl text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-2 active:scale-[0.98]"
+              className="w-full bg-accent hover:opacity-90 text-white font-black py-3 px-6 rounded-xl text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-1 active:scale-[0.98]"
             >
-              {loading ? 'Einloggen...' : 'Einloggen'}
+              {loading ? 'Einloggen…' : 'Einloggen'}
             </button>
           </form>
         </div>

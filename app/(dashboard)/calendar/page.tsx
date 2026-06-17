@@ -11,7 +11,7 @@ export default async function CalendarPage() {
     const { data } = await supabase
       .from('leads')
       .select('*')
-      .eq('status', 'TERMIN FIXIERT')
+      .not('appointment_date', 'is', null)
       .order('appointment_date', { ascending: true })
     leads = data ?? []
   }
