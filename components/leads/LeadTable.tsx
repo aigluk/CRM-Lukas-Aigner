@@ -185,7 +185,7 @@ export function LeadTable({
                   </button>
 
                   {openHandlerFor === lead.id && (
-                    <div className="absolute top-full left-0 mt-1 z-200 bg-panel-hover rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.6)] border border-white/10 py-1 min-w-37.5">
+                    <div className="absolute top-full left-0 mt-1 z-200 bg-panel-hover rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.6)] border border-white/10 p-1 min-w-37.5">
                       {users.length === 0 && (
                         <p className="px-3 py-2.5 text-xs text-white/30">Erst Benutzernamen in Einstellungen setzen.</p>
                       )}
@@ -193,18 +193,18 @@ export function LeadTable({
                         <button
                           key={u.id}
                           onClick={() => { onSetHandler?.(lead.id, lead.handler === u.username ? null : u.username); setOpenHandlerFor(null) }}
-                          className={`w-full text-left px-3 py-2.5 text-sm hover:bg-white/8 transition-colors flex items-center gap-2 ${
-                            lead.handler === u.username ? 'text-accent font-bold' : 'text-white/70'
+                          className={`w-full text-left px-3 py-2.5 text-sm rounded-lg hover:bg-white/8 transition-colors flex items-center gap-2 ${
+                            lead.handler === u.username ? 'text-accent font-bold' : 'text-white/60'
                           }`}
                         >
-                          <User size={11} className="shrink-0 opacity-50" />
+                          <User size={11} className="shrink-0 opacity-40" />
                           {u.username}
                         </button>
                       ))}
                       {lead.handler && (
                         <button
                           onClick={() => { onSetHandler?.(lead.id, null); setOpenHandlerFor(null) }}
-                          className="w-full text-left px-3 py-2 text-xs text-white/30 hover:bg-white/8 hover:text-accent transition-colors border-t border-white/5 mt-1"
+                          className="w-full text-left px-3 py-2 mt-0.5 text-xs text-white/30 hover:bg-white/8 hover:text-accent transition-colors border-t border-white/8 rounded-b-lg"
                         >
                           Entfernen
                         </button>
