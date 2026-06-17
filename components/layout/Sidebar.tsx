@@ -33,12 +33,12 @@ export function Sidebar() {
 
   return (
     <aside className="w-55 bg-accent h-screen flex flex-col shrink-0">
-      {/* Brand */}
-      <div className="px-6 pt-8 pb-7">
-        <div className="flex items-center gap-3">
-          <Logo className="h-6 w-auto text-white" />
-          <div>
-            <p className="text-[13px] font-black text-white tracking-tight leading-none">Lukas Aigner</p>
+      {/* Brand — pt-10 aligns logo with page headings (main content also has p-10) */}
+      <div className="px-5 pt-10 pb-6">
+        <div className="flex items-center gap-2.5">
+          <Logo className="h-7 w-auto text-white shrink-0" />
+          <div className="min-w-0">
+            <p className="text-[13px] font-black text-white tracking-tight leading-none truncate">Lukas Aigner</p>
             <p className="text-[9px] text-white/50 font-black tracking-[0.2em] uppercase mt-0.5">CRM</p>
           </div>
         </div>
@@ -52,7 +52,7 @@ export function Sidebar() {
             <Link
               key={href}
               href={href}
-              className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-bold transition-all ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all ${
                 active
                   ? 'bg-dark text-white shadow-sm'
                   : 'text-white/75 hover:text-white hover:bg-white/10'
@@ -69,7 +69,7 @@ export function Sidebar() {
       <div className="p-3 pb-6 space-y-1">
         <Link
           href="/settings"
-          className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-bold transition-all ${
+          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all ${
             isActive('/settings')
               ? 'bg-dark text-white shadow-sm'
               : 'text-white/75 hover:text-white hover:bg-white/10'
@@ -80,7 +80,7 @@ export function Sidebar() {
         </Link>
         <button
           onClick={logout}
-          className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-bold text-white/75 hover:text-white hover:bg-white/10 transition-all w-full"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-white/75 hover:text-white hover:bg-white/10 transition-all w-full"
         >
           <LogOut size={16} strokeWidth={2} className="text-white/70" />
           Abmelden
