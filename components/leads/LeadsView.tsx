@@ -8,7 +8,7 @@ import { LeadTable } from './LeadTable'
 import { LeadDetailModal } from './LeadDetailModal'
 import { NewLeadModal } from './NewLeadModal'
 import { QuickNoteModal } from './QuickNoteModal'
-import { Search, Plus, Upload, Trash2, X } from 'lucide-react'
+import { Search, Plus, Upload, Trash2, X, ChevronDown } from 'lucide-react'
 import { ImportModal } from './ImportModal'
 import { createClient } from '@/lib/supabase/client'
 import type { TeamUser } from './LeadTable'
@@ -26,6 +26,9 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
   const [patchError, setPatchError]   = useState('')
   const [currentUsername, setCurrentUsername] = useState('')
   const [teamUsers, setTeamUsers]     = useState<TeamUser[]>([])
+  const [brancheFilter, setBrancheFilter] = useState('')
+  const [brancheOpen, setBrancheOpen]     = useState(false)
+  const brancheRef = useRef<HTMLDivElement>(null)
   const channelRef = useRef<ReturnType<ReturnType<typeof createClient>['channel']> | null>(null)
 
   // Fetch current username + subscribe to realtime
@@ -81,6 +84,16 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
     }
   }, [])
 
+  // Close branch dropdown on outside click
+  useEffect(() => {
+    if (!brancheOpen) return
+    const close = (e: MouseEvent) => {
+      if (brancheRef.current && !brancheRef.current.contains(e.target as Node)) setBrancheOpen(false)
+    }
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [brancheOpen])
+
   const counts = useMemo(() =>
     STATUSES.reduce<Record<string, number>>((acc, s) => {
       acc[s] = leads.filter(l => l.status === s).length
@@ -88,9 +101,17 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
     }, {}),
   [leads])
 
+  // Dynamic branch list — always reflects current imported data
+  const branches = useMemo(() => {
+    const set = new Set<string>()
+    leads.forEach(l => { if (l.branche?.trim()) set.add(l.branche.trim()) })
+    return Array.from(set).sort()
+  }, [leads])
+
   const filtered = useMemo(() =>
     leads.filter(l => {
       if (l.status !== activeStatus) return false
+      if (brancheFilter && l.branche?.trim() !== brancheFilter) return false
       if (search) {
         const q = search.toLowerCase()
         return (
@@ -104,7 +125,7 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
       }
       return true
     }),
-  [leads, activeStatus, search])
+  [leads, activeStatus, search, brancheFilter])
 
   async function handleUpdate(id: string, updates: Partial<Lead>) {
     const res = await fetch('/api/leads', {
@@ -199,6 +220,7 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
   function handleStatusChange(s: LeadStatus) {
     setActiveStatus(s)
     setSelectedIds(new Set())
+    setBrancheFilter('')
   }
 
   const selectionCount = filtered.filter(l => selectedIds.has(l.id)).length
@@ -237,8 +259,8 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
       />
 
       {/* Search + bulk action bar */}
-      <div className="mt-4 mb-4 flex gap-3 items-center">
-        <div className="relative max-w-sm w-full">
+      <div className="mt-4 mb-4 flex gap-2 items-center">
+        <div className="relative flex-1 min-w-0">
           <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none" />
           <input
             type="text"
@@ -247,6 +269,44 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
             placeholder="Suchen..."
             className="w-full bg-panel rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-white/25 outline-none focus:ring-1 focus:ring-accent transition-all"
           />
+        </div>
+
+        {/* Branche filter */}
+        <div className="relative shrink-0" ref={brancheRef}>
+          <button
+            onClick={() => setBrancheOpen(o => !o)}
+            className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${
+              brancheFilter ? 'bg-accent text-white' : 'bg-panel text-white/40 hover:text-white/70'
+            }`}
+          >
+            <span className="max-w-28 truncate">{brancheFilter || 'Branche'}</span>
+            <ChevronDown size={13} className={`shrink-0 transition-transform ${brancheOpen ? 'rotate-180' : ''}`} />
+          </button>
+          {brancheOpen && (
+            <div className="absolute top-full left-0 mt-1 z-50 bg-panel-hover rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.6)] border border-white/10 p-1 min-w-44 max-h-72 overflow-y-auto">
+              <button
+                onClick={() => { setBrancheFilter(''); setBrancheOpen(false) }}
+                className={`w-full text-left px-3 py-2.5 text-sm rounded-lg hover:bg-white/8 transition-colors ${!brancheFilter ? 'text-white font-bold' : 'text-white/50'}`}
+              >
+                Alle Branchen
+              </button>
+              {branches.length > 0 && <div className="border-t border-white/8 my-1" />}
+              {branches.map(b => (
+                <button
+                  key={b}
+                  onClick={() => { setBrancheFilter(b); setBrancheOpen(false) }}
+                  className={`w-full text-left px-3 py-2.5 text-sm rounded-lg hover:bg-white/8 transition-colors ${
+                    brancheFilter === b ? 'text-accent font-bold' : 'text-white/60'
+                  }`}
+                >
+                  {b}
+                </button>
+              ))}
+              {branches.length === 0 && (
+                <p className="px-3 py-2.5 text-xs text-white/25">Keine Branchen in Leads.</p>
+              )}
+            </div>
+          )}
         </div>
 
         {selectionCount > 0 ? (
