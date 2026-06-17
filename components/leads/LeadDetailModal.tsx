@@ -27,7 +27,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="flex items-center gap-1.5 text-[10px] font-bold text-white/25 uppercase tracking-widest mb-1.5">
+      <label className="flex items-center gap-1.5 text-[10px] font-bold text-white/25 tracking-wide mb-1.5">
         {icon}{label}
       </label>
       {editing ? (
@@ -176,7 +176,7 @@ export function LeadDetailModal({
           {/* IM CALL PANEL */}
           {callMode && (
             <div className="bg-[#1A1A1A] rounded-2xl p-5 space-y-4">
-              <p className="text-[10px] font-black text-accent uppercase tracking-widest">Schnellaktionen</p>
+              <p className="text-[10px] font-black text-accent tracking-wide">Schnellaktionen</p>
               <ul className="space-y-2">
                 {CALL_ITEMS.map(item => {
                   const done = checked.has(item)
@@ -216,7 +216,7 @@ export function LeadDetailModal({
                 </button>
               ) : (
                 <div className="space-y-2">
-                  <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Termin</p>
+                  <p className="text-[10px] font-bold text-white/30 tracking-wide">Termin</p>
                   <div className="grid grid-cols-3 gap-2">
                     <div className="col-span-3 sm:col-span-1">
                       <DatePicker value={form.appointment_date ?? ''} onChange={v => set('appointment_date', v)} />
@@ -289,7 +289,7 @@ export function LeadDetailModal({
           {/* Appointment (if set) */}
           {(form.appointment_date || lead.appointment_date) && !callMode && (
             <div className="bg-[#1A1A1A] rounded-2xl p-4">
-              <label className="flex items-center gap-1.5 text-[10px] font-bold text-accent uppercase tracking-widest mb-2">
+              <label className="flex items-center gap-1.5 text-[10px] font-bold text-accent tracking-wide mb-2">
                 <Calendar size={11} />
                 Termin
               </label>
@@ -316,7 +316,7 @@ export function LeadDetailModal({
 
           {/* Notes */}
           <div>
-            <label className="flex items-center gap-1.5 text-[10px] font-bold text-white/25 uppercase tracking-widest mb-2">
+            <label className="flex items-center gap-1.5 text-[10px] font-bold text-white/25 tracking-wide mb-2">
               <FileText size={11} />Notizen
             </label>
             {editing ? (
@@ -330,7 +330,7 @@ export function LeadDetailModal({
 
           {/* Deal Note */}
           <div>
-            <label className="flex items-center gap-1.5 text-[10px] font-bold text-white/25 uppercase tracking-widest mb-2">
+            <label className="flex items-center gap-1.5 text-[10px] font-bold text-white/25 tracking-wide mb-2">
               <FileText size={11} />Deal Note
             </label>
             {editing ? (

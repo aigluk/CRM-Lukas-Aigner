@@ -272,7 +272,7 @@ export function ImportModal({ onClose, onImported }: Props) {
 
               {/* Global branche override — always uses our own BRANCHES list */}
               <div className="bg-dark rounded-xl p-4 space-y-3">
-                <p className="text-[11px] font-bold text-white/35 uppercase tracking-wide">Branche für alle Leads</p>
+                <p className="text-[11px] font-bold text-white/35 tracking-wide">Branche für alle Leads</p>
                 <p className="text-[11px] text-white/25">Wähle eine Branche — überschreibt den Spalten-Wert.</p>
                 <div className="flex flex-wrap gap-2">
                   <button
@@ -317,7 +317,7 @@ export function ImportModal({ onClose, onImported }: Props) {
 
               {/* Preview */}
               <div className="bg-dark rounded-xl overflow-hidden">
-                <p className="px-4 py-2 text-[10px] font-bold text-white/25 uppercase tracking-wide border-b border-white/5">
+                <p className="px-4 py-2 text-[10px] font-bold text-white/25 tracking-wide border-b border-white/5">
                   Vorschau (erste 3 Zeilen)
                 </p>
                 <div className="overflow-x-auto">

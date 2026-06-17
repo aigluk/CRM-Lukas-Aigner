@@ -43,12 +43,12 @@ export function TodoDetailModal({
 
         <div className="space-y-3">
           <div>
-            <label className="block text-[10px] font-black text-white/25 uppercase tracking-widest mb-1.5">Titel</label>
+            <label className="block text-[10px] font-black text-white/25 tracking-wide mb-1.5">Titel</label>
             <input type="text" value={text} onChange={e => setText(e.target.value)} className={inputCls} />
           </div>
 
           <div>
-            <label className="block text-[10px] font-black text-white/25 uppercase tracking-widest mb-1.5">Notizen</label>
+            <label className="block text-[10px] font-black text-white/25 tracking-wide mb-1.5">Notizen</label>
             <textarea
               value={notes}
               onChange={e => setNotes(e.target.value)}
@@ -69,7 +69,7 @@ export function TodoDetailModal({
               {reminder ? <Bell size={14} /> : <BellOff size={14} />}
               Erinnerung
             </span>
-            <span className="text-[10px] font-black uppercase tracking-widest">
+            <span className="text-[10px] font-black tracking-wide">
               {reminder ? 'An' : 'Aus'}
             </span>
           </button>

@@ -8,7 +8,7 @@ import { formatDate } from '@/lib/utils'
 type AdminUser = { id: string; email: string; created_at: string; last_sign_in_at: string | null }
 
 function Label({ text }: { text: string }) {
-  return <label className="block text-[10px] font-black text-white/25 uppercase tracking-widest mb-1.5">{text}</label>
+  return <label className="block text-[10px] font-black text-white/25 tracking-wide mb-1.5">{text}</label>
 }
 
 const inputCls = 'w-full bg-dark rounded-xl px-3.5 py-3 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all'

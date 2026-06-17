@@ -280,7 +280,6 @@ export function GeneratorForm() {
       {/* Header */}
       <div className="mb-5 shrink-0">
         <h1 className="text-3xl font-black text-white tracking-tight leading-none">Lead Generator</h1>
-        <p className="text-sm text-white/30 mt-2 font-medium">Google Maps · Outscraper · E-Mail Enrichment</p>
       </div>
 
       {/* Fixed-height two-column grid — both panels scroll internally on desktop */}
@@ -381,7 +380,7 @@ export function GeneratorForm() {
               <h2 className="text-sm font-black text-white">Region</h2>
             </div>
 
-            <p className="text-[10px] font-black text-white/20 uppercase tracking-widest mb-2.5">Land</p>
+            <p className="text-[10px] font-black text-white/20 tracking-wide mb-2.5">Land</p>
             <div className="flex flex-wrap gap-1.5 mb-5">
               {COUNTRIES.map(c => (
                 <button
@@ -400,7 +399,7 @@ export function GeneratorForm() {
               ))}
             </div>
 
-            <p className="text-[10px] font-black text-white/20 uppercase tracking-widest mb-2.5">Stadt / Ort</p>
+            <p className="text-[10px] font-black text-white/20 tracking-wide mb-2.5">Stadt / Ort</p>
             <div className="grid grid-cols-3 gap-1.5 mb-4">
               {country.cities.map(c => (
                 <button

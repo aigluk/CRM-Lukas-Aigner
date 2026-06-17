@@ -277,7 +277,7 @@ function MonthView({
     <div className="bg-panel rounded-2xl overflow-hidden">
       <div className="grid grid-cols-7 border-b border-white/5">
         {WEEKDAYS.map(d => (
-          <div key={d} className="py-3 text-center text-[10px] font-black text-white/20 uppercase tracking-widest">
+          <div key={d} className="py-3 text-center text-[10px] font-black text-white/20 tracking-wide">
             {d}
           </div>
         ))}
@@ -379,7 +379,7 @@ function HourGrid({
           {days.map((d, i) => (
             <div key={i} className="py-3 text-center border-l border-white/4 first:border-l-0">
               {days.length > 1 && (
-                <p className="text-[10px] font-black text-white/20 uppercase tracking-widest">{LABELS[(d.getDay() + 6) % 7]}</p>
+                <p className="text-[10px] font-black text-white/20 tracking-wide">{LABELS[(d.getDay() + 6) % 7]}</p>
               )}
               <p className={`text-sm font-bold mt-0.5 ${isSameDay(d, today) ? 'text-accent' : 'text-white/50'}`}>
                 {d.getDate()}

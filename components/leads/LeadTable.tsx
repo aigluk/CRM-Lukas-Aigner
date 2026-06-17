@@ -101,8 +101,8 @@ export function LeadTable({
       {/* Header */}
       <div className={`${rowGrid} py-3 border-b border-panel-2`}>
         <Circle selected={allSelected} partial={someSelected} onClick={e => { e.stopPropagation(); onToggleAll() }} />
-        <span className="text-[10px] font-bold text-white/25 uppercase tracking-widest">Unternehmen</span>
-        <span className="hidden sm:block text-[10px] font-bold text-white/25 uppercase tracking-widest">Status</span>
+        <span className="text-[10px] font-bold text-white/25 tracking-wide">Unternehmen</span>
+        <span className="hidden sm:block text-[10px] font-bold text-white/25 tracking-wide">Status</span>
         <span /><span /><span />
       </div>
 

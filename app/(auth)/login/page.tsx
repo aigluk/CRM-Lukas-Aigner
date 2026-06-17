@@ -44,7 +44,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleLogin} className="space-y-3">
             <div>
-              <label className="block text-[10px] font-black text-white/25 uppercase tracking-widest mb-1.5">
+              <label className="block text-[10px] font-black text-white/25 tracking-wide mb-1.5">
                 E-Mail
               </label>
               <input
@@ -59,7 +59,7 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-[10px] font-black text-white/25 uppercase tracking-widest mb-1.5">
+              <label className="block text-[10px] font-black text-white/25 tracking-wide mb-1.5">
                 Passwort
               </label>
               <div className="relative">
