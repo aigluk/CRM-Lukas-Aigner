@@ -48,8 +48,10 @@ function NewAppointmentModal({
           notes: notes || undefined,
         }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Fehler')
+      const text = await res.text()
+      let data: any = {}
+      try { data = JSON.parse(text) } catch {}
+      if (!res.ok) throw new Error(data.error || `Serverfehler ${res.status}`)
       onCreated(data.lead)
       onClose()
     } catch (err: any) {

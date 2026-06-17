@@ -53,8 +53,10 @@ export function NewLeadModal({ onClose, onCreate }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...form }),
       })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error || `Fehler ${res.status}`)
+      const text = await res.text()
+      let json: any = {}
+      try { json = JSON.parse(text) } catch {}
+      if (!res.ok) throw new Error(json.error || `Serverfehler ${res.status}`)
       onCreate(json.lead)
       onClose()
     } catch (err: any) {

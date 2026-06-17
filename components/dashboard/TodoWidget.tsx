@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, ListTodo, Bell, X } from 'lucide-react'
+import { Plus, ListTodo, Bell, X, Trash2 } from 'lucide-react'
 import { useTodos, Todo } from '@/lib/useTodos'
 import { TodoDetailModal } from './TodoDetailModal'
 import { formatDate } from '@/lib/utils'
@@ -90,6 +90,12 @@ function FullTodoModal({ onClose }: { onClose: () => void }) {
                       </span>
                     )}
                   </div>
+                  <button
+                    onClick={e => { e.stopPropagation(); remove(t.id) }}
+                    className="opacity-0 group-hover:opacity-100 shrink-0 text-white/25 hover:text-accent transition-all p-1 rounded-lg hover:bg-white/8"
+                  >
+                    <Trash2 size={13} />
+                  </button>
                 </div>
               )
             })
@@ -128,7 +134,7 @@ export function TodoWidget() {
 
       <button
         onClick={() => setShowFull(true)}
-        className="flex items-center gap-2 mb-4 group text-left w-full"
+        className="flex items-center gap-2 mb-4 group text-left w-full shrink-0"
       >
         <ListTodo size={14} className="text-accent" />
         <h2 className="text-sm font-bold text-white group-hover:text-white/70 transition-colors flex-1">To-Do</h2>
@@ -154,7 +160,8 @@ export function TodoWidget() {
         </button>
       </form>
 
-      <div className="flex-1 overflow-y-auto space-y-1 min-h-0 -mx-1 px-1">
+      {/* List: scrolls within the fixed-height card (h-full parent + flex-1 here) */}
+      <div className="flex-1 overflow-y-auto min-h-0 -mx-1 px-1 space-y-0.5">
         {todos.length === 0 ? (
           <p className="text-sm text-white/35 text-center py-6 font-medium">Keine offenen Aufgaben.</p>
         ) : (
@@ -168,7 +175,7 @@ export function TodoWidget() {
               >
                 <button
                   onClick={e => { e.stopPropagation(); toggle(t.id) }}
-                  className={`w-4.5 h-4.5 rounded-full shrink-0 flex items-center justify-center border-2 transition-all ${
+                  className={`w-4 h-4 rounded-full shrink-0 flex items-center justify-center border-2 transition-all ${
                     t.done ? 'bg-accent-green border-accent-green' : 'border-white/20 hover:border-accent'
                   }`}
                 >
@@ -185,6 +192,12 @@ export function TodoWidget() {
                     </span>
                   )}
                 </div>
+                <button
+                  onClick={e => { e.stopPropagation(); remove(t.id) }}
+                  className="opacity-0 group-hover:opacity-100 shrink-0 text-white/25 hover:text-accent transition-all p-1 rounded-lg hover:bg-white/8"
+                >
+                  <X size={13} />
+                </button>
               </div>
             )
           })
