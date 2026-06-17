@@ -152,17 +152,22 @@ export async function DELETE(req: NextRequest) {
     const user = await getAuthUser()
     if (!user) return NextResponse.json({ error: 'Nicht angemeldet' }, { status: 401 })
 
-    const id = new URL(req.url).searchParams.get('id')
-    if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })
+    const url = new URL(req.url)
+    const id = url.searchParams.get('id')
+    const ids = url.searchParams.get('ids') // comma-separated batch delete
+
+    if (!id && !ids) return NextResponse.json({ error: 'ID required' }, { status: 400 })
+
+    const targetIds = ids ? ids.split(',').map(s => s.trim()).filter(Boolean) : [id!]
 
     const { error } = await db()
       .from('leads')
       .delete()
-      .eq('id', id)
+      .in('id', targetIds)
       .eq('user_id', user.id)
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true, deleted: targetIds.length })
   } catch (err: any) {
     console.error('[DELETE /api/leads]', err?.message)
     return NextResponse.json({ error: err?.message ?? 'Interner Serverfehler' }, { status: 500 })

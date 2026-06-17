@@ -10,8 +10,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </div>
 
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto min-w-0">
-        <div className="p-6 pb-28 lg:p-10 lg:pb-10 animate-fade-up">
+      <main className="flex-1 overflow-y-auto min-w-0 overscroll-none">
+        <div className="p-6 pb-28 lg:p-10 lg:pb-10">
           {children}
         </div>
       </main>

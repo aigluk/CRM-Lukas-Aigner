@@ -43,7 +43,7 @@ export default async function DashboardPage() {
       <KPICards leads={all} />
 
       {/* Bottom row — fixed height on desktop so panels don't push the page */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 lg:grid-rows-1 gap-5 lg:h-100">
+      <div className="grid grid-cols-1 lg:grid-cols-3 lg:grid-rows-1 gap-5 lg:h-100 overflow-hidden">
         <TodayPanel leads={all} />
         <TodoWidget />
         <ActivityFeed leads={all} compact />

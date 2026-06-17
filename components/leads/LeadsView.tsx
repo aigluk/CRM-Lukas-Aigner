@@ -7,7 +7,7 @@ import { PipelineTabs } from './PipelineTabs'
 import { LeadTable } from './LeadTable'
 import { LeadDetailModal } from './LeadDetailModal'
 import { NewLeadModal } from './NewLeadModal'
-import { Search, Plus, Upload } from 'lucide-react'
+import { Search, Plus, Upload, Trash2, X } from 'lucide-react'
 import { ImportModal } from './ImportModal'
 
 export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
@@ -17,6 +17,8 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
   const [showNew, setShowNew]         = useState(false)
   const [showImport, setShowImport]   = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [deleting, setDeleting]       = useState(false)
 
   const counts = useMemo(() =>
     STATUSES.reduce<Record<string, number>>((acc, s) => {
@@ -65,9 +67,53 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
     const res = await fetch(`/api/leads?id=${id}`, { method: 'DELETE' })
     if (res.ok) {
       setLeads(prev => prev.filter(l => l.id !== id))
+      setSelectedIds(prev => { const n = new Set(prev); n.delete(id); return n })
       setSelectedLead(null)
     }
   }
+
+  async function handleBulkDelete() {
+    if (!selectedIds.size || deleting) return
+    const ids = Array.from(selectedIds)
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/leads?ids=${ids.join(',')}`, { method: 'DELETE' })
+      if (res.ok) {
+        setLeads(prev => prev.filter(l => !selectedIds.has(l.id)))
+        setSelectedIds(new Set())
+        setSelectedLead(null)
+      }
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => {
+      const n = new Set(prev)
+      if (n.has(id)) n.delete(id); else n.add(id)
+      return n
+    })
+  }
+
+  function toggleAll() {
+    const allFilteredIds = filtered.map(l => l.id)
+    const allSelected = allFilteredIds.every(id => selectedIds.has(id))
+    setSelectedIds(prev => {
+      const n = new Set(prev)
+      if (allSelected) allFilteredIds.forEach(id => n.delete(id))
+      else allFilteredIds.forEach(id => n.add(id))
+      return n
+    })
+  }
+
+  // Clear selection when switching tabs
+  function handleStatusChange(s: LeadStatus) {
+    setActiveStatus(s)
+    setSelectedIds(new Set())
+  }
+
+  const selectionCount = filtered.filter(l => selectedIds.has(l.id)).length
 
   return (
     <div>
@@ -99,11 +145,11 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
       <PipelineTabs
         activeStatus={activeStatus}
         counts={counts}
-        onStatusChange={setActiveStatus}
+        onStatusChange={handleStatusChange}
       />
 
-      {/* Search */}
-      <div className="mt-4 mb-4 flex gap-3">
+      {/* Search + bulk action bar */}
+      <div className="mt-4 mb-4 flex gap-3 items-center">
         <div className="relative max-w-sm w-full">
           <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none" />
           <input
@@ -114,13 +160,40 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
             className="w-full bg-panel rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-white/25 outline-none focus:ring-1 focus:ring-accent transition-all"
           />
         </div>
-        <div className="flex items-center text-xs text-white/35 font-medium">
-          {filtered.length} {filtered.length === 1 ? 'Lead' : 'Leads'}
-        </div>
+
+        {selectionCount > 0 ? (
+          <div className="flex items-center gap-2 flex-1">
+            <span className="text-xs text-white/50 font-medium">{selectionCount} ausgewählt</span>
+            <button
+              onClick={handleBulkDelete}
+              disabled={deleting}
+              className="flex items-center gap-1.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold px-3 py-2 rounded-xl transition-all disabled:opacity-50"
+            >
+              <Trash2 size={13} />
+              {deleting ? 'Löschen…' : `${selectionCount} löschen`}
+            </button>
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="p-1.5 text-white/30 hover:text-white rounded-lg transition-colors"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center text-xs text-white/35 font-medium">
+            {filtered.length} {filtered.length === 1 ? 'Lead' : 'Leads'}
+          </div>
+        )}
       </div>
 
       {/* Table */}
-      <LeadTable leads={filtered} onLeadClick={setSelectedLead} />
+      <LeadTable
+        leads={filtered}
+        onLeadClick={setSelectedLead}
+        selectedIds={selectedIds}
+        onToggleSelect={toggleSelect}
+        onToggleAll={toggleAll}
+      />
 
       {/* Detail modal */}
       {selectedLead && (
