@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Mail, Lock, Users, Plus, Loader2, Check, Trash2, AtSign } from 'lucide-react'
+import { Mail, Lock, Users, Plus, Loader2, Check, Trash2, AtSign, User } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { formatDate } from '@/lib/utils'
 
@@ -23,6 +23,7 @@ export function SettingsView() {
   const supabase = createClient()
 
   const [currentEmail, setCurrentEmail] = useState('')
+  const [joinedAt, setJoinedAt]         = useState('')
   const [newEmail, setNewEmail]         = useState('')
   const [emailSaving, setEmailSaving]   = useState(false)
   const [emailMsg, setEmailMsg]         = useState('')
@@ -48,6 +49,7 @@ export function SettingsView() {
     supabase.auth.getUser().then(({ data }) => {
       setCurrentEmail(data.user?.email ?? '')
       setDisplayName(data.user?.user_metadata?.display_name ?? '')
+      setJoinedAt(data.user?.created_at ?? '')
     })
     loadUsers()
   }, [])
@@ -132,6 +134,24 @@ export function SettingsView() {
       <div className="mb-8">
         <h1 className="text-3xl font-black text-white tracking-tight leading-none">Einstellungen</h1>
         <p className="text-sm text-white/30 mt-2 font-medium">Profil & Benutzerverwaltung</p>
+      </div>
+
+      {/* Profile card */}
+      <div className="bg-panel rounded-2xl p-6 mb-5">
+        <div className="flex items-center gap-5">
+          <div className="w-20 h-20 rounded-full bg-accent flex items-center justify-center shrink-0">
+            <User size={36} className="text-white" strokeWidth={1.5} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-xl font-black text-white truncate">
+              {displayName || <span className="text-white/30 italic font-semibold">Kein Name gesetzt</span>}
+            </h2>
+            <p className="text-sm text-white/40 mt-0.5 truncate">{currentEmail}</p>
+            {joinedAt && (
+              <p className="text-xs text-white/20 mt-1">Mitglied seit {formatDate(joinedAt)}</p>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className={`grid grid-cols-1 ${isAdmin ? 'lg:grid-cols-2' : ''} gap-5`}>

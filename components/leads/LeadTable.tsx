@@ -35,26 +35,25 @@ function handleShare(lead: Lead, e: React.MouseEvent) {
   e.stopPropagation()
   const phone = lead.phone?.trim()
   const email = lead.email || lead.email_general
+  const waUrl = phone ? `https://wa.me/${toWaPhone(phone)}` : null
 
-  if (phone) {
-    // Use native share (VCard) only when the browser supports file sharing (mobile)
-    if (typeof navigator !== 'undefined' && navigator.share) {
-      const vcard = buildVCard(lead)
-      const blob  = new Blob([vcard], { type: 'text/vcard' })
-      const file  = new File([blob], `${lead.name.replace(/[^a-z0-9]/gi, '_')}.vcf`, { type: 'text/vcard' })
-      const shareData = { files: [file], title: lead.name }
-      if (navigator.canShare?.(shareData)) {
-        navigator.share(shareData).catch(() => {
-          window.open(`https://wa.me/${toWaPhone(phone)}`, '_blank')
-        })
-        return
-      }
-    }
-    // Desktop or browser without file share support → open WhatsApp directly
-    window.open(`https://wa.me/${toWaPhone(phone)}`, '_blank')
-  } else if (email) {
-    window.open(`mailto:${email}?subject=${encodeURIComponent(lead.name)}`, '_blank')
+  // Mobile (iOS/Android): offer native share sheet with VCard
+  const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(
+    typeof navigator !== 'undefined' ? navigator.userAgent : ''
+  )
+  if (isMobile && phone && navigator.share) {
+    const vcard = buildVCard(lead)
+    const blob  = new Blob([vcard], { type: 'text/vcard' })
+    const file  = new File([blob], `${lead.name.replace(/[^a-z0-9]/gi, '_')}.vcf`, { type: 'text/vcard' })
+    navigator.share({ files: [file], title: lead.name }).catch(() => {
+      if (waUrl) window.open(waUrl, '_blank')
+    })
+    return
   }
+
+  // Desktop: open WhatsApp web or mailto
+  if (waUrl)   window.open(waUrl, '_blank')
+  else if (email) window.open(`mailto:${email}?subject=${encodeURIComponent(lead.name)}`, '_blank')
 }
 
 function Circle({
