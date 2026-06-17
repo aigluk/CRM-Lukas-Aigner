@@ -144,7 +144,7 @@ export function LeadTable({
               key={lead.id}
               className={`${rowGrid} py-3 transition-colors cursor-pointer group ${
                 i < leads.length - 1 ? 'border-b border-panel-2' : ''
-              } ${selected ? 'bg-accent/7' : 'hover:bg-panel-hover'}`}
+              } ${selected ? 'bg-accent/7' : openHandlerFor === lead.id ? '' : 'hover:bg-panel-hover'}`}
             >
               {/* Circle selector */}
               <Circle selected={selected} onClick={e => { e.stopPropagation(); onToggleSelect(lead.id) }} />
@@ -185,7 +185,7 @@ export function LeadTable({
                   </button>
 
                   {openHandlerFor === lead.id && (
-                    <div className="absolute top-full left-0 mt-1 z-200 bg-rim-subtle rounded-xl shadow-2xl border border-white/8 py-1 min-w-37.5">
+                    <div className="absolute top-full left-0 mt-1 z-200 bg-panel-hover rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.6)] border border-white/10 py-1 min-w-37.5">
                       {users.length === 0 && (
                         <p className="px-3 py-2.5 text-xs text-white/30">Erst Benutzernamen in Einstellungen setzen.</p>
                       )}

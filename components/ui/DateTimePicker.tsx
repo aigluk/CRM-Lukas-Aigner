@@ -37,7 +37,7 @@ function TimeColumn({
   )
 }
 
-export function TimePicker({ value, onChange, label }: { value: string; onChange: (v: string) => void; label?: string }) {
+export function TimePicker({ value, onChange, label, openUp }: { value: string; onChange: (v: string) => void; label?: string; openUp?: boolean }) {
   const [open, setOpen] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
   useClickOutside(wrapRef, () => setOpen(false))
@@ -58,7 +58,7 @@ export function TimePicker({ value, onChange, label }: { value: string; onChange
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-2 bg-panel border border-rim-subtle rounded-2xl p-4 shadow-2xl">
+        <div className={`absolute z-50 ${openUp ? 'bottom-full mb-2' : 'mt-2'} bg-panel border border-rim-subtle rounded-2xl p-4 shadow-2xl`}>
           <div className="flex items-center gap-2">
             <TimeColumn values={HOURS} value={h} onChange={nh => onChange(`${nh}:${closestM}`)} unit="Std" />
             <span className="text-white/20 font-black text-2xl pb-6">:</span>
