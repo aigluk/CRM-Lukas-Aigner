@@ -32,20 +32,10 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="w-55 bg-accent h-screen flex flex-col shrink-0">
-      {/* Brand — pt-10 aligns logo with page headings (main content also has p-10) */}
-      <div className="px-5 pt-10 pb-6">
-        <div className="flex items-center gap-2.5">
-          <Logo className="h-7 w-auto text-white shrink-0" />
-          <div className="min-w-0">
-            <p className="text-[13px] font-black text-white tracking-tight leading-none truncate">Lukas Aigner</p>
-            <p className="text-[9px] text-white/50 font-black tracking-[0.2em] uppercase mt-0.5">CRM</p>
-          </div>
-        </div>
-      </div>
+    <aside className="w-52 bg-accent h-screen flex flex-col shrink-0 rounded-r-[28px] overflow-hidden">
 
-      {/* Navigation */}
-      <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
+      {/* Top navigation */}
+      <nav className="pt-8 px-3 space-y-1">
         {NAV.map(({ href, label, icon: Icon }) => {
           const active = isActive(href)
           return (
@@ -65,8 +55,13 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Account */}
-      <div className="p-3 pb-6 space-y-1">
+      {/* Logo — centered in the remaining space */}
+      <div className="flex-1 flex items-center justify-center">
+        <Logo className="h-16 w-auto text-white/90" />
+      </div>
+
+      {/* Bottom account links */}
+      <div className="px-3 pb-8 space-y-1">
         <Link
           href="/settings"
           className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all ${
