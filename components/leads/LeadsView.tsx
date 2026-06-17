@@ -23,6 +23,7 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [deleting, setDeleting]       = useState(false)
   const [quickNoteLead, setQuickNoteLead] = useState<Lead | null>(null)
+  const [patchError, setPatchError]   = useState('')
   const [currentUsername, setCurrentUsername] = useState('')
   const [teamUsers, setTeamUsers]     = useState<TeamUser[]>([])
   const channelRef = useRef<ReturnType<ReturnType<typeof createClient>['channel']> | null>(null)
@@ -115,6 +116,15 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
       const { lead } = await res.json()
       setLeads(prev => prev.map(l => l.id === id ? { ...l, ...lead } : l))
       if (selectedLead?.id === id) setSelectedLead(prev => prev ? { ...prev, ...lead } : prev)
+    } else {
+      const data = await res.json().catch(() => ({}))
+      if ('handler' in updates) {
+        setPatchError('Bearbeiter konnte nicht gespeichert werden — SQL-Migration fehlt. Bitte in Supabase ausführen: ALTER TABLE leads ADD COLUMN IF NOT EXISTS handler text;')
+        setTimeout(() => setPatchError(''), 8000)
+      } else {
+        setPatchError(data.error || 'Speichern fehlgeschlagen.')
+        setTimeout(() => setPatchError(''), 5000)
+      }
     }
   }
 
@@ -253,6 +263,13 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
           </div>
         )}
       </div>
+
+      {/* Patch error toast */}
+      {patchError && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-accent text-white text-xs font-bold px-4 py-3 rounded-xl shadow-2xl max-w-sm text-center leading-relaxed">
+          {patchError}
+        </div>
+      )}
 
       {/* Table */}
       <LeadTable

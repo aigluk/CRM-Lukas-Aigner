@@ -163,7 +163,7 @@ export function KPICards({ leads }: { leads: Lead[] }) {
     <div className="bg-panel rounded-2xl p-5">
       <div className="flex items-center justify-between mb-5">
         <h2 className="text-sm font-bold text-white">Pipeline Übersicht</h2>
-        <div className="flex items-center gap-1.5">
+        <div className="hidden sm:flex items-center gap-1.5">
           <button
             onClick={() => setPeriod('heute')}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${

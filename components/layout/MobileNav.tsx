@@ -21,24 +21,28 @@ export function MobileNav() {
   }
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-accent safe-bottom">
-      <div className="flex items-stretch overflow-x-auto scrollbar-none">
+    <nav
+      className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-panel border-t border-rim-subtle"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+    >
+      <div className="flex items-stretch h-16">
         {NAV.map(({ href, label, icon: Icon }) => {
           const active = isActive(href)
           return (
             <Link
               key={href}
               href={href}
-              className={`flex-1 min-w-15 flex flex-col items-center justify-center gap-1 py-3 relative transition-colors ${
-                active ? 'bg-dark/20' : ''
-              }`}
+              className="flex-1 flex flex-col items-center justify-center gap-1 relative transition-all active:opacity-60"
             >
+              {active && (
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-b-full bg-accent" />
+              )}
               <Icon
-                size={19}
+                size={21}
                 strokeWidth={active ? 2.5 : 1.8}
-                className={active ? 'text-white' : 'text-white/55'}
+                className={active ? 'text-accent' : 'text-white/30'}
               />
-              <span className={`text-[9px] font-black tracking-wide ${active ? 'text-white' : 'text-white/50'}`}>
+              <span className={`text-[9px] font-black tracking-wide ${active ? 'text-accent' : 'text-white/25'}`}>
                 {label}
               </span>
             </Link>

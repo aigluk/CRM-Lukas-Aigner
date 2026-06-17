@@ -14,7 +14,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         className="flex-1 overflow-y-auto min-w-0 overscroll-none"
         style={{ scrollbarGutter: 'stable' }}
       >
-        <div className="p-6 pb-28 lg:p-10 lg:pb-10">
+        <div className="p-5 pb-24 lg:p-10 lg:pb-10">
           {children}
         </div>
       </main>
