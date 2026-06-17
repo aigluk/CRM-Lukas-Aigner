@@ -73,7 +73,7 @@ function NewAppointmentModal({
 
         <div className="space-y-3">
           <div>
-            <label className="block text-[10px] font-black text-white/25 uppercase tracking-widest mb-1.5">Firma / Kunde *</label>
+            <label className="block text-[11px] font-medium text-white/35 mb-1.5">Firma / Kunde *</label>
             <input
               autoFocus
               type="text"
@@ -92,7 +92,7 @@ function NewAppointmentModal({
           </div>
 
           <div>
-            <label className="block text-[10px] font-black text-white/25 uppercase tracking-widest mb-1.5">Notizen</label>
+            <label className="block text-[11px] font-medium text-white/35 mb-1.5">Notizen</label>
             <textarea
               value={notes}
               onChange={e => setNotes(e.target.value)}
@@ -216,9 +216,9 @@ export function CalendarView({ leads: initialLeads }: { leads: Lead[] }) {
             />
           )}
         </div>
-        <div className="lg:col-span-1 space-y-5">
-          <TodayPanel leads={leads} />
-          <TodoWidget />
+        <div className="lg:col-span-1 flex flex-col gap-5">
+          <div className="h-60"><TodayPanel leads={leads} /></div>
+          <div className="h-80"><TodoWidget /></div>
         </div>
       </div>
     </div>

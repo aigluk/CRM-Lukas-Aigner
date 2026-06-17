@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Lead, LeadStatus } from '@/lib/types'
 import { STATUSES, STATUS_LABELS, BRANCHES } from '@/lib/constants'
-import { X, Building2, User, Phone, Mail, Globe, MapPin, Tag, FileText } from 'lucide-react'
+import { X, Building2, User, Phone, Mail, Globe, MapPin, Tag, FileText, ChevronDown } from 'lucide-react'
 
 interface Props {
   onClose: () => void
@@ -31,7 +31,6 @@ function Label({ icon, text }: { icon: React.ReactNode; text: string }) {
 }
 
 const inputCls = 'w-full bg-dark rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all'
-const selectCls = 'w-full bg-dark rounded-xl px-3.5 py-2.5 text-sm text-white outline-none focus:ring-1 focus:ring-accent transition-all appearance-none'
 
 export function NewLeadModal({ onClose, onCreate }: Props) {
   const [form, setForm] = useState(EMPTY)
@@ -125,12 +124,17 @@ export function NewLeadModal({ onClose, onCreate }: Props) {
               <input type="url" value={form.website} onChange={e => set('website', e.target.value)}
                 placeholder="https://firma.at" className={inputCls} />
             </div>
-            <div>
+            <div className="relative">
               <Label icon={<Tag size={11} />} text="Branche" />
-              <select value={form.branche} onChange={e => set('branche', e.target.value)} className={selectCls}>
+              <select
+                value={form.branche}
+                onChange={e => set('branche', e.target.value)}
+                className="w-full bg-dark rounded-xl px-3.5 py-2.5 pr-9 text-sm text-white outline-none focus:ring-1 focus:ring-accent transition-all appearance-none"
+              >
                 <option value="">— Branche wählen —</option>
                 {BRANCHES.map(b => <option key={b} value={b}>{b}</option>)}
               </select>
+              <ChevronDown size={14} className="absolute right-3 top-[calc(50%+7px)] -translate-y-1/2 text-white/30 pointer-events-none" />
             </div>
             <div>
               <Label icon={<MapPin size={11} />} text="Stadt / Region" />

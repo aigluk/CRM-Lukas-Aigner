@@ -5,6 +5,7 @@ import { ActivityFeed } from '@/components/dashboard/ActivityFeed'
 import { TodayPanel } from '@/components/dashboard/TodayPanel'
 import { TodoWidget } from '@/components/dashboard/TodoWidget'
 import { ReminderBanner } from '@/components/dashboard/ReminderBanner'
+import { DbSetupBanner } from '@/components/dashboard/DbSetupBanner'
 import type { Lead } from '@/lib/types'
 
 export default async function DashboardPage() {
@@ -34,6 +35,7 @@ export default async function DashboardPage() {
         <p className="text-sm text-white/30 mt-2 capitalize font-medium">{today}</p>
       </div>
 
+      <DbSetupBanner />
       <ReminderBanner />
 
       <StatTiles leads={all} />

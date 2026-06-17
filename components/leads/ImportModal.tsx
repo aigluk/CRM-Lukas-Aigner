@@ -1,0 +1,292 @@
+'use client'
+
+import { useState, useRef } from 'react'
+import { X, Upload, FileText, Check, AlertCircle, ChevronDown } from 'lucide-react'
+import { Lead, LeadStatus } from '@/lib/types'
+import { STATUSES, STATUS_LABELS, BRANCHES } from '@/lib/constants'
+
+interface Props {
+  onClose: () => void
+  onImported: (leads: Lead[]) => void
+}
+
+type Row = Record<string, string>
+
+const FIELD_MAP: Record<string, string> = {
+  'name': 'name', 'firma': 'name', 'company': 'name', 'unternehmen': 'name',
+  'phone': 'phone', 'telefon': 'phone', 'tel': 'phone', 'mobile': 'phone', 'handy': 'phone',
+  'email': 'email', 'e-mail': 'email', 'mail': 'email',
+  'website': 'website', 'web': 'website', 'url': 'website', 'homepage': 'website',
+  'branche': 'branche', 'industry': 'branche', 'industrie': 'branche', 'kategorie': 'branche',
+  'city': 'city', 'stadt': 'city', 'ort': 'city', 'region': 'city',
+  'ceos': 'ceos', 'ceo': 'ceos', 'ansprechpartner': 'ceos', 'kontakt': 'ceos', 'person': 'ceos',
+  'notes': 'notes', 'notizen': 'notes', 'kommentar': 'notes', 'beschreibung': 'notes',
+}
+
+function parseCSV(text: string): Row[] {
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean)
+  if (lines.length < 2) return []
+  const headers = lines[0].split(/[,;\t]/).map(h => h.replace(/^["']|["']$/g, '').toLowerCase().trim())
+  return lines.slice(1).map(line => {
+    const vals = line.split(/[,;\t]/).map(v => v.replace(/^["']|["']$/g, '').trim())
+    const row: Row = {}
+    headers.forEach((h, i) => { row[h] = vals[i] ?? '' })
+    return row
+  })
+}
+
+async function parseExcel(file: File): Promise<Row[]> {
+  const XLSX = await import('xlsx')
+  return new Promise(resolve => {
+    const reader = new FileReader()
+    reader.onload = e => {
+      try {
+        const wb = XLSX.read(new Uint8Array(e.target!.result as ArrayBuffer), { type: 'array' })
+        const ws = wb.Sheets[wb.SheetNames[0]]
+        const data = XLSX.utils.sheet_to_json<Row>(ws, { defval: '', raw: false })
+        // normalise keys
+        const normalised = data.map(row => {
+          const r: Row = {}
+          Object.entries(row).forEach(([k, v]) => { r[k.toLowerCase().trim()] = String(v) })
+          return r
+        })
+        resolve(normalised)
+      } catch { resolve([]) }
+    }
+    reader.readAsArrayBuffer(file)
+  })
+}
+
+function autoMap(rows: Row[]): Record<string, string> {
+  if (!rows.length) return {}
+  const mapping: Record<string, string> = {}
+  Object.keys(rows[0]).forEach(col => {
+    const target = FIELD_MAP[col] ?? FIELD_MAP[col.split(/[\s_-]/)[0]]
+    if (target && !mapping[target]) mapping[target] = col
+  })
+  return mapping
+}
+
+export function ImportModal({ onClose, onImported }: Props) {
+  const [rows, setRows]           = useState<Row[]>([])
+  const [columns, setColumns]     = useState<string[]>([])
+  const [mapping, setMapping]     = useState<Record<string, string>>({})
+  const [status, setStatus]       = useState<LeadStatus>('NEU')
+  const [step, setStep]           = useState<'upload' | 'map' | 'importing' | 'done'>('upload')
+  const [imported, setImported]   = useState(0)
+  const [error, setError]         = useState('')
+  const [dragging, setDragging]   = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  async function loadFile(file: File) {
+    setError('')
+    try {
+      let parsed: Row[] = []
+      if (file.name.endsWith('.csv') || file.name.endsWith('.txt')) {
+        const text = await file.text()
+        parsed = parseCSV(text)
+      } else if (file.name.match(/\.xlsx?$/i)) {
+        parsed = await parseExcel(file)
+      } else {
+        setError('Bitte CSV oder Excel-Datei auswählen (.csv, .xlsx, .xls)')
+        return
+      }
+      if (!parsed.length) { setError('Keine Daten gefunden oder falsches Format.'); return }
+      setRows(parsed)
+      setColumns(Object.keys(parsed[0]))
+      setMapping(autoMap(parsed))
+      setStep('map')
+    } catch (e: any) {
+      setError('Datei konnte nicht gelesen werden: ' + e.message)
+    }
+  }
+
+  function onDrop(e: React.DragEvent) {
+    e.preventDefault(); setDragging(false)
+    const file = e.dataTransfer.files[0]
+    if (file) loadFile(file)
+  }
+
+  async function doImport() {
+    setStep('importing')
+    setError('')
+    const leads = rows
+      .map(row => {
+        const lead: any = { status }
+        Object.entries(mapping).forEach(([field, col]) => {
+          if (col && row[col]) lead[field] = row[col]
+        })
+        return lead
+      })
+      .filter(l => l.name?.trim())
+
+    if (!leads.length) { setError('Keine Zeilen mit einem Firmenname gefunden.'); setStep('map'); return }
+
+    try {
+      const res = await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leads }),
+      })
+      const text = await res.text()
+      let json: any = {}
+      try { json = JSON.parse(text) } catch {}
+      if (!res.ok) throw new Error(json.error || `Serverfehler ${res.status}`)
+      setImported(json.inserted + json.updated)
+      setStep('done')
+      onImported([])
+    } catch (e: any) {
+      setError(e.message)
+      setStep('map')
+    }
+  }
+
+  const LEAD_FIELDS = [
+    { key: 'name', label: 'Firma *' }, { key: 'ceos', label: 'Ansprechpartner' },
+    { key: 'phone', label: 'Telefon' }, { key: 'email', label: 'E-Mail' },
+    { key: 'website', label: 'Website' }, { key: 'branche', label: 'Branche' },
+    { key: 'city', label: 'Stadt / Region' }, { key: 'notes', label: 'Notizen' },
+  ]
+
+  return (
+    <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="bg-panel w-full max-w-2xl rounded-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-white/6">
+          <div>
+            <h2 className="text-base font-black text-white">Leads importieren</h2>
+            <p className="text-xs text-white/30 mt-0.5">CSV oder Excel-Datei hochladen</p>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-xl bg-panel-hover text-white/30 hover:text-white transition-colors">
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="px-6 py-5 space-y-5">
+          {/* Step: Upload */}
+          {step === 'upload' && (
+            <>
+              <div
+                onDragOver={e => { e.preventDefault(); setDragging(true) }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={onDrop}
+                onClick={() => fileRef.current?.click()}
+                className={`border-2 border-dashed rounded-2xl p-10 flex flex-col items-center gap-3 cursor-pointer transition-all ${
+                  dragging ? 'border-accent bg-accent/8' : 'border-white/10 hover:border-white/25 hover:bg-white/3'
+                }`}
+              >
+                <Upload size={28} className="text-white/30" />
+                <p className="text-sm font-bold text-white/60">Datei hierher ziehen oder klicken</p>
+                <p className="text-xs text-white/25">CSV, Excel (.xlsx, .xls)</p>
+              </div>
+              <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls,.txt" className="hidden"
+                onChange={e => { const f = e.target.files?.[0]; if (f) loadFile(f) }} />
+              {error && <p className="text-xs text-accent font-bold">{error}</p>}
+            </>
+          )}
+
+          {/* Step: Column mapping */}
+          {step === 'map' && (
+            <>
+              <p className="text-xs text-white/40 font-medium">{rows.length} Zeilen erkannt. Weise die Spalten zu:</p>
+              <div className="grid grid-cols-2 gap-3">
+                {LEAD_FIELDS.map(({ key, label }) => (
+                  <div key={key}>
+                    <label className="block text-[11px] font-medium text-white/35 mb-1">{label}</label>
+                    <select
+                      value={mapping[key] ?? ''}
+                      onChange={e => setMapping(m => ({ ...m, [key]: e.target.value }))}
+                      className="w-full bg-dark rounded-xl px-3 py-2 text-sm text-white outline-none focus:ring-1 focus:ring-accent"
+                    >
+                      <option value="">— nicht importieren —</option>
+                      {columns.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                ))}
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-medium text-white/35 mb-1">Standard-Status</label>
+                <div className="flex flex-wrap gap-2">
+                  {STATUSES.map(s => (
+                    <button key={s} type="button" onClick={() => setStatus(s)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                        status === s ? 'bg-accent text-white' : 'bg-panel-hover text-white/35 hover:text-white'
+                      }`}
+                    >
+                      {STATUS_LABELS[s]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Preview */}
+              <div className="bg-dark rounded-xl overflow-hidden">
+                <p className="px-4 py-2 text-[10px] font-bold text-white/25 uppercase tracking-wide border-b border-white/5">
+                  Vorschau (erste 3 Zeilen)
+                </p>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-white/5">
+                        {LEAD_FIELDS.filter(f => mapping[f.key]).map(f => (
+                          <th key={f.key} className="px-3 py-2 text-left text-white/30 font-medium whitespace-nowrap">{f.label}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.slice(0, 3).map((row, i) => (
+                        <tr key={i} className="border-b border-white/4">
+                          {LEAD_FIELDS.filter(f => mapping[f.key]).map(f => (
+                            <td key={f.key} className="px-3 py-2 text-white/60 truncate max-w-32">{row[mapping[f.key]] ?? '—'}</td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {error && <p className="text-xs text-accent font-bold">{error}</p>}
+            </>
+          )}
+
+          {/* Step: Importing */}
+          {step === 'importing' && (
+            <div className="py-10 flex flex-col items-center gap-4">
+              <div className="w-10 h-10 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+              <p className="text-sm text-white/60 font-medium">Leads werden importiert…</p>
+            </div>
+          )}
+
+          {/* Step: Done */}
+          {step === 'done' && (
+            <div className="py-10 flex flex-col items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-accent-green/20 flex items-center justify-center">
+                <Check size={22} className="text-accent-green" />
+              </div>
+              <p className="text-sm font-bold text-white">{imported} Leads importiert</p>
+              <button onClick={onClose} className="bg-accent hover:opacity-90 text-white font-black text-sm px-6 py-2.5 rounded-xl transition-all">
+                Fertig
+              </button>
+            </div>
+          )}
+        </div>
+
+        {(step === 'upload' || step === 'map') && (
+          <div className="px-6 pb-5 flex gap-3">
+            {step === 'map' && (
+              <button onClick={doImport} disabled={!mapping['name']}
+                className="flex-1 bg-accent hover:opacity-90 disabled:opacity-40 text-white font-black text-sm py-2.5 rounded-xl transition-all">
+                {rows.length} Leads importieren
+              </button>
+            )}
+            <button onClick={onClose}
+              className="px-5 py-2.5 bg-panel-hover text-white/40 hover:text-white font-bold text-sm rounded-xl transition-all">
+              Abbrechen
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

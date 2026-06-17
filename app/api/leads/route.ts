@@ -1,34 +1,39 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { normalizeStatus } from '@/lib/utils'
 import { NextRequest, NextResponse } from 'next/server'
 
 const DEV = process.env.DEV_BYPASS_AUTH === 'true'
 const DEV_USER_ID = 'dev-local'
 
-async function getAuthClient() {
-  if (DEV) return { supabase: null as null, user: { id: DEV_USER_ID } as any }
+async function getAuthUser(): Promise<{ id: string } | null> {
+  if (DEV) return { id: DEV_USER_ID }
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { supabase: null, user: null }
-    return { supabase, user }
+    const client = await createClient()
+    const { data: { user } } = await client.auth.getUser()
+    return user ?? null
   } catch {
-    return { supabase: null, user: null }
+    return null
   }
 }
 
+const db = () => createAdminClient()
+
 export async function GET() {
   try {
-    const { supabase, user } = await getAuthClient()
+    const user = await getAuthUser()
     if (!user) return NextResponse.json({ error: 'Nicht angemeldet' }, { status: 401 })
-    if (DEV || !supabase) return NextResponse.json({ leads: [] })
 
-    const { data, error } = await supabase
+    const { data, error } = await db()
       .from('leads')
       .select('*')
+      .eq('user_id', user.id)
       .order('updated_at', { ascending: false })
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) {
+      if (error.code === '42P01') return NextResponse.json({ error: 'SETUP_REQUIRED' }, { status: 503 })
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
     return NextResponse.json({ leads: data })
   } catch (err: any) {
     console.error('[GET /api/leads]', err?.message)
@@ -38,22 +43,12 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { supabase, user } = await getAuthClient()
+    const user = await getAuthUser()
     if (!user) return NextResponse.json({ error: 'Nicht angemeldet – bitte neu einloggen.' }, { status: 401 })
 
     const body = await req.json()
 
-    if (DEV || !supabase) {
-      const now = new Date().toISOString()
-      if (Array.isArray(body.leads)) {
-        return NextResponse.json({ inserted: body.leads.length, updated: 0 })
-      }
-      return NextResponse.json({
-        lead: { ...body, id: crypto.randomUUID(), user_id: DEV_USER_ID, status: body.status ?? 'NEU', status_date: now, created_at: now, updated_at: now },
-      }, { status: 201 })
-    }
-
-    // Batch import (from generator)
+    // Batch import
     if (Array.isArray(body.leads)) {
       const rows = body.leads.map((l: any) => ({
         ...l,
@@ -62,32 +57,25 @@ export async function POST(req: NextRequest) {
         status_date: new Date().toISOString(),
       }))
 
-      const { data: existing } = await supabase
+      const { data: existing } = await db()
         .from('leads')
         .select('id, name, website, status, notes, note, appointment_date, appointment_from, appointment_to')
         .eq('user_id', user.id)
 
       const existingMap = new Map<string, any>()
-      ;(existing ?? []).forEach(l => {
-        const key = buildKey(l)
-        existingMap.set(key, l)
-      })
+      ;(existing ?? []).forEach(l => existingMap.set(buildKey(l), l))
 
       const toInsert: any[] = []
       const toUpdate: any[] = []
 
       rows.forEach((row: any) => {
-        const key = buildKey(row)
-        const ex  = existingMap.get(key)
+        const ex = existingMap.get(buildKey(row))
         if (ex) {
-          const incomingIsNew = !row.status || row.status === 'NEU'
-          const existingIsUserSet = ex.status && ex.status !== 'NEU'
-          if (incomingIsNew && existingIsUserSet) {
-            row.status      = ex.status
-            row.status_date = ex.status_date
+          if ((!row.status || row.status === 'NEU') && ex.status && ex.status !== 'NEU') {
+            row.status = ex.status; row.status_date = ex.status_date
           }
           if (ex.notes) row.notes = ex.notes
-          if (ex.note)  row.note  = ex.note
+          if (ex.note) row.note = ex.note
           if (ex.appointment_date) row.appointment_date = ex.appointment_date
           toUpdate.push({ ...row, id: ex.id })
         } else {
@@ -96,16 +84,16 @@ export async function POST(req: NextRequest) {
       })
 
       if (toInsert.length) {
-        const { error } = await supabase.from('leads').insert(toInsert)
-        if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-      }
-      if (toUpdate.length) {
-        for (const u of toUpdate) {
-          const { id, ...rest } = u
-          await supabase.from('leads').update(rest).eq('id', id).eq('user_id', user.id)
+        const { error } = await db().from('leads').insert(toInsert)
+        if (error) {
+          if (error.code === '42P01') return NextResponse.json({ error: 'SETUP_REQUIRED' }, { status: 503 })
+          return NextResponse.json({ error: error.message }, { status: 500 })
         }
       }
-
+      for (const u of toUpdate) {
+        const { id, ...rest } = u
+        await db().from('leads').update(rest).eq('id', id).eq('user_id', user.id)
+      }
       return NextResponse.json({ inserted: toInsert.length, updated: toUpdate.length })
     }
 
@@ -118,8 +106,11 @@ export async function POST(req: NextRequest) {
       status_date: new Date().toISOString(),
     }
 
-    const { data, error } = await supabase.from('leads').insert(lead).select().single()
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    const { data, error } = await db().from('leads').insert(lead).select().single()
+    if (error) {
+      if (error.code === '42P01') return NextResponse.json({ error: 'SETUP_REQUIRED' }, { status: 503 })
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
     return NextResponse.json({ lead: data }, { status: 201 })
   } catch (err: any) {
     console.error('[POST /api/leads]', err?.message)
@@ -129,24 +120,18 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const { supabase, user } = await getAuthClient()
+    const user = await getAuthUser()
     if (!user) return NextResponse.json({ error: 'Nicht angemeldet' }, { status: 401 })
 
     const { id, ...updates } = await req.json()
-
-    if (DEV || !supabase) {
-      const now = new Date().toISOString()
-      if (updates.status) updates.status_date = now
-      return NextResponse.json({ lead: { id, ...updates, updated_at: now } })
-    }
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })
 
     if (updates.status) {
-      updates.status      = normalizeStatus(updates.status)
+      updates.status = normalizeStatus(updates.status)
       updates.status_date = new Date().toISOString()
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await db()
       .from('leads')
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', id)
@@ -164,14 +149,13 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const { supabase, user } = await getAuthClient()
+    const user = await getAuthUser()
     if (!user) return NextResponse.json({ error: 'Nicht angemeldet' }, { status: 401 })
 
     const id = new URL(req.url).searchParams.get('id')
-    if (DEV || !supabase) return NextResponse.json({ success: true })
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })
 
-    const { error } = await supabase
+    const { error } = await db()
       .from('leads')
       .delete()
       .eq('id', id)
@@ -186,7 +170,7 @@ export async function DELETE(req: NextRequest) {
 }
 
 function buildKey(l: { name?: string; website?: string; region?: string }): string {
-  const name    = (l.name ?? '').toLowerCase().trim()
+  const name = (l.name ?? '').toLowerCase().trim()
   const website = (l.website ?? '').replace(/^https?:\/\/(www\.)?/, '').split('/')[0].toLowerCase().trim()
   return website ? `${name}|${website}` : `${name}|${(l.region ?? '').substring(0, 30)}`
 }

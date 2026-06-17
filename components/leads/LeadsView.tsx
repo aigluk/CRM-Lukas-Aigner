@@ -7,7 +7,8 @@ import { PipelineTabs } from './PipelineTabs'
 import { LeadTable } from './LeadTable'
 import { LeadDetailModal } from './LeadDetailModal'
 import { NewLeadModal } from './NewLeadModal'
-import { Search, Plus } from 'lucide-react'
+import { Search, Plus, Upload } from 'lucide-react'
+import { ImportModal } from './ImportModal'
 
 export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
   const [leads, setLeads]             = useState<Lead[]>(initialLeads)
@@ -15,6 +16,7 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
   const [search, setSearch]           = useState('')
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
   const [showNew, setShowNew]         = useState(false)
+  const [showImport, setShowImport]   = useState(false)
 
   const counts = useMemo(() =>
     STATUSES.reduce<Record<string, number>>((acc, s) => {
@@ -75,13 +77,22 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
           <h1 className="text-3xl font-black text-white tracking-tight leading-none">Leads</h1>
           <p className="text-sm text-white/30 mt-2 font-medium">{leads.length} Einträge gesamt</p>
         </div>
-        <button
-          onClick={() => setShowNew(true)}
-          className="flex items-center gap-2 bg-accent hover:bg-accent-hover text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95"
-        >
-          <Plus size={16} />
-          <span className="hidden sm:inline">Neuer Lead</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowImport(true)}
+            className="flex items-center gap-2 bg-panel hover:bg-panel-hover text-white/60 hover:text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95"
+          >
+            <Upload size={16} />
+            <span className="hidden sm:inline">Importieren</span>
+          </button>
+          <button
+            onClick={() => setShowNew(true)}
+            className="flex items-center gap-2 bg-accent hover:bg-accent-hover text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95"
+          >
+            <Plus size={16} />
+            <span className="hidden sm:inline">Neuer Lead</span>
+          </button>
+        </div>
       </div>
 
       {/* Pipeline tabs */}
@@ -126,6 +137,14 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
         <NewLeadModal
           onClose={() => setShowNew(false)}
           onCreate={handleCreate}
+        />
+      )}
+
+      {/* Import modal */}
+      {showImport && (
+        <ImportModal
+          onClose={() => setShowImport(false)}
+          onImported={() => { setShowImport(false); window.location.reload() }}
         />
       )}
     </div>
