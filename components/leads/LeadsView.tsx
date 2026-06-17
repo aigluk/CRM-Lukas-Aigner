@@ -1,14 +1,16 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { Lead, LeadStatus } from '@/lib/types'
 import { STATUSES } from '@/lib/constants'
 import { PipelineTabs } from './PipelineTabs'
 import { LeadTable } from './LeadTable'
 import { LeadDetailModal } from './LeadDetailModal'
 import { NewLeadModal } from './NewLeadModal'
+import { QuickNoteModal } from './QuickNoteModal'
 import { Search, Plus, Upload, Trash2, X } from 'lucide-react'
 import { ImportModal } from './ImportModal'
+import { createClient } from '@/lib/supabase/client'
 
 export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
   const [leads, setLeads]             = useState<Lead[]>(initialLeads)
@@ -19,6 +21,57 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
   const [showImport, setShowImport]   = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [deleting, setDeleting]       = useState(false)
+  const [quickNoteLead, setQuickNoteLead] = useState<Lead | null>(null)
+  const [currentUsername, setCurrentUsername] = useState('')
+  const channelRef = useRef<ReturnType<ReturnType<typeof createClient>['channel']> | null>(null)
+
+  // Fetch current username + subscribe to realtime
+  useEffect(() => {
+    const supabase = createClient()
+
+    supabase.auth.getUser().then(({ data }) => {
+      const user = data.user
+      if (!user) return
+
+      setCurrentUsername(user.user_metadata?.display_name || '')
+
+      // Realtime: reflect changes made by any team member immediately
+      const channel = supabase
+        .channel('leads-live')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads',
+            filter: `user_id=eq.${user.id}` },
+          ({ new: row }) => {
+            setLeads(prev => {
+              if (prev.some(l => l.id === (row as Lead).id)) return prev
+              return [row as Lead, ...prev]
+            })
+          }
+        )
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'leads',
+            filter: `user_id=eq.${user.id}` },
+          ({ new: row }) => {
+            setLeads(prev => prev.map(l => l.id === (row as Lead).id ? row as Lead : l))
+            setSelectedLead(prev => prev?.id === (row as Lead).id ? row as Lead : prev)
+          }
+        )
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'leads' },
+          ({ old: row }) => {
+            const id = (row as { id: string }).id
+            setLeads(prev => prev.filter(l => l.id !== id))
+            setSelectedLead(prev => prev?.id === id ? null : prev)
+          }
+        )
+        .subscribe()
+
+      channelRef.current = channel
+    })
+
+    return () => {
+      if (channelRef.current) {
+        createClient().removeChannel(channelRef.current)
+      }
+    }
+  }, [])
 
   const counts = useMemo(() =>
     STATUSES.reduce<Record<string, number>>((acc, s) => {
@@ -56,6 +109,15 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
       setLeads(prev => prev.map(l => l.id === id ? { ...l, ...lead } : l))
       if (selectedLead?.id === id) setSelectedLead(prev => prev ? { ...prev, ...lead } : prev)
     }
+  }
+
+  async function handleQuickNote(id: string, notes: string) {
+    await handleUpdate(id, { notes })
+    setLeads(prev => prev.map(l => l.id === id ? { ...l, notes } : l))
+  }
+
+  async function handleSetHandler(id: string, newHandler: string | null) {
+    await handleUpdate(id, { handler: newHandler ?? undefined })
   }
 
   function handleCreate(lead: Lead) {
@@ -107,7 +169,6 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
     })
   }
 
-  // Clear selection when switching tabs
   function handleStatusChange(s: LeadStatus) {
     setActiveStatus(s)
     setSelectedIds(new Set())
@@ -193,6 +254,9 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
         selectedIds={selectedIds}
         onToggleSelect={toggleSelect}
         onToggleAll={toggleAll}
+        currentUsername={currentUsername}
+        onQuickNote={setQuickNoteLead}
+        onSetHandler={handleSetHandler}
       />
 
       {/* Detail modal */}
@@ -202,6 +266,15 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
           onClose={() => setSelectedLead(null)}
           onUpdate={handleUpdate}
           onDelete={handleDelete}
+        />
+      )}
+
+      {/* Quick note modal */}
+      {quickNoteLead && (
+        <QuickNoteModal
+          lead={quickNoteLead}
+          onClose={() => setQuickNoteLead(null)}
+          onSave={handleQuickNote}
         />
       )}
 

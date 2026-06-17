@@ -71,7 +71,7 @@ export function TimePicker({ value, onChange, label }: { value: string; onChange
 
   return (
     <div className="relative" ref={wrapRef}>
-      {label && <label className="block text-[10px] font-black text-white/25 tracking-wide mb-1.5">{label}</label>}
+      {label && <label className="block text-xs font-black text-white/25 mb-1.5">{label}</label>}
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
@@ -110,7 +110,7 @@ function MonthGrid({
     <div>
       <div className="grid grid-cols-7 mb-1">
         {WEEKDAYS.map(d => (
-          <span key={d} className="text-[9px] font-black text-white/20 text-center">{d}</span>
+          <span key={d} className="text-xs font-black text-white/20 text-center">{d}</span>
         ))}
       </div>
       <div className="grid grid-cols-7 gap-0.5">
@@ -152,7 +152,7 @@ export function DatePicker({ value, onChange, label }: { value: string; onChange
 
   return (
     <div className="relative" ref={wrapRef}>
-      {label && <label className="block text-[10px] font-black text-white/25 tracking-wide mb-1.5">{label}</label>}
+      {label && <label className="block text-xs font-black text-white/25 mb-1.5">{label}</label>}
       <button
         type="button"
         onClick={() => setOpen(o => !o)}

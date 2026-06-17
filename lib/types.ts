@@ -36,6 +36,7 @@ export interface Lead {
   appointment_from?: string
   appointment_to?: string
   appointment_hour?: string
+  handler?: string
   created_at: string
   updated_at: string
 }

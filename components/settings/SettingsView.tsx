@@ -1,14 +1,20 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Mail, Lock, Users, Plus, Loader2, Check, Trash2 } from 'lucide-react'
+import { Mail, Lock, Users, Plus, Loader2, Check, Trash2, AtSign } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { formatDate } from '@/lib/utils'
 
-type AdminUser = { id: string; email: string; created_at: string; last_sign_in_at: string | null }
+type AdminUser = {
+  id: string
+  email: string
+  username: string
+  created_at: string
+  last_sign_in_at: string | null
+}
 
 function Label({ text }: { text: string }) {
-  return <label className="block text-[10px] font-black text-white/25 tracking-wide mb-1.5">{text}</label>
+  return <label className="block text-xs font-bold text-white/30 mb-1.5">{text}</label>
 }
 
 const inputCls = 'w-full bg-dark rounded-xl px-3.5 py-3 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all'
@@ -21,6 +27,10 @@ export function SettingsView() {
   const [emailSaving, setEmailSaving]   = useState(false)
   const [emailMsg, setEmailMsg]         = useState('')
 
+  const [displayName, setDisplayName]   = useState('')
+  const [nameSaving, setNameSaving]     = useState(false)
+  const [nameMsg, setNameMsg]           = useState('')
+
   const [newPassword, setNewPassword]   = useState('')
   const [pwSaving, setPwSaving]         = useState(false)
   const [pwMsg, setPwMsg]               = useState('')
@@ -29,11 +39,15 @@ export function SettingsView() {
   const [loadingUsers, setLoadingUsers] = useState(true)
   const [newUserEmail, setNewUserEmail] = useState('')
   const [newUserPw, setNewUserPw]       = useState('')
+  const [newUserName, setNewUserName]   = useState('')
   const [addingUser, setAddingUser]     = useState(false)
   const [userError, setUserError]       = useState('')
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setCurrentEmail(data.user?.email ?? ''))
+    supabase.auth.getUser().then(({ data }) => {
+      setCurrentEmail(data.user?.email ?? '')
+      setDisplayName(data.user?.user_metadata?.display_name ?? '')
+    })
     loadUsers()
   }, [])
 
@@ -56,6 +70,15 @@ export function SettingsView() {
     if (!error) setNewEmail('')
   }
 
+  async function saveName(e: React.FormEvent) {
+    e.preventDefault()
+    setNameSaving(true)
+    setNameMsg('')
+    const { error } = await supabase.auth.updateUser({ data: { display_name: displayName } })
+    setNameMsg(error ? error.message : 'Benutzername gespeichert.')
+    setNameSaving(false)
+  }
+
   async function savePassword(e: React.FormEvent) {
     e.preventDefault()
     if (!newPassword) return
@@ -76,12 +99,13 @@ export function SettingsView() {
       const res = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: newUserEmail, password: newUserPw }),
+        body: JSON.stringify({ email: newUserEmail, password: newUserPw, username: newUserName }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Fehler')
       setNewUserEmail('')
       setNewUserPw('')
+      setNewUserName('')
       loadUsers()
     } catch (err: any) {
       setUserError(err.message)
@@ -109,6 +133,37 @@ export function SettingsView() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Profile */}
         <div className="space-y-5">
+
+          {/* Username */}
+          <div className="bg-panel rounded-2xl p-6 space-y-4">
+            <div className="flex items-center gap-2 mb-1">
+              <AtSign size={14} className="text-accent" />
+              <h2 className="text-sm font-black text-white">Benutzername</h2>
+            </div>
+            <p className="text-xs text-white/25">Wird bei Leads als Bearbeiter angezeigt.</p>
+            <form onSubmit={saveName} className="space-y-3">
+              <div>
+                <Label text="Anzeigename" />
+                <input
+                  type="text"
+                  value={displayName}
+                  onChange={e => setDisplayName(e.target.value)}
+                  placeholder="z. B. Lukas A."
+                  className={inputCls}
+                />
+              </div>
+              {nameMsg && <p className="text-xs text-white/40">{nameMsg}</p>}
+              <button
+                type="submit"
+                disabled={nameSaving || !displayName.trim()}
+                className="w-full bg-accent hover:opacity-90 disabled:opacity-30 text-white font-black text-sm py-3 rounded-xl transition-all active:scale-[0.98]"
+              >
+                {nameSaving ? <Loader2 size={14} className="animate-spin mx-auto" /> : 'Speichern'}
+              </button>
+            </form>
+          </div>
+
+          {/* Email */}
           <div className="bg-panel rounded-2xl p-6 space-y-4">
             <div className="flex items-center gap-2 mb-1">
               <Mail size={14} className="text-accent" />
@@ -129,6 +184,7 @@ export function SettingsView() {
             </form>
           </div>
 
+          {/* Password */}
           <div className="bg-panel rounded-2xl p-6 space-y-4">
             <div className="flex items-center gap-2 mb-1">
               <Lock size={14} className="text-accent" />
@@ -157,6 +213,11 @@ export function SettingsView() {
           </div>
 
           <form onSubmit={addUser} className="space-y-3">
+            <div>
+              <Label text="Benutzername" />
+              <input type="text" value={newUserName} onChange={e => setNewUserName(e.target.value)}
+                placeholder="z. B. Max M." className={inputCls} />
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <Label text="E-Mail" />
@@ -186,14 +247,17 @@ export function SettingsView() {
               users.map(u => (
                 <div key={u.id} className="flex items-center gap-3 bg-dark rounded-xl px-3.5 py-3">
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold text-white truncate">{u.email}</p>
-                    <p className="text-[10px] text-white/25 mt-0.5">
+                    <p className="text-sm font-bold text-white truncate">
+                      {u.username ? u.username : <span className="text-white/30 italic">Kein Name</span>}
+                    </p>
+                    <p className="text-xs text-white/30 truncate mt-0.5">{u.email}</p>
+                    <p className="text-xs text-white/20 mt-0.5">
                       Seit {formatDate(u.created_at)}
-                      {u.last_sign_in_at && ` · zuletzt aktiv ${formatDate(u.last_sign_in_at)}`}
+                      {u.last_sign_in_at && ` · aktiv ${formatDate(u.last_sign_in_at)}`}
                     </p>
                   </div>
                   {u.email === currentEmail ? (
-                    <span className="text-[10px] font-black text-accent-green flex items-center gap-1 shrink-0">
+                    <span className="text-xs font-black text-accent-green flex items-center gap-1 shrink-0">
                       <Check size={11} /> Du
                     </span>
                   ) : (

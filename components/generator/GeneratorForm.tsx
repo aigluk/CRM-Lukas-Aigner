@@ -365,7 +365,7 @@ export function GeneratorForm() {
                 <button
                   type="button"
                   onClick={() => setAddingBranch(true)}
-                  className="flex items-center gap-1.5 text-[11px] font-bold text-white/25 hover:text-white/60 transition-colors mt-2"
+                  className="flex items-center gap-1.5 text-xs font-bold text-white/25 hover:text-white/60 transition-colors mt-2"
                 >
                   <Plus size={12} />Eigene Branche
                 </button>
@@ -380,7 +380,7 @@ export function GeneratorForm() {
               <h2 className="text-sm font-black text-white">Region</h2>
             </div>
 
-            <p className="text-[10px] font-black text-white/20 tracking-wide mb-2.5">Land</p>
+            <p className="text-xs font-black text-white/20 mb-2.5">Land</p>
             <div className="flex flex-wrap gap-1.5 mb-5">
               {COUNTRIES.map(c => (
                 <button
@@ -399,7 +399,7 @@ export function GeneratorForm() {
               ))}
             </div>
 
-            <p className="text-[10px] font-black text-white/20 tracking-wide mb-2.5">Stadt / Ort</p>
+            <p className="text-xs font-black text-white/20 mb-2.5">Stadt / Ort</p>
             <div className="grid grid-cols-3 gap-1.5 mb-4">
               {country.cities.map(c => (
                 <button
@@ -431,7 +431,7 @@ export function GeneratorForm() {
               )}
             </div>
             {!city && !customCity && (
-              <p className="text-[10px] text-white/20 mt-1.5 pl-1">Kein Ort = ganzes Land</p>
+              <p className="text-xs text-white/20 mt-1.5 pl-1">Kein Ort = ganzes Land</p>
             )}
           </div>
 
@@ -518,7 +518,7 @@ export function GeneratorForm() {
                                 <span className="text-[10px] bg-dark text-white/25 px-1.5 py-0.5 rounded-md font-bold shrink-0">{r.radius} km</span>
                               )}
                             </div>
-                            <p className="text-[10px] text-white/20 mt-0.5 flex items-center gap-2">
+                            <p className="text-xs text-white/20 mt-0.5 flex items-center gap-2">
                               {timeAgo(r.timestamp)}
                               {r.total !== undefined && <><span className="text-white/15">·</span>{r.total} Leads{r.emailFound ? `, ${r.emailFound} E-Mails` : ''}</>}
                             </p>
@@ -585,7 +585,7 @@ export function GeneratorForm() {
                   <div className="flex-1" />
                   <button
                     onClick={allFilteredSelected ? deselectAll : selectAll}
-                    className="text-[11px] font-bold text-white/30 hover:text-white transition-colors"
+                    className="text-xs font-bold text-white/30 hover:text-white transition-colors"
                   >
                     {allFilteredSelected ? 'Auswahl aufheben' : 'Alle auswählen'}
                   </button>

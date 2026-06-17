@@ -2,17 +2,16 @@
 
 import { Lead } from '@/lib/types'
 import { STATUS_COLORS, STATUS_LABELS } from '@/lib/constants'
-import { Phone, ChevronRight, Share2 } from 'lucide-react'
+import { Phone, ChevronRight, Share2, StickyNote, User } from 'lucide-react'
 
-// Normalise any Austrian phone number to international digits for wa.me
 function toWaPhone(raw: string): string {
   return raw
-    .replace(/\(0\)/g, '')       // +43 (0) 5 → +43 5
-    .replace(/[^0-9+]/g, '')     // keep only digits and +
-    .replace(/^\+/, '')          // strip leading +
-    .replace(/^0043/, '43')      // 0043… → 43…
-    .replace(/^00/, '43')        // 00… → 43…
-    .replace(/^0/, '43')         // 0… → 43… (domestic prefix)
+    .replace(/\(0\)/g, '')
+    .replace(/[^0-9+]/g, '')
+    .replace(/^\+/, '')
+    .replace(/^0043/, '43')
+    .replace(/^00/, '43')
+    .replace(/^0/, '43')
 }
 
 function buildVCard(lead: Lead): string {
@@ -33,20 +32,15 @@ function handleShare(lead: Lead, e: React.MouseEvent) {
   e.stopPropagation()
   const phone = lead.phone?.trim()
   const email = lead.email || lead.email_general
-
-  // Web Share API — opens native iOS/macOS share sheet with .vcf contact file
   if (navigator.share) {
     const vcard = buildVCard(lead)
     const blob  = new Blob([vcard], { type: 'text/vcard' })
     const file  = new File([blob], `${lead.name.replace(/[^a-z0-9]/gi, '_')}.vcf`, { type: 'text/vcard' })
     navigator.share({ files: [file], title: lead.name }).catch(() => {
-      // If sharing files fails (some browsers), fall back to WhatsApp
       if (phone) window.open(`https://wa.me/${toWaPhone(phone)}`, '_blank')
     })
     return
   }
-
-  // Fallback: WhatsApp deeplink if phone, otherwise mailto
   if (phone) {
     window.open(`https://wa.me/${toWaPhone(phone)}`, '_blank')
   } else if (email) {
@@ -75,12 +69,18 @@ export function LeadTable({
   selectedIds,
   onToggleSelect,
   onToggleAll,
+  currentUsername,
+  onQuickNote,
+  onSetHandler,
 }: {
   leads: Lead[]
   onLeadClick: (lead: Lead) => void
   selectedIds: Set<string>
   onToggleSelect: (id: string) => void
   onToggleAll: () => void
+  currentUsername?: string
+  onQuickNote?: (lead: Lead) => void
+  onSetHandler?: (id: string, newHandler: string | null) => void
 }) {
   const allSelected  = leads.length > 0 && leads.every(l => selectedIds.has(l.id))
   const someSelected = leads.some(l => selectedIds.has(l.id)) && !allSelected
@@ -93,25 +93,41 @@ export function LeadTable({
     )
   }
 
-  // Responsive grid: mobile hides status pill, desktop shows it
-  const rowGrid = 'grid grid-cols-[36px_1fr_32px_32px_16px] sm:grid-cols-[36px_1fr_auto_32px_32px_16px] gap-3 items-center px-4 sm:px-5'
+  // Mobile: circle | company | phone | share | handler | chevron  (6 cols)
+  // SM:     circle | company | status | phone | share | note | handler | chevron  (8 cols)
+  const rowGrid = 'grid grid-cols-[36px_1fr_32px_32px_32px_16px] sm:grid-cols-[36px_1fr_auto_32px_32px_32px_32px_16px] gap-3 items-center px-4 sm:px-5'
 
   return (
     <div className="bg-panel rounded-2xl overflow-hidden">
       {/* Header */}
       <div className={`${rowGrid} py-3 border-b border-panel-2`}>
         <Circle selected={allSelected} partial={someSelected} onClick={e => { e.stopPropagation(); onToggleAll() }} />
-        <span className="text-[10px] font-bold text-white/25 tracking-wide">Unternehmen</span>
-        <span className="hidden sm:block text-[10px] font-bold text-white/25 tracking-wide">Status</span>
-        <span /><span /><span />
+        <span className="text-xs font-bold text-white/25">Unternehmen</span>
+        <span className="hidden sm:block text-xs font-bold text-white/25">Status</span>
+        <span className="hidden sm:block" />
+        <span /><span /><span /><span />
       </div>
 
       <ul>
         {leads.map((lead, i) => {
-          const selected = selectedIds.has(lead.id)
-          const sc       = STATUS_COLORS[lead.status]
-          const phone    = lead.phone?.trim()
-          const canShare = !!(phone || lead.email || lead.email_general)
+          const selected   = selectedIds.has(lead.id)
+          const sc         = STATUS_COLORS[lead.status]
+          const phone      = lead.phone?.trim()
+          const canShare   = !!(phone || lead.email || lead.email_general)
+          const isMyLead   = !!(currentUsername && lead.handler === currentUsername)
+          const hasHandler = !!lead.handler
+          const hasNotes   = !!(lead.notes?.trim())
+
+          const initials = lead.handler
+            ? lead.handler.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()
+            : null
+
+          function toggleHandler(e: React.MouseEvent) {
+            e.stopPropagation()
+            if (!onSetHandler) return
+            if (!currentUsername) return
+            onSetHandler(lead.id, isMyLead ? null : currentUsername)
+          }
 
           return (
             <li
@@ -131,14 +147,14 @@ export function LeadTable({
                 </p>
               </div>
 
-              {/* Status pill — same height as circle buttons (h-8), no dot */}
+              {/* Status pill — SM only */}
               <div className="hidden sm:flex items-center" onClick={() => onLeadClick(lead)}>
-                <span className={`h-8 inline-flex items-center px-3 rounded-full text-[10px] font-bold whitespace-nowrap ${sc.bg} ${sc.text}`}>
+                <span className={`h-8 inline-flex items-center px-3 rounded-full text-xs font-bold whitespace-nowrap ${sc.bg} ${sc.text}`}>
                   {STATUS_LABELS[lead.status]}
                 </span>
               </div>
 
-              {/* Call — red circle */}
+              {/* Call */}
               <div className="flex items-center justify-center">
                 {phone ? (
                   <a
@@ -156,7 +172,7 @@ export function LeadTable({
                 )}
               </div>
 
-              {/* Share — green circle */}
+              {/* Share */}
               <div className="flex items-center justify-center">
                 {canShare ? (
                   <button
@@ -171,6 +187,37 @@ export function LeadTable({
                     <Share2 size={12} className="text-white/12" />
                   </div>
                 )}
+              </div>
+
+              {/* Quick Note — SM only */}
+              <div className="hidden sm:flex items-center justify-center">
+                <button
+                  onClick={e => { e.stopPropagation(); onQuickNote?.(lead) }}
+                  title={hasNotes ? 'Notiz bearbeiten' : 'Notiz hinzufügen'}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90 ${
+                    hasNotes ? 'bg-accent/15 hover:bg-accent/25' : 'bg-white/5 hover:bg-white/12'
+                  }`}
+                >
+                  <StickyNote size={12} className={hasNotes ? 'text-accent' : 'text-white/25'} />
+                </button>
+              </div>
+
+              {/* Handler */}
+              <div className="flex items-center justify-center">
+                <button
+                  onClick={toggleHandler}
+                  title={hasHandler ? `Bearbeiter: ${lead.handler}${isMyLead ? ' (du)' : ''}` : 'Dir zuweisen'}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90 text-[11px] font-black leading-none ${
+                    isMyLead   ? 'bg-accent text-white hover:opacity-85' :
+                    hasHandler ? 'bg-white/15 text-white/60 hover:bg-white/22' :
+                                 'bg-white/5 hover:bg-white/12'
+                  }`}
+                >
+                  {initials
+                    ? <span className="text-[11px] font-black">{initials}</span>
+                    : <User size={12} className="text-white/25" />
+                  }
+                </button>
               </div>
 
               {/* Chevron */}

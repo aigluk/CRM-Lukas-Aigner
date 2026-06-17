@@ -27,7 +27,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="flex items-center gap-1.5 text-[10px] font-bold text-white/25 tracking-wide mb-1.5">
+      <label className="flex items-center gap-1.5 text-xs font-bold text-white/25 mb-1.5">
         {icon}{label}
       </label>
       {editing ? (
@@ -176,7 +176,7 @@ export function LeadDetailModal({
           {/* IM CALL PANEL */}
           {callMode && (
             <div className="bg-[#1A1A1A] rounded-2xl p-5 space-y-4">
-              <p className="text-[10px] font-black text-accent tracking-wide">Schnellaktionen</p>
+              <p className="text-xs font-black text-accent">Schnellaktionen</p>
               <ul className="space-y-2">
                 {CALL_ITEMS.map(item => {
                   const done = checked.has(item)
@@ -216,7 +216,7 @@ export function LeadDetailModal({
                 </button>
               ) : (
                 <div className="space-y-2">
-                  <p className="text-[10px] font-bold text-white/30 tracking-wide">Termin</p>
+                  <p className="text-xs font-bold text-white/30">Termin</p>
                   <div className="grid grid-cols-3 gap-2">
                     <div className="col-span-3 sm:col-span-1">
                       <DatePicker value={form.appointment_date ?? ''} onChange={v => set('appointment_date', v)} />
@@ -237,7 +237,7 @@ export function LeadDetailModal({
 
           {/* Status */}
           <div>
-            <label className="block text-[11px] font-medium text-white/35 mb-2">Status</label>
+            <label className="block text-xs font-bold text-white/30 mb-2">Status</label>
             {editing ? (
               <div className="flex flex-wrap gap-2">
                 {STATUSES.map(s => (
@@ -256,8 +256,7 @@ export function LeadDetailModal({
               </div>
             ) : (
               <div className="flex items-center gap-3">
-                <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${sc.bg} ${sc.text}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />
+                <span className={`h-8 inline-flex items-center px-3 rounded-full text-xs font-bold whitespace-nowrap ${sc.bg} ${sc.text}`}>
                   {STATUS_LABELS[lead.status]}
                 </span>
                 {lead.status_date && (
@@ -289,7 +288,7 @@ export function LeadDetailModal({
           {/* Appointment (if set) */}
           {(form.appointment_date || lead.appointment_date) && !callMode && (
             <div className="bg-[#1A1A1A] rounded-2xl p-4">
-              <label className="flex items-center gap-1.5 text-[10px] font-bold text-accent tracking-wide mb-2">
+              <label className="flex items-center gap-1.5 text-xs font-bold text-accent mb-2">
                 <Calendar size={11} />
                 Termin
               </label>
@@ -316,7 +315,7 @@ export function LeadDetailModal({
 
           {/* Notes */}
           <div>
-            <label className="flex items-center gap-1.5 text-[10px] font-bold text-white/25 tracking-wide mb-2">
+            <label className="flex items-center gap-1.5 text-xs font-bold text-white/25 mb-2">
               <FileText size={11} />Notizen
             </label>
             {editing ? (
@@ -330,7 +329,7 @@ export function LeadDetailModal({
 
           {/* Deal Note */}
           <div>
-            <label className="flex items-center gap-1.5 text-[10px] font-bold text-white/25 tracking-wide mb-2">
+            <label className="flex items-center gap-1.5 text-xs font-bold text-white/25 mb-2">
               <FileText size={11} />Deal Note
             </label>
             {editing ? (

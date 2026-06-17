@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Lead } from '@/lib/types'
 import { isSameDay } from '@/lib/utils'
-import { Phone } from 'lucide-react'
+import { Phone, Pencil } from 'lucide-react'
 import { AppointmentEditModal } from '@/components/ui/AppointmentEditModal'
 
 interface Props {
@@ -69,7 +69,7 @@ export function TodayPanel({ leads: initialLeads, onEdit }: Props) {
             <p className="text-base font-black text-white capitalize leading-tight">{weekday}</p>
             <p className="text-xs text-white/35 capitalize mt-0.5">{monthYear}</p>
             {appts.length > 0 && (
-              <p className="text-[10px] font-bold text-accent mt-1">
+              <p className="text-xs font-bold text-accent mt-1">
                 {appts.length} {appts.length === 1 ? 'Termin' : 'Termine'} heute
               </p>
             )}
@@ -94,15 +94,13 @@ export function TodayPanel({ leads: initialLeads, onEdit }: Props) {
                     <a
                       href={`tel:${l.phone}`}
                       onClick={e => e.stopPropagation()}
-                      className="flex items-center gap-1 text-[11px] text-white/40 hover:text-accent transition-colors"
+                      className="flex items-center gap-1 text-xs text-white/40 hover:text-accent transition-colors"
                     >
                       <Phone size={10} />{l.phone}
                     </a>
                   )}
                 </div>
-                <span className="text-white/20 text-xs opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                  ✎
-                </span>
+                <Pencil size={12} className="text-white/20 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
               </div>
             ))
           )}

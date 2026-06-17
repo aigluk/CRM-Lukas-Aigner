@@ -19,6 +19,7 @@ export async function GET() {
   const users = data.users.map(u => ({
     id: u.id,
     email: u.email,
+    username: (u.user_metadata as any)?.display_name ?? '',
     created_at: u.created_at,
     last_sign_in_at: u.last_sign_in_at,
   }))
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
   if (!(await requireAuth())) {
     return NextResponse.json({ error: 'Nicht autorisiert' }, { status: 401 })
   }
-  const { email, password } = await req.json()
+  const { email, password, username } = await req.json()
   if (!email || !password) {
     return NextResponse.json({ error: 'E-Mail und Passwort erforderlich' }, { status: 400 })
   }
@@ -39,6 +40,7 @@ export async function POST(req: NextRequest) {
     email,
     password,
     email_confirm: true,
+    user_metadata: username ? { display_name: username } : undefined,
   })
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
