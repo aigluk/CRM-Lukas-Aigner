@@ -32,7 +32,7 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="w-52 bg-accent h-screen flex flex-col shrink-0 rounded-r-[28px] overflow-hidden">
+    <aside className="w-52 bg-accent h-screen flex flex-col shrink-0 rounded-r-[36px] overflow-hidden">
 
       {/* Top navigation */}
       <nav className="pt-8 px-3 space-y-1">
@@ -57,7 +57,7 @@ export function Sidebar() {
 
       {/* Logo — centered in the remaining space */}
       <div className="flex-1 flex items-center justify-center">
-        <Logo className="h-16 w-auto text-white/90" />
+        <Logo className="h-12 w-auto text-white/90" />
       </div>
 
       {/* Bottom account links */}
