@@ -121,7 +121,7 @@ function MonthGrid({
   )
 }
 
-export function DatePicker({ value, onChange, label }: { value: string; onChange: (v: string) => void; label?: string }) {
+export function DatePicker({ value, onChange, label, openUp }: { value: string; onChange: (v: string) => void; label?: string; openUp?: boolean }) {
   const [open, setOpen] = useState(false)
   const selected = value ? new Date(`${value}T00:00:00`) : null
   const [viewDate, setViewDate] = useState(selected || new Date())
@@ -148,7 +148,7 @@ export function DatePicker({ value, onChange, label }: { value: string; onChange
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-2 bg-panel rounded-2xl p-4 shadow-2xl w-64">
+        <div className={`absolute z-50 ${openUp ? 'bottom-full mb-2' : 'mt-2'} bg-panel rounded-2xl p-4 shadow-2xl w-64`}>
           <div className="flex items-center justify-between mb-3">
             <button type="button" onClick={prevMonth} className="p-1 text-white/30 hover:text-white transition-colors">
               <ChevronLeft size={15} />

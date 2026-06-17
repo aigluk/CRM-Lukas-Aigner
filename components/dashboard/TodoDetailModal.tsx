@@ -76,7 +76,7 @@ export function TodoDetailModal({
 
           {reminder && (
             <div className="grid grid-cols-2 gap-3">
-              <DatePicker value={date} onChange={setDate} />
+              <DatePicker value={date} onChange={setDate} openUp />
               <TimePicker value={time} onChange={setTime} />
             </div>
           )}

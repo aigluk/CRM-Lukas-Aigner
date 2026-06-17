@@ -134,7 +134,17 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
   }
 
   async function handleSetHandler(id: string, newHandler: string | null) {
-    await handleUpdate(id, { handler: newHandler ?? undefined })
+    // Must send null explicitly — undefined gets dropped from JSON.stringify
+    const res = await fetch('/api/leads', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, handler: newHandler }),
+    })
+    if (res.ok) {
+      const { lead } = await res.json()
+      setLeads(prev => prev.map(l => l.id === id ? { ...l, ...lead } : l))
+      if (selectedLead?.id === id) setSelectedLead(prev => prev ? { ...prev, ...lead } : prev)
+    }
   }
 
   function handleCreate(lead: Lead) {
