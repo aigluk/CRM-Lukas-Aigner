@@ -1,11 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Lead } from '@/lib/types'
 import {
-  Zap, CheckCircle, Plus, Loader2, MapPin,
-  Phone, Mail, ExternalLink, User, Building2,
+  Zap, Plus, Loader2, MapPin, Phone, Mail,
+  ExternalLink, User, Building2, CheckCircle,
+  Clock, X, RotateCcw,
 } from 'lucide-react'
+
+// ── Types ────────────────────────────────────────────────────────────────────
 
 type GenResult = {
   leads: Partial<Lead>[]
@@ -15,19 +18,23 @@ type GenResult = {
   query: string
 }
 
-const CLUSTERS = [
-  {
-    group: 'Immobilien',
-    items: ['Makler', 'Bauträger', 'Architekten', 'Developer / Projektentwicklung'],
-  },
-  {
-    group: 'Hospitality',
-    items: ['Hotels', 'Gastronomie', 'Events / Eventlocations', 'Wellness / Spa'],
-  },
-  {
-    group: 'Business',
-    items: ['IT / Software', 'Finanzen / Versicherung', 'Gesundheit / Pflege', 'Handel', 'Logistik'],
-  },
+type RecentSearch = {
+  branche: string
+  countryId: string
+  city: string
+  customCity: string
+  radius: string
+  timestamp: number
+  total?: number
+  emailFound?: number
+}
+
+// ── Static data ───────────────────────────────────────────────────────────────
+
+const DEFAULT_BRANCHES: { group: string; items: string[] }[] = [
+  { group: 'Immobilien', items: ['Makler', 'Bauträger', 'Architekten', 'Developer / Projektentwicklung'] },
+  { group: 'Hospitality', items: ['Hotels', 'Gastronomie', 'Events / Eventlocations', 'Wellness / Spa'] },
+  { group: 'Business', items: ['IT / Software', 'Finanzen / Versicherung', 'Gesundheit / Pflege', 'Handel', 'Logistik'] },
 ]
 
 const COUNTRIES = [
@@ -41,13 +48,21 @@ const COUNTRIES = [
 ]
 
 const RADII = [
-  { value: '2',   label: '2 km' },
-  { value: '5',   label: '5 km' },
-  { value: '10',  label: '10 km' },
-  { value: '25',  label: '25 km' },
-  { value: '50',  label: '50 km' },
-  { value: '0',   label: 'Überall' },
+  { value: '2', label: '2 km' }, { value: '5', label: '5 km' },
+  { value: '10', label: '10 km' }, { value: '25', label: '25 km' },
+  { value: '50', label: '50 km' }, { value: '0', label: 'Überall' },
 ]
+
+const LS_CUSTOM = 'la-crm-gen-custom-branches'
+const LS_HIDDEN = 'la-crm-gen-hidden-branches'
+const LS_RECENT = 'la-crm-gen-recent'
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function ls<T>(key: string, fallback: T): T {
+  if (typeof window === 'undefined') return fallback
+  try { return JSON.parse(localStorage.getItem(key) ?? 'null') ?? fallback } catch { return fallback }
+}
 
 function getDomain(url?: string | null) {
   if (!url) return null
@@ -55,9 +70,16 @@ function getDomain(url?: string | null) {
   catch { return url }
 }
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <p className="text-[10px] font-black text-white/25 uppercase tracking-widest mb-2.5">{children}</p>
+function timeAgo(ts: number) {
+  const m = Math.floor((Date.now() - ts) / 60000)
+  if (m < 1) return 'Gerade eben'
+  if (m < 60) return `vor ${m} min`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `vor ${h} Std`
+  return `vor ${Math.floor(h / 24)} Tagen`
 }
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export function GeneratorForm() {
   const [branche, setBranche]           = useState('')
@@ -71,8 +93,77 @@ export function GeneratorForm() {
   const [saved, setSaved]               = useState(false)
   const [saving, setSaving]             = useState(false)
 
-  const country   = COUNTRIES.find(c => c.id === countryId)!
+  // Branch management (localStorage-backed)
+  const [customBranches, setCustomBranches] = useState<string[]>([])
+  const [hiddenBranches, setHiddenBranches] = useState<Set<string>>(new Set())
+  const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([])
+  const [newBranchInput, setNewBranchInput] = useState('')
+  const [addingBranch, setAddingBranch]     = useState(false)
+  const addInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    setCustomBranches(ls<string[]>(LS_CUSTOM, []))
+    setHiddenBranches(new Set(ls<string[]>(LS_HIDDEN, [])))
+    setRecentSearches(ls<RecentSearch[]>(LS_RECENT, []))
+  }, [])
+
+  useEffect(() => { if (addingBranch) addInputRef.current?.focus() }, [addingBranch])
+
+  const country     = COUNTRIES.find(c => c.id === countryId)!
   const locationStr = customCity || city || country.label
+
+  // Visible branches: default (minus hidden) + custom
+  const visibleClusters = DEFAULT_BRANCHES.map(c => ({
+    ...c, items: c.items.filter(b => !hiddenBranches.has(b)),
+  })).filter(c => c.items.length > 0)
+
+  function addBranch() {
+    const b = newBranchInput.trim()
+    if (!b) return
+    const updated = [...customBranches.filter(x => x !== b), b]
+    setCustomBranches(updated)
+    localStorage.setItem(LS_CUSTOM, JSON.stringify(updated))
+    setNewBranchInput('')
+    setAddingBranch(false)
+    setBranche(b)
+  }
+
+  function hideDefault(b: string) {
+    const updated = new Set([...hiddenBranches, b])
+    setHiddenBranches(updated)
+    localStorage.setItem(LS_HIDDEN, JSON.stringify([...updated]))
+    if (branche === b) setBranche('')
+  }
+
+  function removeCustom(b: string) {
+    const updated = customBranches.filter(x => x !== b)
+    setCustomBranches(updated)
+    localStorage.setItem(LS_CUSTOM, JSON.stringify(updated))
+    if (branche === b) setBranche('')
+  }
+
+  function restoreDefaults() {
+    setHiddenBranches(new Set())
+    localStorage.removeItem(LS_HIDDEN)
+  }
+
+  function saveRecent(gen: GenResult) {
+    const entry: RecentSearch = {
+      branche, countryId, city, customCity, radius,
+      timestamp: Date.now(), total: gen.total, emailFound: gen.emailFound,
+    }
+    const updated = [entry, ...recentSearches.filter(r =>
+      !(r.branche === branche && r.countryId === countryId && r.city === city && r.customCity === customCity)
+    )].slice(0, 6)
+    setRecentSearches(updated)
+    localStorage.setItem(LS_RECENT, JSON.stringify(updated))
+  }
+
+  function applyRecent(r: RecentSearch) {
+    setBranche(r.branche); setCountryId(r.countryId)
+    setCity(r.city); setCustomCity(r.customCity); setRadius(r.radius)
+    setResult(null); setSaved(false)
+  }
 
   async function generate(e: React.FormEvent) {
     e.preventDefault()
@@ -80,13 +171,13 @@ export function GeneratorForm() {
     setLoading(true); setError(''); setResult(null); setSaved(false)
     try {
       const res  = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ branches: branche, custom: locationStr, radius }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Fehler beim Generieren.')
       setResult(data)
+      saveRecent(data)
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -99,8 +190,7 @@ export function GeneratorForm() {
     setSaving(true)
     try {
       const res  = await fetch('/api/leads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ leads: result.leads }),
       })
       const data = await res.json()
@@ -113,6 +203,16 @@ export function GeneratorForm() {
     }
   }
 
+  // ── Shared pill styles ─────────────────────────────────────────────────────
+  const pill = (active: boolean, variant: 'accent' | 'dark' = 'accent') =>
+    `transition-all text-xs font-bold px-3 py-2 rounded-xl ${
+      active
+        ? variant === 'accent'
+          ? 'bg-accent text-white'
+          : 'bg-dark text-white ring-1 ring-white/20'
+        : 'bg-dark text-white/35 hover:text-white/70'
+    }`
+
   return (
     <div>
       <div className="mb-8">
@@ -122,7 +222,7 @@ export function GeneratorForm() {
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 items-start">
 
-        {/* ── LEFT CONFIG ── */}
+        {/* ── LEFT CONFIG ─────────────────────────────────────────────── */}
         <form onSubmit={generate} className="lg:col-span-2 flex flex-col gap-4">
 
           {/* Branche */}
@@ -132,39 +232,102 @@ export function GeneratorForm() {
                 <Zap size={14} className="text-accent" />
                 <h2 className="text-sm font-black text-white">Branche</h2>
               </div>
-              {branche && (
-                <button
-                  type="button"
-                  onClick={() => setBranche('')}
-                  className="text-[10px] font-bold text-accent/70 hover:text-accent transition-colors"
-                >
-                  Zurücksetzen
+              {hiddenBranches.size > 0 && (
+                <button type="button" onClick={restoreDefaults}
+                  className="text-[10px] font-bold text-white/25 hover:text-white/60 flex items-center gap-1 transition-colors">
+                  <RotateCcw size={10} />Standard
                 </button>
               )}
             </div>
 
+            {/* Default clusters */}
             <div className="space-y-4">
-              {CLUSTERS.map(cluster => (
+              {visibleClusters.map(cluster => (
                 <div key={cluster.group}>
-                  <SectionTitle>{cluster.group}</SectionTitle>
+                  <p className="text-[10px] font-black text-white/20 uppercase tracking-widest mb-2">{cluster.group}</p>
                   <div className="flex flex-wrap gap-1.5">
                     {cluster.items.map(item => (
-                      <button
-                        key={item}
-                        type="button"
-                        onClick={() => setBranche(branche === item ? '' : item)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                          branche === item
-                            ? 'bg-accent text-white'
-                            : 'bg-dark text-white/40 hover:text-white hover:bg-panel-hover'
-                        }`}
-                      >
-                        {item}
-                      </button>
+                      <div key={item} className="relative group/pill">
+                        <button
+                          type="button"
+                          onClick={() => setBranche(branche === item ? '' : item)}
+                          className={`${pill(branche === item)} pr-6`}
+                        >
+                          {item}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => hideDefault(item)}
+                          title="Entfernen"
+                          className="absolute right-1.5 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover/pill:opacity-100 hover:bg-white/20 transition-all"
+                        >
+                          <X size={8} className="text-white/60" />
+                        </button>
+                      </div>
                     ))}
                   </div>
                 </div>
               ))}
+            </div>
+
+            {/* Custom branches */}
+            {(customBranches.length > 0 || addingBranch) && (
+              <div className="mt-4 pt-4 border-t border-white/5">
+                <p className="text-[10px] font-black text-white/20 uppercase tracking-widest mb-2">Eigene</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {customBranches.map(item => (
+                    <div key={item} className="relative group/pill">
+                      <button
+                        type="button"
+                        onClick={() => setBranche(branche === item ? '' : item)}
+                        className={`${pill(branche === item)} pr-6`}
+                      >
+                        {item}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeCustom(item)}
+                        className="absolute right-1.5 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover/pill:opacity-100 hover:bg-white/20 transition-all"
+                      >
+                        <X size={8} className="text-white/60" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Add branch */}
+            <div className="mt-4">
+              {addingBranch ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={addInputRef}
+                    type="text"
+                    value={newBranchInput}
+                    onChange={e => setNewBranchInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addBranch() } if (e.key === 'Escape') setAddingBranch(false) }}
+                    placeholder="Branche eingeben…"
+                    className="flex-1 bg-dark rounded-xl px-3 py-2 text-xs text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent"
+                  />
+                  <button type="button" onClick={addBranch}
+                    className="bg-accent text-white text-xs font-bold px-3 py-2 rounded-xl hover:bg-accent-hover transition-all">
+                    OK
+                  </button>
+                  <button type="button" onClick={() => setAddingBranch(false)}
+                    className="text-white/30 hover:text-white px-2 py-2 rounded-xl transition-colors">
+                    <X size={13} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setAddingBranch(true)}
+                  className="flex items-center gap-1.5 text-[11px] font-bold text-white/25 hover:text-white/60 transition-colors"
+                >
+                  <Plus size={12} />Eigene Branche
+                </button>
+              )}
             </div>
           </div>
 
@@ -175,40 +338,34 @@ export function GeneratorForm() {
               <h2 className="text-sm font-black text-white">Region</h2>
             </div>
 
-            {/* Country */}
-            <SectionTitle>Land</SectionTitle>
+            <p className="text-[10px] font-black text-white/20 uppercase tracking-widest mb-2.5">Land</p>
             <div className="flex flex-wrap gap-1.5 mb-5">
               {COUNTRIES.map(c => (
                 <button
                   key={c.id}
                   type="button"
                   onClick={() => { setCountryId(c.id); setCity(''); setCustomCity('') }}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                    countryId === c.id
-                      ? 'bg-dark text-white ring-1 ring-white/12'
-                      : 'bg-dark text-white/35 hover:text-white/70'
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                    countryId === c.id ? 'bg-accent text-white' : 'bg-dark text-white/35 hover:text-white/70'
                   }`}
                 >
-                  <span className={`text-[9px] font-black tracking-widest px-1 py-0.5 rounded ${
-                    countryId === c.id ? 'bg-accent text-white' : 'bg-white/8 text-white/30'
+                  <span className={`text-[8px] font-black tracking-wider px-1 py-0.5 rounded ${
+                    countryId === c.id ? 'bg-white/20 text-white' : 'bg-white/8 text-white/30'
                   }`}>{c.code}</span>
                   {c.label}
                 </button>
               ))}
             </div>
 
-            {/* Cities */}
-            <SectionTitle>Stadt / Ort</SectionTitle>
+            <p className="text-[10px] font-black text-white/20 uppercase tracking-widest mb-2.5">Stadt / Ort</p>
             <div className="grid grid-cols-3 gap-1.5 mb-4">
               {country.cities.map(c => (
                 <button
                   key={c}
                   type="button"
                   onClick={() => { setCity(city === c ? '' : c); setCustomCity('') }}
-                  className={`px-2.5 py-2 rounded-xl text-xs font-bold text-center transition-all truncate ${
-                    city === c
-                      ? 'bg-accent text-white'
-                      : 'bg-dark text-white/35 hover:text-white/70'
+                  className={`py-2 rounded-xl text-xs font-bold text-center truncate px-2 transition-all ${
+                    city === c ? 'bg-accent text-white' : 'bg-dark text-white/35 hover:text-white/70'
                   }`}
                 >
                   {c}
@@ -216,7 +373,6 @@ export function GeneratorForm() {
               ))}
             </div>
 
-            {/* Custom city */}
             <div className={`flex items-center gap-2 rounded-xl px-3 py-2.5 bg-dark ${customCity ? 'ring-1 ring-accent/25' : ''}`}>
               <MapPin size={11} className="text-white/20 shrink-0" />
               <input
@@ -227,7 +383,9 @@ export function GeneratorForm() {
                 className="flex-1 bg-transparent text-xs text-white placeholder-white/20 outline-none"
               />
               {customCity && (
-                <button type="button" onClick={() => setCustomCity('')} className="text-white/25 hover:text-white/60 text-xs leading-none">✕</button>
+                <button type="button" onClick={() => setCustomCity('')} className="text-white/25 hover:text-white/60 text-xs leading-none">
+                  <X size={11} />
+                </button>
               )}
             </div>
             {!city && !customCity && (
@@ -237,25 +395,20 @@ export function GeneratorForm() {
 
           {/* Radius */}
           <div className="bg-panel rounded-2xl p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-5 h-5 rounded-full border-2 border-white/20 flex items-center justify-center shrink-0">
-                <div className="w-1.5 h-1.5 rounded-full bg-white/30" />
-              </div>
+            <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-black text-white">Suchradius</h2>
-              <span className="ml-auto text-xs font-bold text-white/30">
+              <span className="text-xs font-bold text-white/30">
                 {radius === '0' ? 'Kein Limit' : `${radius} km`}
               </span>
             </div>
-            <div className="flex gap-1.5 flex-wrap">
+            <div className="grid grid-cols-3 gap-1.5">
               {RADII.map(r => (
                 <button
                   key={r.value}
                   type="button"
                   onClick={() => setRadius(r.value)}
-                  className={`flex-1 min-w-14 py-2 rounded-xl text-xs font-bold transition-all text-center ${
-                    radius === r.value
-                      ? 'bg-dark text-white ring-1 ring-white/15'
-                      : 'bg-dark text-white/30 hover:text-white/60'
+                  className={`py-2 rounded-xl text-xs font-bold text-center transition-all ${
+                    radius === r.value ? 'bg-accent text-white' : 'bg-dark text-white/35 hover:text-white/70'
                   }`}
                 >
                   {r.label}
@@ -277,7 +430,7 @@ export function GeneratorForm() {
           </button>
         </form>
 
-        {/* ── RIGHT RESULTS ── */}
+        {/* ── RIGHT RESULTS ────────────────────────────────────────────── */}
         <div className="lg:col-span-3 flex flex-col gap-4">
 
           {error && (
@@ -286,15 +439,80 @@ export function GeneratorForm() {
             </div>
           )}
 
-          {/* Empty */}
+          {/* Empty + recent searches */}
           {!result && !loading && !error && (
-            <div className="bg-panel rounded-2xl flex flex-col items-center justify-center py-40 text-center">
-              <div className="w-14 h-14 rounded-2xl bg-dark flex items-center justify-center mb-5">
-                <Zap size={24} className="text-white/10" />
+            <>
+              {/* Compact placeholder */}
+              <div className="bg-panel rounded-2xl flex items-center gap-5 px-6 py-6">
+                <div className="w-10 h-10 rounded-xl bg-dark flex items-center justify-center shrink-0">
+                  <Zap size={18} className="text-white/10" />
+                </div>
+                <div>
+                  <p className="text-sm font-black text-white/25">Branche & Region wählen</p>
+                  <p className="text-xs text-white/15 mt-0.5">dann Leads generieren</p>
+                </div>
               </div>
-              <p className="text-sm font-black text-white/20">Branche & Region wählen</p>
-              <p className="text-xs text-white/15 mt-1">dann Leads generieren</p>
-            </div>
+
+              {/* Recent searches */}
+              {recentSearches.length > 0 && (
+                <div className="bg-panel rounded-2xl overflow-hidden">
+                  <div className="flex items-center gap-2 px-5 py-4 border-b border-white/5">
+                    <Clock size={13} className="text-white/25" />
+                    <h3 className="text-sm font-black text-white/60">Letzte Suchen</h3>
+                  </div>
+                  <div>
+                    {recentSearches.map((r, i) => {
+                      const loc = r.customCity || r.city || COUNTRIES.find(c => c.id === r.countryId)?.label || ''
+                      return (
+                        <div
+                          key={i}
+                          className={`flex items-center gap-4 px-5 py-3.5 hover:bg-panel-hover transition-colors ${
+                            i < recentSearches.length - 1 ? 'border-b border-white/4' : ''
+                          }`}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-bold text-white/80 truncate">{r.branche}</p>
+                              <span className="text-white/20 text-xs shrink-0">·</span>
+                              <p className="text-xs text-white/40 truncate">{loc}</p>
+                              {r.radius !== '0' && (
+                                <span className="text-[10px] bg-dark text-white/25 px-1.5 py-0.5 rounded-md font-bold shrink-0">{r.radius} km</span>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-white/20 mt-0.5 flex items-center gap-2">
+                              {timeAgo(r.timestamp)}
+                              {r.total !== undefined && <><span className="text-white/15">·</span>{r.total} Leads{r.emailFound ? `, ${r.emailFound} E-Mails` : ''}</>}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => applyRecent(r)}
+                            className="shrink-0 flex items-center gap-1.5 bg-dark hover:bg-panel-hover text-white/40 hover:text-white text-xs font-bold px-3 py-2 rounded-xl transition-all"
+                          >
+                            <RotateCcw size={11} />
+                            Wiederholen
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Tip card */}
+              <div className="bg-panel rounded-2xl p-5">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-accent/15 flex items-center justify-center shrink-0">
+                    <Zap size={14} className="text-accent" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-black text-white/60">Tipp: Spezifisch suchen</p>
+                    <p className="text-xs text-white/30 mt-1 leading-relaxed">
+                      Wähle eine einzelne Branche mit einer konkreten Stadt und kleinem Radius — das liefert die präzisesten Ergebnisse mit den meisten Kontaktdaten.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </>
           )}
 
           {/* Loading skeletons */}
@@ -320,7 +538,6 @@ export function GeneratorForm() {
           {/* Results */}
           {result && (
             <>
-              {/* Stats + save */}
               <div className="bg-panel rounded-2xl p-5">
                 <div className="flex items-center gap-5">
                   <div>
@@ -344,8 +561,7 @@ export function GeneratorForm() {
                     </div>
                   ) : (
                     <button
-                      onClick={saveLeads}
-                      disabled={saving}
+                      onClick={saveLeads} disabled={saving}
                       className="flex items-center gap-2 bg-accent-green/15 hover:bg-accent-green/25 text-accent-green disabled:opacity-40 text-sm font-black px-4 py-2.5 rounded-xl transition-all shrink-0"
                     >
                       {saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
@@ -355,7 +571,6 @@ export function GeneratorForm() {
                 </div>
               </div>
 
-              {/* Lead list */}
               <div className="bg-panel rounded-2xl overflow-hidden">
                 {result.leads.map((lead, i) => {
                   const domain = getDomain(lead.website)
@@ -380,34 +595,14 @@ export function GeneratorForm() {
                           </div>
                           {(lead.city || lead.region) && (
                             <p className="text-xs text-white/30 mt-0.5 flex items-center gap-1">
-                              <MapPin size={9} />
-                              {lead.city || lead.region}
+                              <MapPin size={9} />{lead.city || lead.region}
                             </p>
                           )}
                           <div className="flex items-center gap-4 mt-2 flex-wrap">
-                            {lead.ceos && (
-                              <span className="flex items-center gap-1 text-xs text-white/30">
-                                <User size={10} />{lead.ceos}
-                              </span>
-                            )}
-                            {lead.phone && (
-                              <a href={`tel:${lead.phone}`} onClick={e => e.stopPropagation()}
-                                className="flex items-center gap-1 text-xs text-white/30 hover:text-accent transition-colors">
-                                <Phone size={10} />{lead.phone}
-                              </a>
-                            )}
-                            {email && (
-                              <a href={`mailto:${email}`} onClick={e => e.stopPropagation()}
-                                className="flex items-center gap-1 text-xs text-white/30 hover:text-accent-green transition-colors truncate max-w-48">
-                                <Mail size={10} />{email}
-                              </a>
-                            )}
-                            {domain && (
-                              <a href={lead.website!} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
-                                className="flex items-center gap-1 text-xs text-white/20 hover:text-white/50 transition-colors">
-                                <ExternalLink size={10} />{domain}
-                              </a>
-                            )}
+                            {lead.ceos && <span className="flex items-center gap-1 text-xs text-white/30"><User size={10} />{lead.ceos}</span>}
+                            {lead.phone && <a href={`tel:${lead.phone}`} onClick={e => e.stopPropagation()} className="flex items-center gap-1 text-xs text-white/30 hover:text-accent transition-colors"><Phone size={10} />{lead.phone}</a>}
+                            {email && <a href={`mailto:${email}`} onClick={e => e.stopPropagation()} className="flex items-center gap-1 text-xs text-white/30 hover:text-accent-green transition-colors truncate max-w-48"><Mail size={10} />{email}</a>}
+                            {domain && <a href={lead.website!} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="flex items-center gap-1 text-xs text-white/20 hover:text-white/50 transition-colors"><ExternalLink size={10} />{domain}</a>}
                           </div>
                         </div>
                       </div>
