@@ -35,6 +35,7 @@ export function SettingsView() {
   const [pwSaving, setPwSaving]         = useState(false)
   const [pwMsg, setPwMsg]               = useState('')
 
+  const [isAdmin, setIsAdmin]           = useState(false)
   const [users, setUsers]               = useState<AdminUser[]>([])
   const [loadingUsers, setLoadingUsers] = useState(true)
   const [newUserEmail, setNewUserEmail] = useState('')
@@ -55,7 +56,10 @@ export function SettingsView() {
     setLoadingUsers(true)
     const res = await fetch('/api/admin/users')
     const data = await res.json()
-    if (res.ok) setUsers(data.users)
+    if (res.ok) {
+      setUsers(data.users)
+      setIsAdmin(!!data.isAdmin)
+    }
     setLoadingUsers(false)
   }
 
@@ -130,7 +134,7 @@ export function SettingsView() {
         <p className="text-sm text-white/30 mt-2 font-medium">Profil & Benutzerverwaltung</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div className={`grid grid-cols-1 ${isAdmin ? 'lg:grid-cols-2' : ''} gap-5`}>
         {/* Profile */}
         <div className="space-y-5">
 
@@ -205,8 +209,8 @@ export function SettingsView() {
           </div>
         </div>
 
-        {/* User management */}
-        <div className="bg-panel rounded-2xl p-6 space-y-4">
+        {/* User management — admin only */}
+        {isAdmin && <div className="bg-panel rounded-2xl p-6 space-y-4">
           <div className="flex items-center gap-2 mb-1">
             <Users size={14} className="text-accent" />
             <h2 className="text-sm font-black text-white">Benutzer verwalten</h2>
@@ -269,7 +273,7 @@ export function SettingsView() {
               ))
             )}
           </div>
-        </div>
+        </div>}
       </div>
     </div>
   )

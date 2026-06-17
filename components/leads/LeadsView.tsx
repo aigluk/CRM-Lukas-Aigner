@@ -11,6 +11,7 @@ import { QuickNoteModal } from './QuickNoteModal'
 import { Search, Plus, Upload, Trash2, X } from 'lucide-react'
 import { ImportModal } from './ImportModal'
 import { createClient } from '@/lib/supabase/client'
+import type { TeamUser } from './LeadTable'
 
 export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
   const [leads, setLeads]             = useState<Lead[]>(initialLeads)
@@ -23,6 +24,7 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
   const [deleting, setDeleting]       = useState(false)
   const [quickNoteLead, setQuickNoteLead] = useState<Lead | null>(null)
   const [currentUsername, setCurrentUsername] = useState('')
+  const [teamUsers, setTeamUsers]     = useState<TeamUser[]>([])
   const channelRef = useRef<ReturnType<ReturnType<typeof createClient>['channel']> | null>(null)
 
   // Fetch current username + subscribe to realtime
@@ -34,6 +36,11 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
       if (!user) return
 
       setCurrentUsername(user.user_metadata?.display_name || '')
+
+      // Fetch team users for handler dropdown
+      fetch('/api/users').then(r => r.json()).then(d => {
+        if (d.users) setTeamUsers(d.users)
+      })
 
       // Realtime: reflect changes made by any team member immediately
       const channel = supabase
@@ -255,6 +262,7 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
         onToggleSelect={toggleSelect}
         onToggleAll={toggleAll}
         currentUsername={currentUsername}
+        users={teamUsers}
         onQuickNote={setQuickNoteLead}
         onSetHandler={handleSetHandler}
       />

@@ -1,8 +1,11 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Lead } from '@/lib/types'
 import { STATUS_COLORS, STATUS_LABELS } from '@/lib/constants'
 import { Phone, ChevronRight, Share2, StickyNote, User } from 'lucide-react'
+
+export type TeamUser = { id: string; username: string }
 
 function toWaPhone(raw: string): string {
   return raw
@@ -32,16 +35,22 @@ function handleShare(lead: Lead, e: React.MouseEvent) {
   e.stopPropagation()
   const phone = lead.phone?.trim()
   const email = lead.email || lead.email_general
-  if (navigator.share) {
-    const vcard = buildVCard(lead)
-    const blob  = new Blob([vcard], { type: 'text/vcard' })
-    const file  = new File([blob], `${lead.name.replace(/[^a-z0-9]/gi, '_')}.vcf`, { type: 'text/vcard' })
-    navigator.share({ files: [file], title: lead.name }).catch(() => {
-      if (phone) window.open(`https://wa.me/${toWaPhone(phone)}`, '_blank')
-    })
-    return
-  }
+
   if (phone) {
+    // Use native share (VCard) only when the browser supports file sharing (mobile)
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      const vcard = buildVCard(lead)
+      const blob  = new Blob([vcard], { type: 'text/vcard' })
+      const file  = new File([blob], `${lead.name.replace(/[^a-z0-9]/gi, '_')}.vcf`, { type: 'text/vcard' })
+      const shareData = { files: [file], title: lead.name }
+      if (navigator.canShare?.(shareData)) {
+        navigator.share(shareData).catch(() => {
+          window.open(`https://wa.me/${toWaPhone(phone)}`, '_blank')
+        })
+        return
+      }
+    }
+    // Desktop or browser without file share support → open WhatsApp directly
     window.open(`https://wa.me/${toWaPhone(phone)}`, '_blank')
   } else if (email) {
     window.open(`mailto:${email}?subject=${encodeURIComponent(lead.name)}`, '_blank')
@@ -70,6 +79,7 @@ export function LeadTable({
   onToggleSelect,
   onToggleAll,
   currentUsername,
+  users = [],
   onQuickNote,
   onSetHandler,
 }: {
@@ -79,11 +89,21 @@ export function LeadTable({
   onToggleSelect: (id: string) => void
   onToggleAll: () => void
   currentUsername?: string
+  users?: TeamUser[]
   onQuickNote?: (lead: Lead) => void
   onSetHandler?: (id: string, newHandler: string | null) => void
 }) {
   const allSelected  = leads.length > 0 && leads.every(l => selectedIds.has(l.id))
   const someSelected = leads.some(l => selectedIds.has(l.id)) && !allSelected
+  const [openHandlerFor, setOpenHandlerFor] = useState<string | null>(null)
+
+  // Close dropdown on any outside click
+  useEffect(() => {
+    if (!openHandlerFor) return
+    const close = () => setOpenHandlerFor(null)
+    document.addEventListener('click', close)
+    return () => document.removeEventListener('click', close)
+  }, [openHandlerFor])
 
   if (leads.length === 0) {
     return (
@@ -93,9 +113,9 @@ export function LeadTable({
     )
   }
 
-  // Mobile: circle | company | phone | share | handler | chevron  (6 cols)
-  // SM:     circle | company | status | phone | share | note | handler | chevron  (8 cols)
-  const rowGrid = 'grid grid-cols-[36px_1fr_32px_32px_32px_16px] sm:grid-cols-[36px_1fr_auto_32px_32px_32px_32px_16px] gap-3 items-center px-4 sm:px-5'
+  // Mobile: circle | company | phone | share | chevron  (5 cols)
+  // SM:     circle | company | status+handler (auto) | phone | share | note | chevron  (7 cols)
+  const rowGrid = 'grid grid-cols-[36px_1fr_32px_32px_16px] sm:grid-cols-[36px_1fr_auto_32px_32px_32px_16px] gap-3 items-center px-4 sm:px-5'
 
   return (
     <div className="bg-panel rounded-2xl overflow-hidden">
@@ -103,31 +123,17 @@ export function LeadTable({
       <div className={`${rowGrid} py-3 border-b border-panel-2`}>
         <Circle selected={allSelected} partial={someSelected} onClick={e => { e.stopPropagation(); onToggleAll() }} />
         <span className="text-xs font-bold text-white/25">Unternehmen</span>
-        <span className="hidden sm:block text-xs font-bold text-white/25">Status</span>
-        <span className="hidden sm:block" />
+        <span className="hidden sm:block text-xs font-bold text-white/25">Status / Bearbeiter</span>
         <span /><span /><span /><span />
       </div>
 
       <ul>
         {leads.map((lead, i) => {
-          const selected   = selectedIds.has(lead.id)
-          const sc         = STATUS_COLORS[lead.status]
-          const phone      = lead.phone?.trim()
-          const canShare   = !!(phone || lead.email || lead.email_general)
-          const isMyLead   = !!(currentUsername && lead.handler === currentUsername)
-          const hasHandler = !!lead.handler
-          const hasNotes   = !!(lead.notes?.trim())
-
-          const initials = lead.handler
-            ? lead.handler.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()
-            : null
-
-          function toggleHandler(e: React.MouseEvent) {
-            e.stopPropagation()
-            if (!onSetHandler) return
-            if (!currentUsername) return
-            onSetHandler(lead.id, isMyLead ? null : currentUsername)
-          }
+          const selected = selectedIds.has(lead.id)
+          const sc = STATUS_COLORS[lead.status]
+          const phone = lead.phone?.trim()
+          const canShare = !!(phone || lead.email || lead.email_general)
+          const hasNotes = !!(lead.notes?.trim())
 
           return (
             <li
@@ -147,11 +153,61 @@ export function LeadTable({
                 </p>
               </div>
 
-              {/* Status pill — SM only */}
-              <div className="hidden sm:flex items-center" onClick={() => onLeadClick(lead)}>
-                <span className={`h-8 inline-flex items-center px-3 rounded-full text-xs font-bold whitespace-nowrap ${sc.bg} ${sc.text}`}>
+              {/* Status + Handler pill — SM only */}
+              <div className="hidden sm:flex items-center gap-2">
+                {/* Status */}
+                <span
+                  onClick={() => onLeadClick(lead)}
+                  className={`h-8 inline-flex items-center px-3 rounded-full text-xs font-bold whitespace-nowrap cursor-pointer ${sc.bg} ${sc.text}`}
+                >
                   {STATUS_LABELS[lead.status]}
                 </span>
+
+                {/* Handler pill with user selector */}
+                <div className="relative" onClick={e => e.stopPropagation()}>
+                  <button
+                    onClick={() => setOpenHandlerFor(openHandlerFor === lead.id ? null : lead.id)}
+                    title={lead.handler ? `Bearbeiter: ${lead.handler}` : 'Bearbeiter auswählen'}
+                    className={`h-8 inline-flex items-center gap-1.5 px-2.5 rounded-full text-xs font-bold transition-all whitespace-nowrap max-w-27.5 ${
+                      lead.handler
+                        ? lead.handler === currentUsername
+                          ? 'bg-accent/15 text-accent hover:bg-accent/25'
+                          : 'bg-white/10 text-white/60 hover:bg-white/15'
+                        : 'bg-white/5 text-white/25 hover:bg-white/10 hover:text-white/40'
+                    }`}
+                  >
+                    <User size={10} className="shrink-0" />
+                    <span className="truncate">{lead.handler || '—'}</span>
+                  </button>
+
+                  {openHandlerFor === lead.id && (
+                    <div className="absolute top-full left-0 mt-1 z-200 bg-rim-subtle rounded-xl shadow-2xl border border-white/8 py-1 min-w-37.5">
+                      {users.length === 0 && (
+                        <p className="px-3 py-2.5 text-xs text-white/30">Erst Benutzernamen in Einstellungen setzen.</p>
+                      )}
+                      {users.map(u => (
+                        <button
+                          key={u.id}
+                          onClick={() => { onSetHandler?.(lead.id, lead.handler === u.username ? null : u.username); setOpenHandlerFor(null) }}
+                          className={`w-full text-left px-3 py-2.5 text-sm hover:bg-white/8 transition-colors flex items-center gap-2 ${
+                            lead.handler === u.username ? 'text-accent font-bold' : 'text-white/70'
+                          }`}
+                        >
+                          <User size={11} className="shrink-0 opacity-50" />
+                          {u.username}
+                        </button>
+                      ))}
+                      {lead.handler && (
+                        <button
+                          onClick={() => { onSetHandler?.(lead.id, null); setOpenHandlerFor(null) }}
+                          className="w-full text-left px-3 py-2 text-xs text-white/30 hover:bg-white/8 hover:text-accent transition-colors border-t border-white/5 mt-1"
+                        >
+                          Entfernen
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Call */}
@@ -172,12 +228,12 @@ export function LeadTable({
                 )}
               </div>
 
-              {/* Share */}
+              {/* Share → WhatsApp */}
               <div className="flex items-center justify-center">
                 {canShare ? (
                   <button
                     onClick={e => handleShare(lead, e)}
-                    title="Kontakt teilen / WhatsApp"
+                    title="WhatsApp / Kontakt teilen"
                     className="w-8 h-8 rounded-full bg-accent-green flex items-center justify-center hover:opacity-85 transition-all active:scale-90"
                   >
                     <Share2 size={12} className="text-dark" strokeWidth={2.5} />
@@ -199,24 +255,6 @@ export function LeadTable({
                   }`}
                 >
                   <StickyNote size={12} className={hasNotes ? 'text-accent' : 'text-white/25'} />
-                </button>
-              </div>
-
-              {/* Handler */}
-              <div className="flex items-center justify-center">
-                <button
-                  onClick={toggleHandler}
-                  title={hasHandler ? `Bearbeiter: ${lead.handler}${isMyLead ? ' (du)' : ''}` : 'Dir zuweisen'}
-                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90 text-[11px] font-black leading-none ${
-                    isMyLead   ? 'bg-accent text-white hover:opacity-85' :
-                    hasHandler ? 'bg-white/15 text-white/60 hover:bg-white/22' :
-                                 'bg-white/5 hover:bg-white/12'
-                  }`}
-                >
-                  {initials
-                    ? <span className="text-[11px] font-black">{initials}</span>
-                    : <User size={12} className="text-white/25" />
-                  }
                 </button>
               </div>
 

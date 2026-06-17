@@ -33,7 +33,7 @@ function Field({
       {editing ? (
         <input
           type={type} value={value} onChange={e => onChange(e.target.value)}
-          className="w-full bg-[#1A1A1A] rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:ring-1 focus:ring-accent transition-all"
+          className="w-full bg-dark rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:ring-1 focus:ring-accent transition-all"
         />
       ) : href && value ? (
         <a href={href} target={type !== 'tel' && type !== 'email' ? '_blank' : undefined}
@@ -117,10 +117,10 @@ export function LeadDetailModal({
       className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
       onClick={e => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-[#222] w-full sm:max-w-2xl rounded-t-2xl sm:rounded-2xl max-h-[93vh] overflow-y-auto shadow-2xl">
+      <div className="bg-panel w-full sm:max-w-2xl rounded-t-2xl sm:rounded-2xl max-h-[93vh] overflow-y-auto shadow-2xl">
 
         {/* Header */}
-        <div className="sticky top-0 bg-[#222] z-10 px-6 py-4 border-b border-[#2A2A2A]">
+        <div className="sticky top-0 bg-panel z-10 px-6 py-4 border-b border-rim-subtle">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <h2 className="text-base font-black text-white truncate">{lead.name}</h2>
@@ -133,7 +133,7 @@ export function LeadDetailModal({
               <button
                 onClick={() => setCallMode(v => !v)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                  callMode ? 'bg-accent text-white' : 'bg-[#2C2C2C] text-white/40 hover:text-white'
+                  callMode ? 'bg-accent text-white' : 'bg-panel-hover text-white/40 hover:text-white'
                 }`}
               >
                 <Zap size={12} />
@@ -150,7 +150,7 @@ export function LeadDetailModal({
                   </button>
                   <button
                     onClick={() => { setForm({ ...lead }); setEditing(false) }}
-                    className="px-3 py-1.5 bg-[#2C2C2C] text-white/40 hover:text-white text-xs font-bold rounded-xl transition-all"
+                    className="px-3 py-1.5 bg-panel-hover text-white/40 hover:text-white text-xs font-bold rounded-xl transition-all"
                   >
                     Abbrechen
                   </button>
@@ -158,13 +158,13 @@ export function LeadDetailModal({
               ) : (
                 <button
                   onClick={() => setEditing(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2C2C2C] text-white/40 hover:text-white text-xs font-bold rounded-xl transition-all"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-panel-hover text-white/40 hover:text-white text-xs font-bold rounded-xl transition-all"
                 >
                   <Edit3 size={12} />
                   Bearbeiten
                 </button>
               )}
-              <button onClick={onClose} className="p-1.5 rounded-xl bg-[#2C2C2C] text-white/30 hover:text-white transition-all">
+              <button onClick={onClose} className="p-1.5 rounded-xl bg-panel-hover text-white/30 hover:text-white transition-all">
                 <X size={16} />
               </button>
             </div>
@@ -175,7 +175,7 @@ export function LeadDetailModal({
 
           {/* IM CALL PANEL */}
           {callMode && (
-            <div className="bg-[#1A1A1A] rounded-2xl p-5 space-y-4">
+            <div className="bg-dark rounded-2xl p-5 space-y-4">
               <p className="text-xs font-black text-accent">Schnellaktionen</p>
               <ul className="space-y-2">
                 {CALL_ITEMS.map(item => {
@@ -203,7 +203,7 @@ export function LeadDetailModal({
                 onChange={e => setQuickNote(e.target.value)}
                 placeholder="Notiz aus dem Call..."
                 rows={2}
-                className="w-full bg-[#222] rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all resize-none"
+                className="w-full bg-panel rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all resize-none"
               />
               {/* Termin anlegen */}
               {!showAppt ? (
@@ -247,7 +247,7 @@ export function LeadDetailModal({
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                       (form.status ?? lead.status) === s
                         ? 'bg-accent text-white'
-                        : 'bg-[#2C2C2C] text-white/40 hover:text-white'
+                        : 'bg-panel-hover text-white/40 hover:text-white'
                     }`}
                   >
                     {STATUS_LABELS[s]}
@@ -285,13 +285,23 @@ export function LeadDetailModal({
               href={lead.website} type="url" />
           </div>
 
-          {/* Appointment (if set) */}
-          {(form.appointment_date || lead.appointment_date) && !callMode && (
-            <div className="bg-[#1A1A1A] rounded-2xl p-4">
-              <label className="flex items-center gap-1.5 text-xs font-bold text-accent mb-2">
-                <Calendar size={11} />
-                Termin
-              </label>
+          {/* Appointment */}
+          {!callMode && (editing || form.appointment_date || lead.appointment_date) && (
+            <div className="bg-dark rounded-2xl p-4">
+              <div className="flex items-center justify-between mb-2">
+                <label className="flex items-center gap-1.5 text-xs font-bold text-accent">
+                  <Calendar size={11} />
+                  Termin
+                </label>
+                {editing && form.appointment_date && (
+                  <button
+                    onClick={() => { set('appointment_date', ''); set('appointment_from', ''); set('appointment_to', '') }}
+                    className="flex items-center gap-1 text-xs text-white/30 hover:text-accent transition-colors font-bold"
+                  >
+                    <X size={11} /> Entfernen
+                  </button>
+                )}
+              </div>
               {editing ? (
                 <div className="grid grid-cols-3 gap-2">
                   <div className="col-span-3 sm:col-span-1">
@@ -320,7 +330,7 @@ export function LeadDetailModal({
             </label>
             {editing ? (
               <textarea value={form.notes ?? ''} onChange={e => set('notes', e.target.value)} rows={4}
-                className="w-full bg-[#1A1A1A] rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all resize-none"
+                className="w-full bg-dark rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all resize-none"
                 placeholder="Gesprächsverlauf, Beobachtungen..." />
             ) : (
               <p className="text-sm text-white/50 whitespace-pre-wrap leading-relaxed min-h-5">{form.notes || lead.notes || '—'}</p>
@@ -334,7 +344,7 @@ export function LeadDetailModal({
             </label>
             {editing ? (
               <textarea value={form.note ?? ''} onChange={e => set('note', e.target.value)} rows={2}
-                className="w-full bg-[#1A1A1A] rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all resize-none"
+                className="w-full bg-dark rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all resize-none"
                 placeholder="Angebotsbetrag, Deal-Details..." />
             ) : (
               <p className="text-sm text-white/50 min-h-5">{lead.note || '—'}</p>
