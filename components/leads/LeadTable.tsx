@@ -1,8 +1,62 @@
 'use client'
 
 import { Lead } from '@/lib/types'
-import { STATUS_COLORS } from '@/lib/constants'
-import { Phone, Mail, ChevronRight, Check } from 'lucide-react'
+import { STATUS_COLORS, STATUS_LABELS } from '@/lib/constants'
+import { Phone, ChevronRight, Share2 } from 'lucide-react'
+
+function buildVCard(lead: Lead): string {
+  const lines = [
+    'BEGIN:VCARD',
+    'VERSION:3.0',
+    `FN:${lead.ceos || lead.name}`,
+    `ORG:${lead.name}`,
+    lead.phone      ? `TEL;TYPE=CELL:${lead.phone}` : '',
+    (lead.email || lead.email_general) ? `EMAIL:${lead.email || lead.email_general}` : '',
+    lead.website    ? `URL:${lead.website}` : '',
+    lead.city || lead.region ? `ADR:;;${lead.city || lead.region};;;;` : '',
+    'END:VCARD',
+  ]
+  return lines.filter(Boolean).join('\n')
+}
+
+function shareContact(lead: Lead, e: React.MouseEvent) {
+  e.stopPropagation()
+  const vcard = buildVCard(lead)
+
+  if (navigator.share) {
+    const blob = new Blob([vcard], { type: 'text/vcard' })
+    const file = new File([blob], `${lead.name.replace(/[^a-z0-9]/gi, '_')}.vcf`, { type: 'text/vcard' })
+    navigator.share({ files: [file], title: lead.name }).catch(() => {})
+    return
+  }
+
+  // Fallback: WhatsApp if phone, email otherwise
+  const phone = lead.phone?.replace(/[\s\-\(\)\/]/g, '')
+  if (phone) {
+    const digits = phone.replace(/[^0-9+]/g, '').replace(/^\+?43/, '43').replace(/^0/, '43')
+    window.open(`https://wa.me/${digits}`, '_blank')
+  } else if (lead.email || lead.email_general) {
+    window.location.href = `mailto:${lead.email || lead.email_general}?subject=${encodeURIComponent(lead.name)}`
+  }
+}
+
+// Solid circle — no border, just fill change
+function Circle({
+  selected, partial, onClick,
+}: { selected: boolean; partial?: boolean; onClick: (e: React.MouseEvent) => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-5 h-5 rounded-full shrink-0 transition-all ${
+        selected
+          ? 'bg-accent shadow-sm'
+          : partial
+          ? 'bg-accent/45'
+          : 'bg-white/10 hover:bg-white/20'
+      }`}
+    />
+  )
+}
 
 export function LeadTable({
   leads,
@@ -17,8 +71,8 @@ export function LeadTable({
   onToggleSelect: (id: string) => void
   onToggleAll: () => void
 }) {
-  const allSelected = leads.length > 0 && leads.every(l => selectedIds.has(l.id))
-  const someSelected = leads.some(l => selectedIds.has(l.id))
+  const allSelected  = leads.length > 0 && leads.every(l => selectedIds.has(l.id))
+  const someSelected = leads.some(l => selectedIds.has(l.id)) && !allSelected
 
   if (leads.length === 0) {
     return (
@@ -30,102 +84,94 @@ export function LeadTable({
 
   return (
     <div className="bg-panel rounded-2xl overflow-hidden">
-      {/* Header */}
-      <div className="hidden md:grid grid-cols-[40px_1fr_160px_140px_160px_32px] gap-4 px-5 py-3 border-b border-panel-2">
-        {/* Select all checkbox */}
-        <div className="flex items-center">
-          <button
-            onClick={onToggleAll}
-            className={`w-4.5 h-4.5 rounded flex items-center justify-center transition-all border ${
-              allSelected
-                ? 'bg-accent border-accent'
-                : someSelected
-                ? 'bg-accent/40 border-accent/60'
-                : 'border-white/15 hover:border-white/35'
-            }`}
-          >
-            {(allSelected || someSelected) && <Check size={10} className="text-white" strokeWidth={3} />}
-          </button>
-        </div>
-        {['Unternehmen', 'Ansprechpartner', 'Branche', 'Kontakt', ''].map((h, i) => (
-          <span key={i} className="text-[10px] font-bold text-white/25 uppercase tracking-widest flex items-center">{h}</span>
-        ))}
+      {/* Header row */}
+      <div className="grid grid-cols-[44px_1fr_auto_36px_36px_20px] gap-3 px-5 py-3 border-b border-panel-2 items-center">
+        <Circle
+          selected={allSelected}
+          partial={someSelected}
+          onClick={e => { e.stopPropagation(); onToggleAll() }}
+        />
+        <span className="text-[10px] font-bold text-white/25 uppercase tracking-widest">Unternehmen</span>
+        <span className="text-[10px] font-bold text-white/25 uppercase tracking-widest hidden sm:block">Status</span>
+        <span />
+        <span />
+        <span />
       </div>
 
       <ul>
         {leads.map((lead, i) => {
           const selected = selectedIds.has(lead.id)
-          const contact = lead.phone || lead.email || lead.email_general
+          const sc       = STATUS_COLORS[lead.status]
+          const phone    = lead.phone
+          const canShare = !!(phone || lead.email || lead.email_general)
+
           return (
             <li
               key={lead.id}
-              className={`grid grid-cols-[40px_1fr_32px] md:grid-cols-[40px_1fr_160px_140px_160px_32px] gap-4 items-center px-5 py-3.5 transition-colors group ${
+              className={`grid grid-cols-[44px_1fr_auto_36px_36px_20px] gap-3 items-center px-5 py-3.5 transition-colors cursor-pointer group ${
                 i < leads.length - 1 ? 'border-b border-panel-2' : ''
-              } ${selected ? 'bg-accent/8' : 'hover:bg-panel-hover'}`}
+              } ${selected ? 'bg-accent/7' : 'hover:bg-panel-hover'}`}
             >
-              {/* Checkbox */}
-              <div className="flex items-center" onClick={e => { e.stopPropagation(); onToggleSelect(lead.id) }}>
-                <button
-                  className={`w-4.5 h-4.5 rounded flex items-center justify-center transition-all border shrink-0 ${
-                    selected ? 'bg-accent border-accent' : 'border-white/15 hover:border-accent/60'
-                  }`}
-                >
-                  {selected && <Check size={10} className="text-white" strokeWidth={3} />}
-                </button>
-              </div>
+              {/* Circle selector */}
+              <Circle
+                selected={selected}
+                onClick={e => { e.stopPropagation(); onToggleSelect(lead.id) }}
+              />
 
-              {/* Company — clicking the row opens detail */}
-              <div className="min-w-0 cursor-pointer" onClick={() => onLeadClick(lead)}>
-                <p className="text-sm font-semibold text-white truncate">{lead.name}</p>
-                <p className="text-xs text-white/35 truncate mt-0.5">
-                  {lead.city || lead.region || '—'}
+              {/* Company info */}
+              <div className="min-w-0" onClick={() => onLeadClick(lead)}>
+                <p className="text-sm font-semibold text-white truncate leading-snug">{lead.name}</p>
+                <p className="text-xs text-white/35 truncate mt-0.5 leading-snug">
+                  {[lead.ceos || lead.owner, lead.city || lead.region].filter(Boolean).join(' · ') || '—'}
                 </p>
               </div>
 
-              {/* CEO */}
-              <div className="hidden md:block min-w-0 cursor-pointer" onClick={() => onLeadClick(lead)}>
-                <p className="text-sm text-white/50 truncate">{lead.ceos || lead.owner || '—'}</p>
+              {/* Status badge */}
+              <div className="hidden sm:flex items-center" onClick={() => onLeadClick(lead)}>
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold whitespace-nowrap ${sc.bg} ${sc.text}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${sc.dot}`} />
+                  {STATUS_LABELS[lead.status]}
+                </span>
               </div>
 
-              {/* Branche badge */}
-              <div className="hidden md:block min-w-0 cursor-pointer" onClick={() => onLeadClick(lead)}>
-                {lead.branche || lead.industry ? (
-                  <span className="text-[10px] font-semibold bg-panel-hover text-white/50 px-2 py-1 rounded-lg">
-                    {lead.branche || lead.industry}
-                  </span>
+              {/* Call button — red circle */}
+              <div className="flex items-center justify-center">
+                {phone ? (
+                  <a
+                    href={`tel:${phone}`}
+                    onClick={e => e.stopPropagation()}
+                    title={phone}
+                    className="w-8 h-8 rounded-full bg-accent flex items-center justify-center hover:bg-accent-hover transition-all active:scale-90 shadow-sm"
+                  >
+                    <Phone size={13} className="text-white" strokeWidth={2.5} />
+                  </a>
                 ) : (
-                  <span className="text-white/20 text-xs">—</span>
+                  <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
+                    <Phone size={13} className="text-white/15" strokeWidth={2} />
+                  </div>
                 )}
               </div>
 
-              {/* Contact */}
-              <div className="hidden md:flex items-center gap-2 min-w-0">
-                {lead.phone ? (
-                  <a
-                    href={`tel:${lead.phone}`}
-                    onClick={e => e.stopPropagation()}
-                    className="flex items-center gap-1.5 text-xs text-white/40 hover:text-accent transition-colors truncate"
+              {/* Share button — green circle */}
+              <div className="flex items-center justify-center">
+                {canShare ? (
+                  <button
+                    onClick={e => shareContact(lead, e)}
+                    title="Kontakt teilen"
+                    className="w-8 h-8 rounded-full bg-accent-green/80 flex items-center justify-center hover:bg-accent-green transition-all active:scale-90 shadow-sm"
                   >
-                    <Phone size={11} className="shrink-0" />
-                    <span className="truncate">{lead.phone}</span>
-                  </a>
-                ) : lead.email || lead.email_general ? (
-                  <a
-                    href={`mailto:${lead.email || lead.email_general}`}
-                    onClick={e => e.stopPropagation()}
-                    className="flex items-center gap-1.5 text-xs text-white/40 hover:text-accent transition-colors truncate"
-                  >
-                    <Mail size={11} className="shrink-0" />
-                    <span className="truncate">{lead.email || lead.email_general}</span>
-                  </a>
+                    <Share2 size={12} className="text-dark" strokeWidth={2.5} />
+                  </button>
                 ) : (
-                  <span className="text-white/20 text-xs">—</span>
+                  <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
+                    <Share2 size={12} className="text-white/15" strokeWidth={2} />
+                  </div>
                 )}
               </div>
 
-              {/* Arrow */}
-              <div className="flex justify-end cursor-pointer" onClick={() => onLeadClick(lead)}>
-                <ChevronRight size={15} className="text-white/20 group-hover:text-white/50 transition-colors" />
+              {/* Chevron */}
+              <div className="flex justify-end" onClick={() => onLeadClick(lead)}>
+                <ChevronRight size={14} className="text-white/20 group-hover:text-white/50 transition-colors" />
               </div>
             </li>
           )
