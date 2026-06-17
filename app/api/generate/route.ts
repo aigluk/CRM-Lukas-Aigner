@@ -92,15 +92,19 @@ export async function POST(req: NextRequest) {
 
   if (!outscraperKey) return NextResponse.json({ error: 'Outscraper API Key fehlt.' }, { status: 500 })
 
-  const { branches, custom } = await req.json()
+  const { branches, custom, radius } = await req.json()
   if (!branches) return NextResponse.json({ error: 'Branches Parameter fehlt.' }, { status: 400 })
 
   const branchList  = (branches as string).split(',').map(b => b.trim())
   const searchTerms = branchList.map(b => BRANCH_SEARCH_MAP[b] ?? b).join(', ')
   const location    = custom || 'Österreich'
-  const query       = `${searchTerms}, ${location}`
+  // Append radius hint to query so Outscraper biases results geographically
+  const radiusHint  = radius && radius !== '0' ? ` ${radius}km` : ''
+  const query       = `${searchTerms}, ${location}${radiusHint}`
 
   const params = new URLSearchParams({ query, limit: '15', language: 'de', region: 'AT', async: 'false' })
+  // Pass radius in meters to Outscraper when a city-level search is active
+  if (radius && radius !== '0' && custom) params.append('radius', String(Number(radius) * 1000))
   params.append('enrichment', 'domains_service')
 
   // Outscraper Google Maps

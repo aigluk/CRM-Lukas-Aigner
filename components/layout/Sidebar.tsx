@@ -31,53 +31,55 @@ export function Sidebar() {
     return pathname.startsWith(href)
   }
 
+  const linkBase = 'flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-bold transition-all'
+
   return (
     <aside className="w-52 bg-accent h-screen flex flex-col shrink-0 rounded-r-[36px] overflow-hidden">
 
-      {/* Top navigation */}
-      <nav className="pt-8 px-3 space-y-1">
+      {/* Top navigation — start well down, generous spacing */}
+      <nav className="pt-14 px-4 flex flex-col gap-2">
         {NAV.map(({ href, label, icon: Icon }) => {
           const active = isActive(href)
           return (
             <Link
               key={href}
               href={href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all ${
+              className={`${linkBase} ${
                 active
-                  ? 'bg-dark text-white shadow-sm'
-                  : 'text-white/75 hover:text-white hover:bg-white/10'
+                  ? 'bg-dark text-white'
+                  : 'text-white/70 hover:text-white hover:bg-white/10'
               }`}
             >
-              <Icon size={16} strokeWidth={active ? 2.5 : 2} className={active ? 'text-accent' : 'text-white/70'} />
+              <Icon size={15} strokeWidth={active ? 2.5 : 2} className={active ? 'text-accent' : 'text-white/55'} />
               {label}
             </Link>
           )
         })}
       </nav>
 
-      {/* Logo — centered in the remaining space */}
+      {/* Logo — vertically centered */}
       <div className="flex-1 flex items-center justify-center">
-        <Logo className="h-12 w-auto text-white/90" />
+        <Logo className="h-11 w-auto text-white/85" />
       </div>
 
-      {/* Bottom account links */}
-      <div className="px-3 pb-8 space-y-1">
+      {/* Bottom account */}
+      <div className="px-4 pb-10 flex flex-col gap-2">
         <Link
           href="/settings"
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all ${
+          className={`${linkBase} ${
             isActive('/settings')
-              ? 'bg-dark text-white shadow-sm'
-              : 'text-white/75 hover:text-white hover:bg-white/10'
+              ? 'bg-dark text-white'
+              : 'text-white/70 hover:text-white hover:bg-white/10'
           }`}
         >
-          <Settings size={16} strokeWidth={isActive('/settings') ? 2.5 : 2} className={isActive('/settings') ? 'text-accent' : 'text-white/70'} />
+          <Settings size={15} strokeWidth={isActive('/settings') ? 2.5 : 2} className={isActive('/settings') ? 'text-accent' : 'text-white/55'} />
           Einstellungen
         </Link>
         <button
           onClick={logout}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-white/75 hover:text-white hover:bg-white/10 transition-all w-full"
+          className={`${linkBase} text-white/70 hover:text-white hover:bg-white/10 w-full`}
         >
-          <LogOut size={16} strokeWidth={2} className="text-white/70" />
+          <LogOut size={15} strokeWidth={2} className="text-white/55" />
           Abmelden
         </button>
       </div>
