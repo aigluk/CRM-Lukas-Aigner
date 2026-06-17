@@ -31,29 +31,34 @@ function buildVCard(lead: Lead): string {
   ].filter(Boolean).join('\n')
 }
 
+function buildContactText(lead: Lead): string {
+  const lines: string[] = [lead.name]
+  if (lead.ceos || lead.owner) lines.push(`Ansprechperson: ${lead.ceos || lead.owner}`)
+  if (lead.phone)               lines.push(`Tel: ${lead.phone}`)
+  if (lead.email || lead.email_general) lines.push(`E-Mail: ${lead.email || lead.email_general}`)
+  if (lead.website)             lines.push(`Website: ${lead.website}`)
+  const addr = [lead.address, lead.city || lead.region].filter(Boolean).join(', ')
+  if (addr)                     lines.push(`Adresse: ${addr}`)
+  return lines.join('\n')
+}
+
 function handleShare(lead: Lead, e: React.MouseEvent) {
   e.stopPropagation()
-  const phone = lead.phone?.trim()
-  const email = lead.email || lead.email_general
-  const waUrl = phone ? `https://wa.me/${toWaPhone(phone)}` : null
+  const text = buildContactText(lead)
 
-  // Mobile (iOS/Android): offer native share sheet with VCard
+  // Mobile: native share sheet (user picks any app / WhatsApp contact)
   const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(
     typeof navigator !== 'undefined' ? navigator.userAgent : ''
   )
-  if (isMobile && phone && navigator.share) {
-    const vcard = buildVCard(lead)
-    const blob  = new Blob([vcard], { type: 'text/vcard' })
-    const file  = new File([blob], `${lead.name.replace(/[^a-z0-9]/gi, '_')}.vcf`, { type: 'text/vcard' })
-    navigator.share({ files: [file], title: lead.name }).catch(() => {
-      if (waUrl) window.open(waUrl, '_blank')
+  if (isMobile && navigator.share) {
+    navigator.share({ title: lead.name, text }).catch(() => {
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
     })
     return
   }
 
-  // Desktop: open WhatsApp web or mailto
-  if (waUrl)   window.open(waUrl, '_blank')
-  else if (email) window.open(`mailto:${email}?subject=${encodeURIComponent(lead.name)}`, '_blank')
+  // Desktop: open WhatsApp web with contact text pre-filled; user picks recipient
+  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
 }
 
 function Circle({
@@ -164,28 +169,20 @@ export function LeadTable({
 
                 {/* Handler pill with user selector */}
                 <div className="relative" onClick={e => e.stopPropagation()}>
-                  {lead.handler ? (
-                    <button
-                      onClick={() => setOpenHandlerFor(openHandlerFor === lead.id ? null : lead.id)}
-                      title={`Bearbeiter: ${lead.handler}`}
-                      className={`h-8 inline-flex items-center gap-1.5 px-3 rounded-full text-xs font-bold transition-all whitespace-nowrap max-w-27.5 ${
-                        lead.handler === currentUsername
+                  <button
+                    onClick={() => setOpenHandlerFor(openHandlerFor === lead.id ? null : lead.id)}
+                    title={lead.handler ? `Bearbeiter: ${lead.handler}` : 'Bearbeiter zuweisen'}
+                    className={`h-8 inline-flex items-center gap-1.5 px-3 rounded-full text-xs font-bold transition-all whitespace-nowrap max-w-27.5 ${
+                      lead.handler
+                        ? lead.handler === currentUsername
                           ? 'bg-accent/20 text-accent hover:bg-accent/30'
                           : 'bg-white/12 text-white/70 hover:bg-white/18'
-                      }`}
-                    >
-                      <User size={10} className="shrink-0" />
-                      <span className="truncate">{lead.handler}</span>
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => setOpenHandlerFor(openHandlerFor === lead.id ? null : lead.id)}
-                      title="Bearbeiter zuweisen"
-                      className="h-8 w-8 inline-flex items-center justify-center rounded-full bg-white/5 text-white/20 hover:bg-white/10 hover:text-white/40 transition-all"
-                    >
-                      <User size={10} />
-                    </button>
-                  )}
+                        : 'bg-white/5 text-white/25 hover:bg-white/10 hover:text-white/40'
+                    }`}
+                  >
+                    <User size={10} className="shrink-0" />
+                    <span className="truncate">{lead.handler || '—'}</span>
+                  </button>
 
                   {openHandlerFor === lead.id && (
                     <div className="absolute top-full left-0 mt-1 z-200 bg-rim-subtle rounded-xl shadow-2xl border border-white/8 py-1 min-w-37.5">
