@@ -67,6 +67,7 @@ export function LeadDetailModal({
   const [checked, setChecked]     = useState<Set<string>>(new Set())
   const [quickNote, setQuickNote] = useState('')
   const [showAppt, setShowAppt]   = useState(false)
+  const [editAppt, setEditAppt]   = useState(!!lead.appointment_date)
 
   function set<K extends keyof Lead>(field: K, value: Lead[K]) {
     setForm(prev => ({ ...prev, [field]: value }))
@@ -149,7 +150,7 @@ export function LeadDetailModal({
                     {saving ? '…' : 'Speichern'}
                   </button>
                   <button
-                    onClick={() => { setForm({ ...lead }); setEditing(false) }}
+                    onClick={() => { setForm({ ...lead }); setEditAppt(!!lead.appointment_date); setEditing(false) }}
                     className="px-3 py-1.5 bg-panel-hover text-white/40 hover:text-white text-xs font-bold rounded-xl transition-all"
                   >
                     Abbrechen
@@ -157,7 +158,7 @@ export function LeadDetailModal({
                 </>
               ) : (
                 <button
-                  onClick={() => setEditing(true)}
+                  onClick={() => { setForm({ ...lead }); setEditAppt(!!lead.appointment_date); setEditing(true) }}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-panel-hover text-white/40 hover:text-white text-xs font-bold rounded-xl transition-all"
                 >
                   <Edit3 size={12} />
@@ -285,24 +286,46 @@ export function LeadDetailModal({
               href={lead.website} type="url" />
           </div>
 
-          {/* Appointment */}
-          {!callMode && (editing || form.appointment_date || lead.appointment_date) && (
+          {/* Appointment — view mode */}
+          {!callMode && !editing && lead.appointment_date && (
             <div className="bg-dark rounded-2xl p-4">
               <div className="flex items-center justify-between mb-2">
                 <label className="flex items-center gap-1.5 text-xs font-bold text-accent">
-                  <Calendar size={11} />
-                  Termin
+                  <Calendar size={11} />Termin
                 </label>
-                {editing && form.appointment_date && (
+                <button
+                  onClick={() => onUpdate(lead.id, { appointment_date: '', appointment_from: '', appointment_to: '' })}
+                  className="flex items-center gap-1 text-xs text-white/30 hover:text-accent transition-colors font-bold"
+                >
+                  <X size={11} /> Termin löschen
+                </button>
+              </div>
+              <p className="text-sm font-bold text-white">{formatDate(lead.appointment_date)}</p>
+              {lead.appointment_from && (
+                <p className="text-xs text-white/40 mt-1">
+                  {lead.appointment_from}{lead.appointment_to ? ` – ${lead.appointment_to}` : ''} Uhr
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Appointment — edit mode */}
+          {!callMode && editing && (
+            <div className="bg-dark rounded-2xl p-4">
+              <div className="flex items-center justify-between mb-2">
+                <label className="flex items-center gap-1.5 text-xs font-bold text-accent">
+                  <Calendar size={11} />Termin
+                </label>
+                {editAppt && (
                   <button
-                    onClick={() => { set('appointment_date', ''); set('appointment_from', ''); set('appointment_to', '') }}
+                    onClick={() => { setEditAppt(false); set('appointment_date', ''); set('appointment_from', ''); set('appointment_to', '') }}
                     className="flex items-center gap-1 text-xs text-white/30 hover:text-accent transition-colors font-bold"
                   >
                     <X size={11} /> Entfernen
                   </button>
                 )}
               </div>
-              {editing ? (
+              {editAppt ? (
                 <div className="grid grid-cols-3 gap-2">
                   <div className="col-span-3 sm:col-span-1">
                     <DatePicker value={form.appointment_date ?? ''} onChange={v => set('appointment_date', v)} />
@@ -311,14 +334,12 @@ export function LeadDetailModal({
                   <TimePicker value={form.appointment_to ?? '11:00'} onChange={v => set('appointment_to', v)} />
                 </div>
               ) : (
-                <div>
-                  <p className="text-sm font-bold text-white">{formatDate(lead.appointment_date ?? '')}</p>
-                  {lead.appointment_from && (
-                    <p className="text-xs text-white/40 mt-1">
-                      {lead.appointment_from}{lead.appointment_to ? ` – ${lead.appointment_to}` : ''} Uhr
-                    </p>
-                  )}
-                </div>
+                <button
+                  onClick={() => setEditAppt(true)}
+                  className="flex items-center gap-2 text-xs font-bold text-white/40 hover:text-white transition-colors"
+                >
+                  <Plus size={13} />Termin festlegen
+                </button>
               )}
             </div>
           )}

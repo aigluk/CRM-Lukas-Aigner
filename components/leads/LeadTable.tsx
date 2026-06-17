@@ -164,20 +164,28 @@ export function LeadTable({
 
                 {/* Handler pill with user selector */}
                 <div className="relative" onClick={e => e.stopPropagation()}>
-                  <button
-                    onClick={() => setOpenHandlerFor(openHandlerFor === lead.id ? null : lead.id)}
-                    title={lead.handler ? `Bearbeiter: ${lead.handler}` : 'Bearbeiter auswählen'}
-                    className={`h-8 inline-flex items-center gap-1.5 px-2.5 rounded-full text-xs font-bold transition-all whitespace-nowrap max-w-27.5 ${
-                      lead.handler
-                        ? lead.handler === currentUsername
-                          ? 'bg-accent/15 text-accent hover:bg-accent/25'
-                          : 'bg-white/10 text-white/60 hover:bg-white/15'
-                        : 'bg-white/5 text-white/25 hover:bg-white/10 hover:text-white/40'
-                    }`}
-                  >
-                    <User size={10} className="shrink-0" />
-                    <span className="truncate">{lead.handler || '—'}</span>
-                  </button>
+                  {lead.handler ? (
+                    <button
+                      onClick={() => setOpenHandlerFor(openHandlerFor === lead.id ? null : lead.id)}
+                      title={`Bearbeiter: ${lead.handler}`}
+                      className={`h-8 inline-flex items-center gap-1.5 px-3 rounded-full text-xs font-bold transition-all whitespace-nowrap max-w-27.5 ${
+                        lead.handler === currentUsername
+                          ? 'bg-accent/20 text-accent hover:bg-accent/30'
+                          : 'bg-white/12 text-white/70 hover:bg-white/18'
+                      }`}
+                    >
+                      <User size={10} className="shrink-0" />
+                      <span className="truncate">{lead.handler}</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setOpenHandlerFor(openHandlerFor === lead.id ? null : lead.id)}
+                      title="Bearbeiter zuweisen"
+                      className="h-8 w-8 inline-flex items-center justify-center rounded-full bg-white/5 text-white/20 hover:bg-white/10 hover:text-white/40 transition-all"
+                    >
+                      <User size={10} />
+                    </button>
+                  )}
 
                   {openHandlerFor === lead.id && (
                     <div className="absolute top-full left-0 mt-1 z-200 bg-rim-subtle rounded-xl shadow-2xl border border-white/8 py-1 min-w-37.5">

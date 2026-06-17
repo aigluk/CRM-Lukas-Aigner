@@ -1,65 +1,41 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Clock } from 'lucide-react'
 import { useClickOutside } from '@/lib/useClickOutside'
 import { isSameDay, toDateInput } from '@/lib/utils'
 
-const ITEM_H = 36
+const HOURS   = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'))
+const MINUTES = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'))
 
-function WheelColumn({
-  values, value, onChange,
-}: { values: string[]; value: string; onChange: (v: string) => void }) {
-  const ref = useRef<HTMLDivElement>(null)
-  const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-  const userScrolling = useRef(false)
-
-  useEffect(() => {
-    const idx = values.indexOf(value)
-    if (ref.current && idx >= 0 && !userScrolling.current) {
-      ref.current.scrollTop = idx * ITEM_H
-    }
-  }, [value, values])
-
-  function onScroll() {
-    userScrolling.current = true
-    clearTimeout(timer.current)
-    timer.current = setTimeout(() => {
-      userScrolling.current = false
-      if (!ref.current) return
-      const idx = Math.round(ref.current.scrollTop / ITEM_H)
-      const v = values[Math.max(0, Math.min(values.length - 1, idx))]
-      if (v && v !== value) onChange(v)
-    }, 120)
-  }
+function TimeColumn({
+  values, value, onChange, unit,
+}: { values: string[]; value: string; onChange: (v: string) => void; unit: string }) {
+  const idx = values.indexOf(value)
+  const prev = () => onChange(values[(idx - 1 + values.length) % values.length])
+  const next = () => onChange(values[(idx + 1) % values.length])
 
   return (
-    <div className="relative h-27 w-14 overflow-hidden">
-      <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-9 bg-white/8 rounded-lg pointer-events-none" />
-      <div
-        ref={ref}
-        onScroll={onScroll}
-        className="h-full overflow-y-scroll scrollbar-none snap-y snap-mandatory"
-        style={{ paddingTop: ITEM_H, paddingBottom: ITEM_H }}
+    <div className="flex flex-col items-center gap-1.5">
+      <button
+        type="button" onClick={prev}
+        className="w-9 h-9 flex items-center justify-center text-white/30 hover:text-white hover:bg-white/8 rounded-xl transition-all active:scale-90"
       >
-        {values.map(v => (
-          <div
-            key={v}
-            onClick={() => onChange(v)}
-            className={`h-9 flex items-center justify-center snap-center cursor-pointer text-sm font-black transition-colors ${
-              v === value ? 'text-white' : 'text-white/20'
-            }`}
-          >
-            {v}
-          </div>
-        ))}
+        <ChevronUp size={18} />
+      </button>
+      <div className="w-14 h-12 flex items-center justify-center bg-white/8 rounded-xl">
+        <span className="text-white font-black text-2xl tabular-nums">{value}</span>
       </div>
+      <button
+        type="button" onClick={next}
+        className="w-9 h-9 flex items-center justify-center text-white/30 hover:text-white hover:bg-white/8 rounded-xl transition-all active:scale-90"
+      >
+        <ChevronDown size={18} />
+      </button>
+      <span className="text-xs text-white/20 font-bold">{unit}</span>
     </div>
   )
 }
-
-const HOURS   = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0'))
-const MINUTES = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0'))
 
 export function TimePicker({ value, onChange, label }: { value: string; onChange: (v: string) => void; label?: string }) {
   const [open, setOpen] = useState(false)
@@ -82,10 +58,19 @@ export function TimePicker({ value, onChange, label }: { value: string; onChange
       </button>
 
       {open && (
-        <div className="absolute z-50 mt-2 bg-panel rounded-2xl p-3 shadow-2xl flex items-center gap-1">
-          <WheelColumn values={HOURS} value={h} onChange={nh => onChange(`${nh}:${closestM}`)} />
-          <span className="text-white/15 font-black text-sm">:</span>
-          <WheelColumn values={MINUTES} value={closestM} onChange={nm => onChange(`${h}:${nm}`)} />
+        <div className="absolute z-50 mt-2 bg-panel border border-rim-subtle rounded-2xl p-4 shadow-2xl">
+          <div className="flex items-center gap-2">
+            <TimeColumn values={HOURS} value={h} onChange={nh => onChange(`${nh}:${closestM}`)} unit="Std" />
+            <span className="text-white/20 font-black text-2xl pb-6">:</span>
+            <TimeColumn values={MINUTES} value={closestM} onChange={nm => onChange(`${h}:${nm}`)} unit="Min" />
+          </div>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="mt-2 w-full text-xs font-bold text-white bg-accent hover:opacity-90 py-2 rounded-xl transition-all"
+          >
+            OK
+          </button>
         </div>
       )}
     </div>
