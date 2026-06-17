@@ -5,6 +5,7 @@ import { Lead } from '@/lib/types'
 import { isSameDay, toDateInput } from '@/lib/utils'
 import { ChevronLeft, ChevronRight, Phone, Plus, X, Loader2 } from 'lucide-react'
 import { DatePicker, TimePicker } from '@/components/ui/DateTimePicker'
+import { AppointmentEditModal } from '@/components/ui/AppointmentEditModal'
 import { TodayPanel } from '@/components/dashboard/TodayPanel'
 import { TodoWidget } from '@/components/dashboard/TodoWidget'
 
@@ -122,10 +123,19 @@ export function CalendarView({ leads: initialLeads }: { leads: Lead[] }) {
   const [view, setView]       = useState<View>('month')
   const [current, setCurrent] = useState(new Date())
   const [modal, setModal]     = useState<{ date: string; from?: string; to?: string } | null>(null)
+  const [editLead, setEditLead] = useState<Lead | null>(null)
   const appointments          = useMemo(() => getAppointments(leads), [leads])
 
   function handleCreated(lead: Lead) {
     setLeads(prev => [lead, ...prev])
+  }
+
+  function handleSaved(updated: Lead) {
+    setLeads(prev => prev.map(l => l.id === updated.id ? updated : l))
+  }
+
+  function handleRemoved(id: string) {
+    setLeads(prev => prev.map(l => l.id === id ? { ...l, appointment_date: undefined } : l))
   }
 
   function prev() {
@@ -162,6 +172,14 @@ export function CalendarView({ leads: initialLeads }: { leads: Lead[] }) {
           initialTo={modal.to}
           onClose={() => setModal(null)}
           onCreated={handleCreated}
+        />
+      )}
+      {editLead && (
+        <AppointmentEditModal
+          lead={editLead}
+          onClose={() => setEditLead(null)}
+          onSaved={handleSaved}
+          onRemoved={handleRemoved}
         />
       )}
 
@@ -207,17 +225,23 @@ export function CalendarView({ leads: initialLeads }: { leads: Lead[] }) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div className="lg:col-span-2">
           {view === 'month' ? (
-            <MonthView current={current} appointments={appointments} onCreate={date => setModal({ date: toDateInput(date) })} />
+            <MonthView
+              current={current}
+              appointments={appointments}
+              onCreate={date => setModal({ date: toDateInput(date) })}
+              onEdit={setEditLead}
+            />
           ) : (
             <HourGrid
               days={view === 'day' ? [current] : weekDays(current)}
               appointments={appointments}
               onCreate={(date, from, to) => setModal({ date: toDateInput(date), from, to })}
+              onEdit={setEditLead}
             />
           )}
         </div>
         <div className="lg:col-span-1 flex flex-col gap-5">
-          <div className="h-60"><TodayPanel leads={leads} /></div>
+          <div className="h-60"><TodayPanel leads={leads} onEdit={setEditLead} /></div>
           <div className="h-80"><TodoWidget /></div>
         </div>
       </div>
@@ -235,8 +259,8 @@ function weekDays(current: Date) {
 
 /* ── Month View ── */
 function MonthView({
-  current, appointments, onCreate,
-}: { current: Date; appointments: Lead[]; onCreate: (d: Date) => void }) {
+  current, appointments, onCreate, onEdit,
+}: { current: Date; appointments: Lead[]; onCreate: (d: Date) => void; onEdit: (l: Lead) => void }) {
   const today  = new Date()
   const year   = current.getFullYear()
   const month  = current.getMonth()
@@ -276,7 +300,11 @@ function MonthView({
                     {d.getDate()}
                   </span>
                   {appts.map(l => (
-                    <div key={l.id} className="bg-accent rounded-lg px-1.5 py-1 mb-1">
+                    <div
+                      key={l.id}
+                      onClick={e => { e.stopPropagation(); onEdit(l) }}
+                      className="bg-accent hover:opacity-85 rounded-lg px-1.5 py-1 mb-1 cursor-pointer transition-opacity"
+                    >
                       <p className="text-[10px] font-bold text-white truncate">{l.name}</p>
                       {l.appointment_from && (
                         <p className="text-[9px] text-white/60">{l.appointment_from}</p>
@@ -298,8 +326,8 @@ const HOURS  = Array.from({ length: 15 }, (_, i) => i + 7) // 07:00–21:00
 const ROW_H  = 52
 
 function HourGrid({
-  days, appointments, onCreate,
-}: { days: Date[]; appointments: Lead[]; onCreate: (d: Date, from: string, to: string) => void }) {
+  days, appointments, onCreate, onEdit,
+}: { days: Date[]; appointments: Lead[]; onCreate: (d: Date, from: string, to: string) => void; onEdit: (l: Lead) => void }) {
   const today = new Date()
   const [drag, setDrag] = useState<{ col: number; startY: number; endY: number } | null>(null)
   const dragging = useRef(false)
@@ -402,7 +430,8 @@ function HourGrid({
                     <div
                       key={l.id}
                       onMouseDown={e => e.stopPropagation()}
-                      className="absolute left-1 right-1 bg-accent rounded-lg px-1.5 py-1 overflow-hidden"
+                      onClick={e => { e.stopPropagation(); onEdit(l) }}
+                      className="absolute left-1 right-1 bg-accent hover:opacity-85 rounded-lg px-1.5 py-1 overflow-hidden cursor-pointer transition-opacity"
                       style={{ top, height }}
                     >
                       <p className="text-[10px] font-bold text-white truncate leading-tight">{l.name}</p>
