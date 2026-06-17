@@ -5,10 +5,10 @@ import { Lead } from '@/lib/types'
 import {
   Zap, Plus, Loader2, MapPin, Phone, Mail,
   ExternalLink, User, Building2, CheckCircle,
-  Clock, X, RotateCcw,
+  Clock, X, RotateCcw, GripVertical,
 } from 'lucide-react'
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 type GenResult = {
   leads: Partial<Lead>[]
@@ -29,12 +29,17 @@ type RecentSearch = {
   emailFound?: number
 }
 
-// ── Static data ───────────────────────────────────────────────────────────────
+type BranchItem = {
+  id: string
+  label: string
+  custom: boolean
+}
 
-const DEFAULT_BRANCHES: { group: string; items: string[] }[] = [
-  { group: 'Immobilien', items: ['Makler', 'Bauträger', 'Architekten', 'Developer / Projektentwicklung'] },
-  { group: 'Hospitality', items: ['Hotels', 'Gastronomie', 'Events / Eventlocations', 'Wellness / Spa'] },
-  { group: 'Business', items: ['IT / Software', 'Finanzen / Versicherung', 'Gesundheit / Pflege', 'Handel', 'Logistik'] },
+// ── Static data ────────────────────────────────────────────────────────────────
+
+const DEFAULT_LABELS = [
+  'Immobilien/Makler', 'Real Estate', 'Bauträger', 'Developer',
+  'Projektentwicklung', 'Hotels', 'Events/Eventlocations', 'Vermietung',
 ]
 
 const COUNTRIES = [
@@ -53,9 +58,30 @@ const RADII = [
   { value: '50', label: '50 km' }, { value: '0', label: 'Überall' },
 ]
 
-const LS_CUSTOM = 'la-crm-gen-custom-branches'
-const LS_HIDDEN = 'la-crm-gen-hidden-branches'
-const LS_RECENT = 'la-crm-gen-recent'
+// City → country code for KPI stats
+const CITY_COUNTRY: Record<string, string> = {
+  Wien: 'AT', Graz: 'AT', Linz: 'AT', Salzburg: 'AT', Innsbruck: 'AT', Klagenfurt: 'AT', 'St. Pölten': 'AT', Wels: 'AT',
+  München: 'DE', Berlin: 'DE', Hamburg: 'DE', Frankfurt: 'DE', Stuttgart: 'DE', Düsseldorf: 'DE', Köln: 'DE', Nürnberg: 'DE',
+  Zürich: 'CH', Genf: 'CH', Basel: 'CH', Bern: 'CH', Lausanne: 'CH', Zug: 'CH',
+  Dubai: 'AE', 'Abu Dhabi': 'AE', Sharjah: 'AE',
+  Limassol: 'CY', Nikosia: 'CY', Paphos: 'CY', Larnaka: 'CY',
+  Marbella: 'ES', Barcelona: 'ES', Madrid: 'ES', Ibiza: 'ES', Mallorca: 'ES',
+  Miami: 'US', 'New York': 'US', 'Los Angeles': 'US', Chicago: 'US', 'Las Vegas': 'US',
+}
+
+// Country code → lat/lng for map dots
+const COUNTRY_COORDS: Record<string, { lat: number; lng: number; label: string }> = {
+  AT: { lat: 47.5, lng: 14.5, label: 'AT' },
+  DE: { lat: 51.2, lng: 10.5, label: 'DE' },
+  CH: { lat: 47.0, lng: 8.2,  label: 'CH' },
+  AE: { lat: 25.2, lng: 55.3, label: 'AE' },
+  CY: { lat: 35.1, lng: 33.4, label: 'CY' },
+  ES: { lat: 40.4, lng: -3.7, label: 'ES' },
+  US: { lat: 39.5, lng: -98.4, label: 'US' },
+}
+
+const LS_BRANCHES = 'la-crm-gen-branches-v2'
+const LS_RECENT   = 'la-crm-gen-recent'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -79,6 +105,58 @@ function timeAgo(ts: number) {
   return `vor ${Math.floor(h / 24)} Tagen`
 }
 
+// equirectangular → SVG (520×260)
+function toXY(lat: number, lng: number) {
+  return { x: (lng + 180) / 360 * 520, y: (90 - lat) / 180 * 260 }
+}
+
+// ── World map ─────────────────────────────────────────────────────────────────
+
+function WorldDotMap({ countryCounts }: { countryCounts: Record<string, number> }) {
+  const maxCount = Math.max(...Object.values(countryCounts), 1)
+
+  // Simplified continent polygon coordinates (equirectangular 520×260)
+  const continents = [
+    // North America
+    '17,27 188,27 181,61 173,69 149,81 144,94 108,101 90,84 75,55',
+    // Greenland
+    '179,10 236,10 234,25 192,39',
+    // South America
+    '142,116 159,123 210,123 202,162 166,209 144,188',
+    // Europe
+    '246,78 246,61 260,55 272,51 280,46 289,43 300,43 303,48 295,61 295,72 287,72 280,75 274,77 254,78',
+    // Africa
+    '235,77 335,77 332,108 322,144 311,181 282,181 236,181 235,108',
+    // Asia (simplified)
+    '296,29 470,29 470,70 432,108 418,123 404,141 375,119 361,137 347,123 340,98 332,94 318,82 311,79 296,72',
+    // Australia
+    '425,144 482,144 482,195 455,188 425,173',
+  ]
+
+  return (
+    <svg viewBox="0 0 520 260" xmlns="http://www.w3.org/2000/svg" className="w-full rounded-xl overflow-hidden">
+      <rect width="520" height="260" fill="#0d1117" />
+      {continents.map((pts, i) => (
+        <polygon key={i} points={pts} fill="#1c2230" stroke="#252e3e" strokeWidth="0.8" />
+      ))}
+      {Object.entries(COUNTRY_COORDS).map(([code, { lat, lng, label }]) => {
+        const count = countryCounts[code] || 0
+        if (!count) return null
+        const { x, y } = toXY(lat, lng)
+        const r = Math.max(5, Math.min(16, 5 + (count / maxCount) * 11))
+        return (
+          <g key={code}>
+            <circle cx={x} cy={y} r={r + 6} fill="#E8003D" opacity="0.12" />
+            <circle cx={x} cy={y} r={r} fill="#E8003D" opacity="0.85" />
+            <text x={x} y={y - r - 3} fill="white" fontSize="7.5" textAnchor="middle" opacity="0.7" fontWeight="bold">{label}</text>
+            <text x={x} y={y + 2.5} fill="white" fontSize="6.5" textAnchor="middle" opacity="0.9" fontWeight="bold">{count}</text>
+          </g>
+        )
+      })}
+    </svg>
+  )
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function GeneratorForm() {
@@ -93,18 +171,29 @@ export function GeneratorForm() {
   const [saved, setSaved]               = useState(false)
   const [saving, setSaving]             = useState(false)
 
-  // Branch management (localStorage-backed)
-  const [customBranches, setCustomBranches] = useState<string[]>([])
-  const [hiddenBranches, setHiddenBranches] = useState<Set<string>>(new Set())
+  // Branch management
+  const [branches, setBranches]         = useState<BranchItem[]>([])
   const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([])
   const [newBranchInput, setNewBranchInput] = useState('')
-  const [addingBranch, setAddingBranch]     = useState(false)
+  const [addingBranch, setAddingBranch] = useState(false)
   const addInputRef = useRef<HTMLInputElement>(null)
 
+  // Drag & drop
+  const dragIdRef = useRef<string | null>(null)
+  const [dragOverId, setDragOverId] = useState<string | null>(null)
+
+  // KPI stats from saved leads
+  const [allLeads, setAllLeads]         = useState<Lead[]>([])
+
   useEffect(() => {
-    setCustomBranches(ls<string[]>(LS_CUSTOM, []))
-    setHiddenBranches(new Set(ls<string[]>(LS_HIDDEN, [])))
+    const stored = ls<BranchItem[]>(LS_BRANCHES, [])
+    setBranches(
+      stored.length > 0
+        ? stored
+        : DEFAULT_LABELS.map(l => ({ id: l, label: l, custom: false }))
+    )
     setRecentSearches(ls<RecentSearch[]>(LS_RECENT, []))
+    fetch('/api/leads').then(r => r.json()).then(d => setAllLeads(d.leads || [])).catch(() => {})
   }, [])
 
   useEffect(() => { if (addingBranch) addInputRef.current?.focus() }, [addingBranch])
@@ -112,40 +201,71 @@ export function GeneratorForm() {
   const country     = COUNTRIES.find(c => c.id === countryId)!
   const locationStr = customCity || city || country.label
 
-  // Visible branches: default (minus hidden) + custom
-  const visibleClusters = DEFAULT_BRANCHES.map(c => ({
-    ...c, items: c.items.filter(b => !hiddenBranches.has(b)),
-  })).filter(c => c.items.length > 0)
+  // ── Branch management ──────────────────────────────────────────────────────
+
+  function saveBranches(updated: BranchItem[]) {
+    setBranches(updated)
+    localStorage.setItem(LS_BRANCHES, JSON.stringify(updated))
+  }
 
   function addBranch() {
     const b = newBranchInput.trim()
     if (!b) return
-    const updated = [...customBranches.filter(x => x !== b), b]
-    setCustomBranches(updated)
-    localStorage.setItem(LS_CUSTOM, JSON.stringify(updated))
-    setNewBranchInput('')
-    setAddingBranch(false)
+    const existing = branches.find(x => x.id === b)
+    if (!existing) {
+      saveBranches([...branches, { id: b, label: b, custom: true }])
+    }
+    setNewBranchInput(''); setAddingBranch(false)
     setBranche(b)
   }
 
-  function hideDefault(b: string) {
-    const updated = new Set([...hiddenBranches, b])
-    setHiddenBranches(updated)
-    localStorage.setItem(LS_HIDDEN, JSON.stringify([...updated]))
-    if (branche === b) setBranche('')
-  }
-
-  function removeCustom(b: string) {
-    const updated = customBranches.filter(x => x !== b)
-    setCustomBranches(updated)
-    localStorage.setItem(LS_CUSTOM, JSON.stringify(updated))
-    if (branche === b) setBranche('')
+  function removeBranch(id: string) {
+    saveBranches(branches.filter(b => b.id !== id))
+    if (branche === id) setBranche('')
   }
 
   function restoreDefaults() {
-    setHiddenBranches(new Set())
-    localStorage.removeItem(LS_HIDDEN)
+    const customOnes = branches.filter(b => b.custom)
+    const restored = DEFAULT_LABELS.map(l => ({ id: l, label: l, custom: false }))
+    saveBranches([...restored, ...customOnes])
   }
+
+  // ── Drag & drop reorder ────────────────────────────────────────────────────
+
+  function reorderBranch(fromId: string, toId: string) {
+    setBranches(prev => {
+      const arr = [...prev]
+      const fi = arr.findIndex(b => b.id === fromId)
+      const ti = arr.findIndex(b => b.id === toId)
+      if (fi < 0 || ti < 0 || fi === ti) return prev
+      const [item] = arr.splice(fi, 1)
+      arr.splice(ti, 0, item)
+      localStorage.setItem(LS_BRANCHES, JSON.stringify(arr))
+      return arr
+    })
+  }
+
+  // ── KPI derived values ─────────────────────────────────────────────────────
+
+  const totalLeads   = allLeads.length
+  const newThisWeek  = allLeads.filter(l => Date.now() - new Date(l.created_at).getTime() < 7 * 86400000).length
+
+  const cityCounts = allLeads.reduce<Record<string, number>>((acc, l) => {
+    if (l.city) acc[l.city] = (acc[l.city] || 0) + 1
+    return acc
+  }, {})
+  const topCities = Object.entries(cityCounts).sort((a, b) => b[1] - a[1]).slice(0, 5)
+  const maxCityCount = topCities[0]?.[1] || 1
+  const topCity = topCities[0]?.[0] || '—'
+
+  // Country distribution for map
+  const countryCounts = allLeads.reduce<Record<string, number>>((acc, l) => {
+    const code = l.city ? CITY_COUNTRY[l.city] : undefined
+    if (code) acc[code] = (acc[code] || 0) + 1
+    return acc
+  }, {})
+
+  // ── Recent search helpers ──────────────────────────────────────────────────
 
   function saveRecent(gen: GenResult) {
     const entry: RecentSearch = {
@@ -164,6 +284,8 @@ export function GeneratorForm() {
     setCity(r.city); setCustomCity(r.customCity); setRadius(r.radius)
     setResult(null); setSaved(false)
   }
+
+  // ── API calls ──────────────────────────────────────────────────────────────
 
   async function generate(e: React.FormEvent) {
     e.preventDefault()
@@ -196,6 +318,8 @@ export function GeneratorForm() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Fehler beim Speichern.')
       setSaved(true)
+      // Refresh KPI data
+      fetch('/api/leads').then(r => r.json()).then(d => setAllLeads(d.leads || [])).catch(() => {})
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -203,27 +327,32 @@ export function GeneratorForm() {
     }
   }
 
-  // ── Shared pill styles ─────────────────────────────────────────────────────
-  const pill = (active: boolean, variant: 'accent' | 'dark' = 'accent') =>
+  // ── Shared styles ──────────────────────────────────────────────────────────
+
+  const pill = (active: boolean) =>
     `transition-all text-xs font-bold px-3 py-2 rounded-xl ${
-      active
-        ? variant === 'accent'
-          ? 'bg-accent text-white'
-          : 'bg-dark text-white ring-1 ring-white/20'
-        : 'bg-dark text-white/35 hover:text-white/70'
+      active ? 'bg-accent text-white' : 'bg-dark text-white/35 hover:text-white/70'
     }`
 
+  const hasDefaultsHidden = !DEFAULT_LABELS.every(l => branches.some(b => b.id === l))
+
   return (
-    <div>
-      <div className="mb-8">
+    <div className="flex flex-col h-full">
+
+      {/* Header */}
+      <div className="mb-5 shrink-0">
         <h1 className="text-3xl font-black text-white tracking-tight leading-none">Lead Generator</h1>
         <p className="text-sm text-white/30 mt-2 font-medium">Google Maps · Outscraper · E-Mail Enrichment</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 items-start">
+      {/* Fixed-height two-column grid — both panels scroll internally on desktop */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 lg:overflow-hidden lg:h-[calc(100dvh-11.5rem)]">
 
         {/* ── LEFT CONFIG ─────────────────────────────────────────────── */}
-        <form onSubmit={generate} className="lg:col-span-2 flex flex-col gap-4">
+        <form
+          onSubmit={generate}
+          className="lg:col-span-2 flex flex-col gap-4 lg:overflow-y-auto lg:pr-1"
+        >
 
           {/* Branche */}
           <div className="bg-panel rounded-2xl p-5">
@@ -232,7 +361,7 @@ export function GeneratorForm() {
                 <Zap size={14} className="text-accent" />
                 <h2 className="text-sm font-black text-white">Branche</h2>
               </div>
-              {hiddenBranches.size > 0 && (
+              {hasDefaultsHidden && (
                 <button type="button" onClick={restoreDefaults}
                   className="text-[10px] font-bold text-white/25 hover:text-white/60 flex items-center gap-1 transition-colors">
                   <RotateCcw size={10} />Standard
@@ -240,62 +369,44 @@ export function GeneratorForm() {
               )}
             </div>
 
-            {/* Default clusters */}
-            <div className="space-y-4">
-              {visibleClusters.map(cluster => (
-                <div key={cluster.group}>
-                  <p className="text-[10px] font-black text-white/20 uppercase tracking-widest mb-2">{cluster.group}</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {cluster.items.map(item => (
-                      <div key={item} className="relative group/pill">
-                        <button
-                          type="button"
-                          onClick={() => setBranche(branche === item ? '' : item)}
-                          className={`${pill(branche === item)} pr-6`}
-                        >
-                          {item}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => hideDefault(item)}
-                          title="Entfernen"
-                          className="absolute right-1.5 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover/pill:opacity-100 hover:bg-white/20 transition-all"
-                        >
-                          <X size={8} className="text-white/60" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
+            {/* Flat branch list — all draggable */}
+            <div className="flex flex-wrap gap-1.5">
+              {branches.map(item => (
+                <div
+                  key={item.id}
+                  draggable
+                  onDragStart={() => { dragIdRef.current = item.id }}
+                  onDragOver={e => { e.preventDefault(); setDragOverId(item.id) }}
+                  onDragLeave={() => setDragOverId(null)}
+                  onDrop={() => {
+                    if (dragIdRef.current && dragIdRef.current !== item.id) {
+                      reorderBranch(dragIdRef.current, item.id)
+                    }
+                    dragIdRef.current = null; setDragOverId(null)
+                  }}
+                  onDragEnd={() => { dragIdRef.current = null; setDragOverId(null) }}
+                  className={`relative group/pill transition-all ${
+                    dragOverId === item.id ? 'ring-1 ring-accent/60 rounded-xl' : ''
+                  }`}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setBranche(branche === item.id ? '' : item.id)}
+                    className={`${pill(branche === item.id)} pr-7 cursor-grab active:cursor-grabbing select-none`}
+                  >
+                    {item.label}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeBranch(item.id)}
+                    title="Entfernen"
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover/pill:opacity-100 hover:bg-white/20 transition-all"
+                  >
+                    <X size={8} className="text-white/60" />
+                  </button>
                 </div>
               ))}
             </div>
-
-            {/* Custom branches */}
-            {(customBranches.length > 0 || addingBranch) && (
-              <div className="mt-4 pt-4 border-t border-white/5">
-                <p className="text-[10px] font-black text-white/20 uppercase tracking-widest mb-2">Eigene</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {customBranches.map(item => (
-                    <div key={item} className="relative group/pill">
-                      <button
-                        type="button"
-                        onClick={() => setBranche(branche === item ? '' : item)}
-                        className={`${pill(branche === item)} pr-6`}
-                      >
-                        {item}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => removeCustom(item)}
-                        className="absolute right-1.5 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover/pill:opacity-100 hover:bg-white/20 transition-all"
-                      >
-                        <X size={8} className="text-white/60" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {/* Add branch */}
             <div className="mt-4">
@@ -306,7 +417,10 @@ export function GeneratorForm() {
                     type="text"
                     value={newBranchInput}
                     onChange={e => setNewBranchInput(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addBranch() } if (e.key === 'Escape') setAddingBranch(false) }}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') { e.preventDefault(); addBranch() }
+                      if (e.key === 'Escape') setAddingBranch(false)
+                    }}
                     placeholder="Branche eingeben…"
                     className="flex-1 bg-dark rounded-xl px-3 py-2 text-xs text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent"
                   />
@@ -323,7 +437,7 @@ export function GeneratorForm() {
                 <button
                   type="button"
                   onClick={() => setAddingBranch(true)}
-                  className="flex items-center gap-1.5 text-[11px] font-bold text-white/25 hover:text-white/60 transition-colors"
+                  className="flex items-center gap-1.5 text-[11px] font-bold text-white/25 hover:text-white/60 transition-colors mt-2"
                 >
                   <Plus size={12} />Eigene Branche
                 </button>
@@ -383,7 +497,7 @@ export function GeneratorForm() {
                 className="flex-1 bg-transparent text-xs text-white placeholder-white/20 outline-none"
               />
               {customCity && (
-                <button type="button" onClick={() => setCustomCity('')} className="text-white/25 hover:text-white/60 text-xs leading-none">
+                <button type="button" onClick={() => setCustomCity('')} className="text-white/25 hover:text-white/60 text-xs">
                   <X size={11} />
                 </button>
               )}
@@ -421,7 +535,7 @@ export function GeneratorForm() {
           <button
             type="submit"
             disabled={loading || !branche}
-            className="w-full flex items-center justify-center gap-2.5 bg-accent hover:bg-accent-hover disabled:opacity-30 text-white font-black text-sm py-4 rounded-2xl transition-all active:scale-[0.98]"
+            className="w-full flex items-center justify-center gap-2.5 bg-accent hover:bg-accent-hover disabled:opacity-30 text-white font-black text-sm py-4 rounded-2xl transition-all active:scale-[0.98] shrink-0"
           >
             {loading
               ? <><Loader2 size={16} className="animate-spin" />Generiere…</>
@@ -430,8 +544,8 @@ export function GeneratorForm() {
           </button>
         </form>
 
-        {/* ── RIGHT RESULTS ────────────────────────────────────────────── */}
-        <div className="lg:col-span-3 flex flex-col gap-4">
+        {/* ── RIGHT PANEL ──────────────────────────────────────────────── */}
+        <div className="lg:col-span-3 flex flex-col gap-4 lg:overflow-y-auto">
 
           {error && (
             <div className="bg-accent/10 border border-accent/20 rounded-2xl px-5 py-4">
@@ -439,19 +553,56 @@ export function GeneratorForm() {
             </div>
           )}
 
-          {/* Empty + recent searches */}
+          {/* Empty state — KPI cards + map */}
           {!result && !loading && !error && (
             <>
-              {/* Compact placeholder */}
-              <div className="bg-panel rounded-2xl flex items-center gap-5 px-6 py-6">
-                <div className="w-10 h-10 rounded-xl bg-dark flex items-center justify-center shrink-0">
-                  <Zap size={18} className="text-white/10" />
+              {/* KPI tiles */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-panel rounded-2xl p-4">
+                  <p className="text-2xl font-black text-white leading-none">{totalLeads}</p>
+                  <p className="text-[10px] font-black text-white/25 uppercase tracking-widest mt-1.5">Leads gesamt</p>
                 </div>
-                <div>
-                  <p className="text-sm font-black text-white/25">Branche & Region wählen</p>
-                  <p className="text-xs text-white/15 mt-0.5">dann Leads generieren</p>
+                <div className="bg-panel rounded-2xl p-4">
+                  <p className="text-2xl font-black text-accent-green leading-none">{newThisWeek}</p>
+                  <p className="text-[10px] font-black text-white/25 uppercase tracking-widest mt-1.5">Diese Woche</p>
+                </div>
+                <div className="bg-panel rounded-2xl p-4 min-w-0">
+                  <p className="text-lg font-black text-white leading-none truncate">{topCity}</p>
+                  <p className="text-[10px] font-black text-white/25 uppercase tracking-widest mt-1.5">Top Stadt</p>
                 </div>
               </div>
+
+              {/* World map */}
+              <div className="bg-panel rounded-2xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs font-black text-white/40 uppercase tracking-widest">Lead-Verteilung</p>
+                  {totalLeads === 0 && (
+                    <p className="text-[10px] text-white/20">Generiere & speichere Leads um die Karte zu befüllen</p>
+                  )}
+                </div>
+                <WorldDotMap countryCounts={countryCounts} />
+              </div>
+
+              {/* City distribution bars */}
+              {topCities.length > 0 && (
+                <div className="bg-panel rounded-2xl p-5">
+                  <p className="text-xs font-black text-white/40 uppercase tracking-widest mb-4">Top Städte</p>
+                  <div className="space-y-2.5">
+                    {topCities.map(([c, count]) => (
+                      <div key={c} className="flex items-center gap-3">
+                        <span className="text-xs text-white/50 w-24 truncate shrink-0">{c}</span>
+                        <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-accent rounded-full transition-all"
+                            style={{ width: `${(count / maxCityCount) * 100}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-bold text-white/30 w-5 text-right shrink-0">{count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Recent searches */}
               {recentSearches.length > 0 && (
@@ -498,20 +649,18 @@ export function GeneratorForm() {
                 </div>
               )}
 
-              {/* Tip card */}
-              <div className="bg-panel rounded-2xl p-5">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-accent/15 flex items-center justify-center shrink-0">
-                    <Zap size={14} className="text-accent" />
+              {/* Empty placeholder when no leads and no recent */}
+              {totalLeads === 0 && recentSearches.length === 0 && (
+                <div className="bg-panel rounded-2xl flex items-center gap-5 px-6 py-6">
+                  <div className="w-10 h-10 rounded-xl bg-dark flex items-center justify-center shrink-0">
+                    <Zap size={18} className="text-white/10" />
                   </div>
                   <div>
-                    <p className="text-sm font-black text-white/60">Tipp: Spezifisch suchen</p>
-                    <p className="text-xs text-white/30 mt-1 leading-relaxed">
-                      Wähle eine einzelne Branche mit einer konkreten Stadt und kleinem Radius — das liefert die präzisesten Ergebnisse mit den meisten Kontaktdaten.
-                    </p>
+                    <p className="text-sm font-black text-white/25">Branche &amp; Region wählen</p>
+                    <p className="text-xs text-white/15 mt-0.5">dann Leads generieren</p>
                   </div>
                 </div>
-              </div>
+              )}
             </>
           )}
 
