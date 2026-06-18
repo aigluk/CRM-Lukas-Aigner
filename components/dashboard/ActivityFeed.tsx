@@ -1,3 +1,5 @@
+'use client'
+
 import { Lead, LeadStatus } from '@/lib/types'
 import { STATUS_COLORS, STATUS_LABELS } from '@/lib/constants'
 import { formatRelativeDateTime } from '@/lib/utils'

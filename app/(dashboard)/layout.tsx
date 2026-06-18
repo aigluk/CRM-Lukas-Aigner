@@ -3,7 +3,7 @@ import { MobileNav } from '@/components/layout/MobileNav'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-screen overflow-hidden bg-dark">
+    <div className="flex h-dvh overflow-hidden bg-dark">
       {/* Desktop sidebar */}
       <div className="hidden lg:block shrink-0">
         <Sidebar />
