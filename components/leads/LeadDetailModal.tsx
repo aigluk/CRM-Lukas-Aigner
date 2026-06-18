@@ -117,6 +117,7 @@ export function LeadDetailModal({
   return (
     <div
       className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       onClick={e => e.target === e.currentTarget && onClose()}
     >
       <div className="bg-panel w-full sm:max-w-2xl rounded-t-2xl sm:rounded-2xl max-h-[93vh] overflow-y-auto shadow-2xl">
@@ -405,7 +406,7 @@ export function LeadDetailModal({
           </div>
 
           {/* Delete */}
-          <div className="pt-2 pb-1">
+          <div className="pt-4 pb-8">
             <button onClick={handleDelete}
               className="flex items-center gap-2 text-xs text-white/20 hover:text-accent transition-colors font-bold"
             >

@@ -9,13 +9,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <Sidebar />
       </div>
 
-      {/* Main content — scrollbar-gutter:stable prevents layout shift when scrollbar appears */}
+      {/* Main content */}
       <main
         className="flex-1 overflow-y-auto min-w-0 overscroll-none"
         style={{ scrollbarGutter: 'stable' }}
       >
-        <div className="p-5 pb-24 lg:p-10 lg:pb-10">
+        <div className="p-5 pb-8 lg:p-10 lg:pb-10">
           {children}
+          {/* Mobile-only spacer so content clears the nav + safe area */}
+          <div className="lg:hidden" style={{ height: 'calc(5rem + env(safe-area-inset-bottom))' }} />
         </div>
       </main>
 

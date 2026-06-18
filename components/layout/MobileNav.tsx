@@ -25,7 +25,7 @@ export function MobileNav() {
       className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-panel border-t border-rim-subtle"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
-      <div className="flex items-stretch h-16">
+      <div className="flex items-stretch h-18">
         {NAV.map(({ href, label, icon: Icon }) => {
           const active = isActive(href)
           return (

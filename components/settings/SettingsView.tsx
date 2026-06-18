@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Mail, Lock, Users, Plus, Loader2, Check, Trash2, AtSign, User } from 'lucide-react'
+import { Mail, Lock, Users, Plus, Loader2, Check, Trash2, AtSign, User, LogOut } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { formatDate } from '@/lib/utils'
+import { useRouter } from 'next/navigation'
 
 type AdminUser = {
   id: string
@@ -21,6 +22,7 @@ const inputCls = 'w-full bg-dark rounded-xl px-3.5 py-3 text-sm text-white place
 
 export function SettingsView() {
   const supabase = createClient()
+  const router = useRouter()
 
   const [currentEmail, setCurrentEmail] = useState('')
   const [joinedAt, setJoinedAt]         = useState('')
@@ -151,6 +153,16 @@ export function SettingsView() {
               <p className="text-xs text-white/20 mt-1">Mitglied seit {formatDate(joinedAt)}</p>
             )}
           </div>
+          <button
+            onClick={async () => {
+              await supabase.auth.signOut()
+              router.push('/login')
+            }}
+            className="flex items-center gap-2 px-4 py-2.5 bg-white/6 hover:bg-white/10 text-white/50 hover:text-white text-xs font-bold rounded-xl transition-all active:scale-95 shrink-0"
+          >
+            <LogOut size={14} />
+            <span className="hidden sm:inline">Abmelden</span>
+          </button>
         </div>
       </div>
 
