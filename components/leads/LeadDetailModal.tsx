@@ -117,10 +117,16 @@ export function LeadDetailModal({
   return (
     <div
       className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       onClick={e => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-panel w-full sm:max-w-2xl rounded-t-2xl sm:rounded-2xl max-h-[93vh] overflow-y-auto shadow-2xl">
+      <div
+        className="bg-panel w-full sm:max-w-2xl rounded-t-2xl sm:rounded-2xl overflow-y-auto shadow-2xl overscroll-contain"
+        style={{
+          maxHeight: 'calc(93dvh - env(safe-area-inset-bottom))',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+          WebkitOverflowScrolling: 'touch',
+        }}
+      >
 
         {/* Header */}
         <div className="sticky top-0 bg-panel z-10 px-6 py-4 border-b border-rim-subtle">
