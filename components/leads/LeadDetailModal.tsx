@@ -121,62 +121,56 @@ export function LeadDetailModal({
     >
       <div
         className="bg-panel w-full sm:max-w-2xl rounded-t-2xl sm:rounded-2xl overflow-y-auto shadow-2xl overscroll-contain"
-        style={{
-          maxHeight: 'calc(93dvh - env(safe-area-inset-bottom))',
-          paddingBottom: 'env(safe-area-inset-bottom)',
-          WebkitOverflowScrolling: 'touch',
-        }}
+        style={{ maxHeight: 'calc(94dvh - env(safe-area-inset-bottom))', WebkitOverflowScrolling: 'touch' }}
       >
 
-        {/* Header */}
-        <div className="sticky top-0 bg-panel z-10 px-6 py-4 border-b border-rim-subtle">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
+        {/* Header — two-row on mobile so buttons never crush the title */}
+        <div className="sticky top-0 bg-panel z-10 px-5 pt-4 pb-3 border-b border-rim-subtle">
+          {/* Row 1: title + close */}
+          <div className="flex items-start justify-between gap-3 mb-2.5">
+            <div className="min-w-0 flex-1">
               <h2 className="text-base font-black text-white truncate">{lead.name}</h2>
               <p className="text-xs text-white/35 mt-0.5 truncate">
                 {[lead.branche || lead.industry, lead.city || lead.region].filter(Boolean).join(' · ') || '—'}
               </p>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              {/* Im Call Toggle */}
-              <button
-                onClick={() => setCallMode(v => !v)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                  callMode ? 'bg-accent text-white' : 'bg-panel-hover text-white/40 hover:text-white'
-                }`}
-              >
-                <Zap size={12} />
-                Im Call
-              </button>
-              {editing ? (
-                <>
-                  <button
-                    onClick={save} disabled={saving}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-accent text-white text-xs font-bold rounded-xl transition-all disabled:opacity-60"
-                  >
-                    <Save size={12} />
-                    {saving ? '…' : 'Speichern'}
-                  </button>
-                  <button
-                    onClick={() => { setForm({ ...lead }); setEditAppt(!!lead.appointment_date); setEditing(false) }}
-                    className="px-3 py-1.5 bg-panel-hover text-white/40 hover:text-white text-xs font-bold rounded-xl transition-all"
-                  >
-                    Abbrechen
-                  </button>
-                </>
-              ) : (
+            <button onClick={onClose} className="p-1.5 rounded-xl bg-panel-hover text-white/30 hover:text-white transition-all shrink-0">
+              <X size={16} />
+            </button>
+          </div>
+          {/* Row 2: actions */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCallMode(v => !v)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                callMode ? 'bg-accent text-white' : 'bg-panel-hover text-white/40 hover:text-white'
+              }`}
+            >
+              <Zap size={12} />Im Call
+            </button>
+            {editing ? (
+              <>
                 <button
-                  onClick={() => { setForm({ ...lead }); setEditAppt(!!lead.appointment_date); setEditing(true) }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-panel-hover text-white/40 hover:text-white text-xs font-bold rounded-xl transition-all"
+                  onClick={save} disabled={saving}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-accent text-white text-xs font-bold rounded-xl transition-all disabled:opacity-60"
                 >
-                  <Edit3 size={12} />
-                  Bearbeiten
+                  <Save size={12} />{saving ? '…' : 'Speichern'}
                 </button>
-              )}
-              <button onClick={onClose} className="p-1.5 rounded-xl bg-panel-hover text-white/30 hover:text-white transition-all">
-                <X size={16} />
+                <button
+                  onClick={() => { setForm({ ...lead }); setEditAppt(!!lead.appointment_date); setEditing(false) }}
+                  className="px-3 py-1.5 bg-panel-hover text-white/40 hover:text-white text-xs font-bold rounded-xl transition-all"
+                >
+                  Abbrechen
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={() => { setForm({ ...lead }); setEditAppt(!!lead.appointment_date); setEditing(true) }}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-panel-hover text-white/40 hover:text-white text-xs font-bold rounded-xl transition-all"
+              >
+                <Edit3 size={12} />Bearbeiten
               </button>
-            </div>
+            )}
           </div>
         </div>
 
@@ -412,7 +406,7 @@ export function LeadDetailModal({
           </div>
 
           {/* Delete */}
-          <div className="pt-4 pb-8">
+          <div className="pt-4">
             <button onClick={handleDelete}
               className="flex items-center gap-2 text-xs text-white/20 hover:text-accent transition-colors font-bold"
             >
@@ -420,6 +414,9 @@ export function LeadDetailModal({
               Lead löschen
             </button>
           </div>
+
+          {/* Safe-area bottom spacer — always clears home indicator */}
+          <div style={{ height: 'max(2rem, calc(env(safe-area-inset-bottom) + 1rem))' }} />
         </div>
       </div>
     </div>
