@@ -86,6 +86,7 @@ export function LeadTable({
   users = [],
   onQuickNote,
   onSetHandler,
+  onSelectRange,
 }: {
   leads: Lead[]
   onLeadClick: (lead: Lead) => void
@@ -96,10 +97,12 @@ export function LeadTable({
   users?: TeamUser[]
   onQuickNote?: (lead: Lead) => void
   onSetHandler?: (id: string, newHandler: string | null) => void
+  onSelectRange?: (ids: string[]) => void
 }) {
   const allSelected  = leads.length > 0 && leads.every(l => selectedIds.has(l.id))
   const someSelected = leads.some(l => selectedIds.has(l.id)) && !allSelected
   const [openHandlerFor, setOpenHandlerFor] = useState<string | null>(null)
+  const [lastSelectedId, setLastSelectedId] = useState<string | null>(null)
 
   // Close dropdown on any outside click
   useEffect(() => {
@@ -146,8 +149,25 @@ export function LeadTable({
                 i < leads.length - 1 ? 'border-b border-panel-2' : ''
               } ${selected ? 'bg-accent/7' : openHandlerFor === lead.id ? '' : 'hover:bg-panel-hover'}`}
             >
-              {/* Circle selector */}
-              <Circle selected={selected} onClick={e => { e.stopPropagation(); onToggleSelect(lead.id) }} />
+              {/* Circle selector — shift+click selects range */}
+              <Circle
+                selected={selected}
+                onClick={e => {
+                  e.stopPropagation()
+                  if (e.shiftKey && lastSelectedId && onSelectRange) {
+                    const lastIdx = leads.findIndex(l => l.id === lastSelectedId)
+                    if (lastIdx !== -1) {
+                      const lo = Math.min(lastIdx, i)
+                      const hi = Math.max(lastIdx, i)
+                      onSelectRange(leads.slice(lo, hi + 1).map(l => l.id))
+                      setLastSelectedId(lead.id)
+                      return
+                    }
+                  }
+                  onToggleSelect(lead.id)
+                  setLastSelectedId(lead.id)
+                }}
+              />
 
               {/* Company + person / city */}
               <div className="min-w-0" onClick={() => onLeadClick(lead)}>

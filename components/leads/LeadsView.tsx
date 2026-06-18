@@ -206,6 +206,14 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
     })
   }
 
+  function handleRangeSelect(ids: string[]) {
+    setSelectedIds(prev => {
+      const n = new Set(prev)
+      ids.forEach(id => n.add(id))
+      return n
+    })
+  }
+
   function toggleAll() {
     const allFilteredIds = filtered.map(l => l.id)
     const allSelected = allFilteredIds.every(id => selectedIds.has(id))
@@ -352,6 +360,7 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
         users={teamUsers}
         onQuickNote={setQuickNoteLead}
         onSetHandler={handleSetHandler}
+        onSelectRange={handleRangeSelect}
       />
 
       {/* Detail modal */}
