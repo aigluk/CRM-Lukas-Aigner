@@ -1,15 +1,113 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Lead, LeadStatus } from '@/lib/types'
 import { STATUSES, STATUS_LABELS, STATUS_COLORS } from '@/lib/constants'
 import { formatDate, formatRelativeDateTime } from '@/lib/utils'
 import {
   X, Edit3, Save, Trash2, Phone, Mail, Globe,
   MapPin, User, Building2, FileText, Calendar,
-  ExternalLink, CheckSquare, Square, Zap, Plus, Tag,
+  ExternalLink, CheckSquare, Square, Zap, Plus, Tag, ChevronDown,
 } from 'lucide-react'
 import { DatePicker, TimePicker } from '@/components/ui/DateTimePicker'
+import { useClickOutside } from '@/lib/useClickOutside'
+
+export type TeamUser = { id: string; username: string }
+
+function StatusDropdown({
+  status, onChange,
+}: { status: LeadStatus; onChange: (s: LeadStatus) => void }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  useClickOutside(ref, () => setOpen(false))
+  const sc = STATUS_COLORS[status]
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className={`h-8 inline-flex items-center gap-1.5 px-3 rounded-full text-xs font-bold whitespace-nowrap transition-all ${sc.bg} ${sc.text} hover:opacity-85`}
+      >
+        {STATUS_LABELS[status]}
+        <ChevronDown size={11} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="absolute top-full left-0 mt-1 z-20 bg-panel-hover rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.6)] border border-white/10 p-1 min-w-50">
+          {STATUSES.map(s => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => { onChange(s); setOpen(false) }}
+              className={`w-full text-left px-3 py-2.5 text-sm rounded-lg hover:bg-white/8 transition-colors ${
+                s === status ? 'text-accent font-bold' : 'text-white/60'
+              }`}
+            >
+              {STATUS_LABELS[s]}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function HandlerDropdown({
+  handler, users, currentUsername, onChange,
+}: { handler: string | null | undefined; users: TeamUser[]; currentUsername?: string; onChange: (v: string | null) => void }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  useClickOutside(ref, () => setOpen(false))
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className={`h-8 inline-flex items-center gap-1.5 px-3 rounded-full text-xs font-bold transition-all whitespace-nowrap max-w-40 ${
+          handler
+            ? handler === currentUsername
+              ? 'bg-accent/20 text-accent hover:bg-accent/30'
+              : 'bg-white/12 text-white/70 hover:bg-white/18'
+            : 'bg-white/5 text-white/30 hover:bg-white/10 hover:text-white/50'
+        }`}
+      >
+        <User size={11} className="shrink-0" />
+        <span className="truncate">{handler || 'Bearbeiter zuweisen'}</span>
+        <ChevronDown size={11} className={`shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="absolute top-full left-0 mt-1 z-20 bg-panel-hover rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.6)] border border-white/10 p-1 min-w-44">
+          {users.length === 0 && (
+            <p className="px-3 py-2.5 text-xs text-white/30">Erst Benutzernamen in Einstellungen setzen.</p>
+          )}
+          {users.map(u => (
+            <button
+              key={u.id}
+              type="button"
+              onClick={() => { onChange(handler === u.username ? null : u.username); setOpen(false) }}
+              className={`w-full text-left px-3 py-2.5 text-sm rounded-lg hover:bg-white/8 transition-colors flex items-center gap-2 ${
+                handler === u.username ? 'text-accent font-bold' : 'text-white/60'
+              }`}
+            >
+              <User size={11} className="shrink-0 opacity-40" />
+              {u.username}
+            </button>
+          ))}
+          {handler && (
+            <button
+              type="button"
+              onClick={() => { onChange(null); setOpen(false) }}
+              className="w-full text-left px-3 py-2 mt-0.5 text-xs text-white/30 hover:bg-white/8 hover:text-accent transition-colors border-t border-white/8 rounded-b-lg"
+            >
+              Entfernen
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
 
 const CALL_ITEMS = [
   'Unterlagen schicken',
@@ -53,13 +151,16 @@ function Field({
 }
 
 export function LeadDetailModal({
-  lead, onClose, onUpdate, onDelete, branches = [],
+  lead, onClose, onUpdate, onDelete, branches = [], users = [], currentUsername, onSetHandler,
 }: {
   lead: Lead
   onClose: () => void
   onUpdate: (id: string, updates: Partial<Lead>) => Promise<void>
   onDelete: (id: string) => Promise<void>
   branches?: string[]
+  users?: TeamUser[]
+  currentUsername?: string
+  onSetHandler?: (id: string, newHandler: string | null) => void
 }) {
   const [editing, setEditing]     = useState(false)
   const [form, setForm]           = useState<Partial<Lead>>({ ...lead })
@@ -111,8 +212,6 @@ export function LeadDetailModal({
     setShowAppt(false)
     setEditing(true)
   }
-
-  const sc = STATUS_COLORS[lead.status]
 
   return (
     <div
@@ -259,10 +358,17 @@ export function LeadDetailModal({
                 ))}
               </div>
             ) : (
-              <div className="flex items-center gap-3">
-                <span className={`h-8 inline-flex items-center px-3 rounded-full text-xs font-bold whitespace-nowrap ${sc.bg} ${sc.text}`}>
-                  {STATUS_LABELS[lead.status]}
-                </span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <StatusDropdown
+                  status={lead.status}
+                  onChange={s => onUpdate(lead.id, { status: s, status_date: new Date().toISOString() })}
+                />
+                <HandlerDropdown
+                  handler={lead.handler}
+                  users={users}
+                  currentUsername={currentUsername}
+                  onChange={v => onSetHandler?.(lead.id, v)}
+                />
                 {lead.status_date && (
                   <span className="text-xs text-white/25">seit {formatDate(lead.status_date)}</span>
                 )}

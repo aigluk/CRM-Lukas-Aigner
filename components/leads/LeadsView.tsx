@@ -371,6 +371,9 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
           onUpdate={handleUpdate}
           onDelete={handleDelete}
           branches={branches}
+          users={teamUsers}
+          currentUsername={currentUsername}
+          onSetHandler={handleSetHandler}
         />
       )}
 
