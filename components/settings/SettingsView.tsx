@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Mail, Lock, Users, Plus, Loader2, Check, Trash2, AtSign, User, LogOut } from 'lucide-react'
+import { Mail, Lock, Users, Plus, Loader2, Check, Trash2, AtSign, User, LogOut, Building2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { formatDate } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
@@ -38,6 +38,10 @@ export function SettingsView() {
   const [pwSaving, setPwSaving]         = useState(false)
   const [pwMsg, setPwMsg]               = useState('')
 
+  const [company, setCompany]           = useState({ name: '', address: '', email: '', phone: '', iban: '', uid: '' })
+  const [companySaving, setCompanySaving] = useState(false)
+  const [companyMsg, setCompanyMsg]     = useState('')
+
   const [isAdmin, setIsAdmin]           = useState(false)
   const [users, setUsers]               = useState<AdminUser[]>([])
   const [loadingUsers, setLoadingUsers] = useState(true)
@@ -52,6 +56,10 @@ export function SettingsView() {
       setCurrentEmail(data.user?.email ?? '')
       setDisplayName(data.user?.user_metadata?.display_name ?? '')
       setJoinedAt(data.user?.created_at ?? '')
+      setCompany({
+        name: '', address: '', email: '', phone: '', iban: '', uid: '',
+        ...(data.user?.user_metadata?.company ?? {}),
+      })
     })
     loadUsers()
   }, [])
@@ -96,6 +104,15 @@ export function SettingsView() {
     setPwMsg(error ? error.message : 'Passwort aktualisiert.')
     setPwSaving(false)
     if (!error) setNewPassword('')
+  }
+
+  async function saveCompany(e: React.FormEvent) {
+    e.preventDefault()
+    setCompanySaving(true)
+    setCompanyMsg('')
+    const { error } = await supabase.auth.updateUser({ data: { company } })
+    setCompanyMsg(error ? error.message : 'Firmendaten gespeichert.')
+    setCompanySaving(false)
   }
 
   async function addUser(e: React.FormEvent) {
@@ -195,6 +212,56 @@ export function SettingsView() {
                 className="w-full bg-accent hover:opacity-90 disabled:opacity-30 text-white font-black text-sm py-3 rounded-xl transition-all active:scale-[0.98]"
               >
                 {nameSaving ? <Loader2 size={14} className="animate-spin mx-auto" /> : 'Speichern'}
+              </button>
+            </form>
+          </div>
+
+          {/* Company info — used as sender block on Buchhaltung PDFs */}
+          <div className="bg-panel rounded-2xl p-6 space-y-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Building2 size={14} className="text-accent" />
+              <h2 className="text-sm font-black text-white">Meine Firma</h2>
+            </div>
+            <p className="text-xs text-white/25">Erscheint als Absender auf Rechnungen & Angeboten.</p>
+            <form onSubmit={saveCompany} className="space-y-3">
+              <div>
+                <Label text="Firmenname" />
+                <input type="text" value={company.name} onChange={e => setCompany(c => ({ ...c, name: e.target.value }))}
+                  placeholder="z. B. Lukas Aigner e.U." className={inputCls} />
+              </div>
+              <div>
+                <Label text="Adresse" />
+                <input type="text" value={company.address} onChange={e => setCompany(c => ({ ...c, address: e.target.value }))}
+                  placeholder="Straße Nr., PLZ Ort" className={inputCls} />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <Label text="E-Mail" />
+                  <input type="email" value={company.email} onChange={e => setCompany(c => ({ ...c, email: e.target.value }))}
+                    placeholder="office@firma.at" className={inputCls} />
+                </div>
+                <div>
+                  <Label text="Telefon" />
+                  <input type="tel" value={company.phone} onChange={e => setCompany(c => ({ ...c, phone: e.target.value }))}
+                    placeholder="+43 ..." className={inputCls} />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <Label text="IBAN" />
+                  <input type="text" value={company.iban} onChange={e => setCompany(c => ({ ...c, iban: e.target.value }))}
+                    placeholder="AT00 0000 0000 0000 0000" className={inputCls} />
+                </div>
+                <div>
+                  <Label text="UID / Steuernummer" />
+                  <input type="text" value={company.uid} onChange={e => setCompany(c => ({ ...c, uid: e.target.value }))}
+                    placeholder="ATU00000000" className={inputCls} />
+                </div>
+              </div>
+              {companyMsg && <p className="text-xs text-white/40">{companyMsg}</p>}
+              <button type="submit" disabled={companySaving}
+                className="w-full bg-accent hover:opacity-90 disabled:opacity-30 text-white font-black text-sm py-3 rounded-xl transition-all active:scale-[0.98]">
+                {companySaving ? <Loader2 size={14} className="animate-spin mx-auto" /> : 'Firmendaten speichern'}
               </button>
             </form>
           </div>

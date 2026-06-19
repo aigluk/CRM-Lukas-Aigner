@@ -3,16 +3,17 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
-  LayoutDashboard, Users, Calendar, Zap, LogOut, Settings,
+  LayoutDashboard, Users, Calendar, Zap, LogOut, Settings, Wallet,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Logo from '@/components/Logo'
 
 const NAV = [
-  { href: '/',          label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/leads',     label: 'Leads',     icon: Users },
-  { href: '/calendar',  label: 'Kalender',  icon: Calendar },
-  { href: '/generator', label: 'Generator', icon: Zap },
+  { href: '/',           label: 'Dashboard',   icon: LayoutDashboard },
+  { href: '/leads',      label: 'Leads',       icon: Users },
+  { href: '/calendar',   label: 'Kalender',    icon: Calendar },
+  { href: '/generator',  label: 'Generator',   icon: Zap },
+  { href: '/accounting', label: 'Buchhaltung', icon: Wallet },
 ]
 
 export function Sidebar() {
