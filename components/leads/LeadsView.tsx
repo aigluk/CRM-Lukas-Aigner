@@ -153,7 +153,7 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
     } else {
       const data = await res.json().catch(() => ({}))
       if ('handler' in updates) {
-        setPatchError('Bearbeiter konnte nicht gespeichert werden — SQL-Migration fehlt. Bitte in Supabase ausführen: ALTER TABLE leads ADD COLUMN IF NOT EXISTS handler text;')
+        setPatchError('Bearbeiter konnte nicht gespeichert werden - SQL-Migration fehlt. Bitte in Supabase ausführen: ALTER TABLE leads ADD COLUMN IF NOT EXISTS handler text;')
         setTimeout(() => setPatchError(''), 8000)
       } else {
         setPatchError(data.error || 'Speichern fehlgeschlagen.')

@@ -131,7 +131,7 @@ export function NewLeadModal({ onClose, onCreate }: Props) {
                 onChange={e => set('branche', e.target.value)}
                 className="w-full bg-dark rounded-xl px-3.5 py-2.5 pr-9 text-sm text-white outline-none focus:ring-1 focus:ring-accent transition-all appearance-none"
               >
-                <option value="">— Branche wählen —</option>
+                <option value="">- Branche wählen -</option>
                 {BRANCHES.map(b => <option key={b} value={b}>{b}</option>)}
               </select>
               <ChevronDown size={14} className="absolute right-3 top-[calc(50%+7px)] -translate-y-1/2 text-white/30 pointer-events-none" />

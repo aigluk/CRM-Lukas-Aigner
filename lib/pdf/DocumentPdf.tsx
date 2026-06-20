@@ -39,7 +39,7 @@ const T = {
     payment: 'Bitte überweisen Sie den Rechnungsbetrag auf das unten angegebene Konto unter Angabe der Rechnungsnummer!',
     terms: {
       invoice: 'Die Leistungserbringung erfolgt auf Grundlage meiner Allgemeinen Geschäftsbedingungen (AGB), die die Rahmenbedingungen der Zusammenarbeit festlegen.\nDiese Rechnung bezieht sich auf diese Bedingungen.\nDie AGB sowie die Datenschutzerklärung werden auf Wunsch jederzeit gerne in geeigneter Form zur Verfügung gestellt.',
-      quote: 'Die Leistungserbringung erfolgt — bei Auftragserteilung — auf Grundlage meiner Allgemeinen Geschäftsbedingungen (AGB), die die Rahmenbedingungen der Zusammenarbeit festlegen.\nDieses Angebot bezieht sich auf diese Bedingungen.\nDie AGB sowie die Datenschutzerklärung werden auf Wunsch jederzeit gerne in geeigneter Form zur Verfügung gestellt.',
+      quote: 'Die Leistungserbringung erfolgt - bei Auftragserteilung - auf Grundlage meiner Allgemeinen Geschäftsbedingungen (AGB), die die Rahmenbedingungen der Zusammenarbeit festlegen.\nDieses Angebot bezieht sich auf diese Bedingungen.\nDie AGB sowie die Datenschutzerklärung werden auf Wunsch jederzeit gerne in geeigneter Form zur Verfügung gestellt.',
     },
     bank: 'Bank:', iban: 'IBAN.:', bic: 'BIC.:', gisa: 'GISA-Zahl:',
   },

@@ -1,19 +1,9 @@
 'use client'
 
-import { Lead, LeadStatus } from '@/lib/types'
+import { Lead } from '@/lib/types'
 import { STATUS_COLORS, STATUS_LABELS } from '@/lib/constants'
 import { formatRelativeDateTime } from '@/lib/utils'
-import { History } from 'lucide-react'
-
-const DOT: Record<LeadStatus, string> = {
-  'NEU':             'bg-white/35',
-  'VERKAUFSGESPRÄCH':'bg-accent',
-  'FOLLOW UP':       'bg-white/80',
-  'CLOSING CALL':    'bg-accent',
-  'ABSCHLUSS':       'bg-accent-green',
-  'KEIN INTERESSE':  'bg-white/15',
-  'NO GO':           'bg-white/10',
-}
+import { ListChecks } from 'lucide-react'
 
 export function ActivityFeed({ leads, compact }: { leads: Lead[]; compact?: boolean }) {
   const recent = [...leads]
@@ -24,7 +14,7 @@ export function ActivityFeed({ leads, compact }: { leads: Lead[]; compact?: bool
     return (
       <div className="bg-panel rounded-2xl p-5 flex flex-col h-full">
         <div className="flex items-center gap-2 mb-4 shrink-0">
-          <History size={15} strokeWidth={2.8} className="text-accent" />
+          <ListChecks size={15} strokeWidth={2.8} className="text-accent" />
           <h2 className="text-sm font-bold text-white">Letzte Aktivitäten</h2>
         </div>
         <div className="flex-1 overflow-y-auto space-y-1 min-h-0">
@@ -33,7 +23,7 @@ export function ActivityFeed({ leads, compact }: { leads: Lead[]; compact?: bool
           ) : (
             recent.map(lead => (
               <a key={lead.id} href="/leads" className="flex items-center gap-2.5 px-1 py-2 rounded-xl hover:bg-panel-hover transition-colors">
-                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${DOT[lead.status]}`} />
+                <span className="w-2.5 h-2.5 rounded-full shrink-0 bg-accent-green" />
                 <span className="text-sm font-medium text-white truncate flex-1">{lead.name}</span>
                 <span className="text-[11px] text-white/30 shrink-0">{formatRelativeDateTime(lead.updated_at || lead.status_date)}</span>
               </a>

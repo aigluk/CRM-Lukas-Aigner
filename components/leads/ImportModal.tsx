@@ -262,7 +262,7 @@ export function ImportModal({ onClose, onImported }: Props) {
                       onChange={e => setMapping(m => ({ ...m, [key]: e.target.value }))}
                       className={selectCls}
                     >
-                      <option value="">— nicht importieren —</option>
+                      <option value="">- nicht importieren -</option>
                       {columns.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                     <ChevronDown size={13} className="absolute right-2.5 top-[calc(50%+9px)] -translate-y-1/2 text-white/30 pointer-events-none" />
@@ -273,7 +273,7 @@ export function ImportModal({ onClose, onImported }: Props) {
               {/* Global branche override — always uses our own BRANCHES list */}
               <div className="bg-dark rounded-xl p-4 space-y-3">
                 <p className="text-[11px] font-bold text-white/35 tracking-wide">Branche für alle Leads</p>
-                <p className="text-[11px] text-white/25">Wähle eine Branche — überschreibt den Spalten-Wert.</p>
+                <p className="text-[11px] text-white/25">Wähle eine Branche - überschreibt den Spalten-Wert.</p>
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"

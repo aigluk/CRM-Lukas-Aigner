@@ -2,13 +2,15 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Grid2x2, Users, Calendar, Wand2, Settings, Calculator, Contact } from 'lucide-react'
+import { LayoutDashboard, Users, Calendar, Sparkles, Settings, Calculator, Contact } from 'lucide-react'
+import { usePermissions } from '@/lib/usePermissions'
+import { hasAccess } from '@/lib/permissions'
 
 const NAV = [
-  { href: '/',           label: 'Dashboard',   icon: Grid2x2,    solid: true },
+  { href: '/',           label: 'Dashboard',   icon: LayoutDashboard, solid: true },
   { href: '/leads',      label: 'Leads',       icon: Users,      solid: false },
   { href: '/customers',  label: 'Kunden',      icon: Contact,    solid: false },
-  { href: '/generator',  label: 'Generator',   icon: Wand2,      solid: false },
+  { href: '/generator',  label: 'Generator',   icon: Sparkles,   solid: false },
   { href: '/calendar',   label: 'Kalender',    icon: Calendar,   solid: false },
   { href: '/accounting', label: 'Buchhaltung', icon: Calculator, solid: false },
   { href: '/settings',   label: 'Profil',      icon: Settings,   solid: false },
@@ -16,6 +18,8 @@ const NAV = [
 
 export function MobileNav() {
   const pathname = usePathname()
+  const { permissions } = usePermissions()
+  const nav = NAV.filter(item => item.href === '/settings' || hasAccess(permissions, item.href))
 
   function isActive(href: string) {
     if (href === '/') return pathname === '/'
@@ -28,7 +32,7 @@ export function MobileNav() {
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <div className="flex items-stretch h-18 overflow-x-auto">
-        {NAV.map(({ href, label, icon: Icon, solid }) => {
+        {nav.map(({ href, label, icon: Icon, solid }) => {
           const active = isActive(href)
           return (
             <Link

@@ -1,6 +1,6 @@
 'use client'
 
-import { BellRing, X, Clock, Users, Contact } from 'lucide-react'
+import { BellRing, X, Clock } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useReminders, Reminder } from '@/lib/useReminders'
 import { formatDate } from '@/lib/utils'
@@ -36,13 +36,7 @@ export function ReminderBanner() {
           </button>
         </div>
 
-        <div className="flex items-center gap-1.5 mb-1.5">
-          {r.refType === 'lead'
-            ? <Users size={11} className="text-white/35 shrink-0" />
-            : <Contact size={11} className="text-white/35 shrink-0" />
-          }
-          <p className="text-xs font-bold text-white/50">{r.refName}</p>
-        </div>
+        <p className="text-xs font-bold text-white/50 mb-1.5">{r.refName}</p>
         <p className="text-base font-bold text-white mb-1">Erinnerung</p>
         <p className="text-sm text-white/65 mb-6">{r.text}</p>
 

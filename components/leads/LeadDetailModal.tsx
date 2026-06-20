@@ -213,7 +213,7 @@ export function LeadDetailModal({
       const ts = new Date().toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit' })
       const items = Array.from(checked).map(i => `✓ ${i}`).join(', ')
       const note  = quickNote.trim()
-      callLine  = `[${ts}] Nachfolge: ${[items, note].filter(Boolean).join(' — ')}`
+      callLine  = `[${ts}] Nachfolge: ${[items, note].filter(Boolean).join(' - ')}`
       finalNotes = finalNotes ? `${finalNotes}\n${callLine}` : callLine
     }
     await onUpdate(lead.id, { ...form, notes: finalNotes })

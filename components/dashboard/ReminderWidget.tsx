@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { BellRing, Check, Trash2, Users, Contact } from 'lucide-react'
+import { BellRing, Check, Trash2 } from 'lucide-react'
 import { useReminders, Reminder } from '@/lib/useReminders'
 import { formatRelativeDateTime } from '@/lib/utils'
 
@@ -52,13 +52,7 @@ export function ReminderWidget() {
                 </span>
               </button>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  {r.refType === 'lead'
-                    ? <Users size={10} className="text-white/25 shrink-0" />
-                    : <Contact size={10} className="text-white/25 shrink-0" />
-                  }
-                  <span className={`text-sm font-bold truncate ${r.done ? 'text-white/35 line-through' : 'text-white/85'}`}>{r.refName}</span>
-                </div>
+                <span className={`text-sm font-bold truncate block ${r.done ? 'text-white/35 line-through' : 'text-white/85'}`}>{r.refName}</span>
                 <p className={`text-xs truncate mt-0.5 ${r.done ? 'text-white/25 line-through' : 'text-white/45'}`}>{r.text}</p>
                 <span className="text-[10px] text-white/25 font-medium">{formatRelativeDateTime(r.createdAt)}</span>
               </div>

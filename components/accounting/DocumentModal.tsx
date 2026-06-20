@@ -201,7 +201,7 @@ export function DocumentModal({
                   onChange={e => applyCustomer(e.target.value)}
                   className={`${inputCls} appearance-none pr-9`}
                 >
-                  <option value="">— Manuell eingeben —</option>
+                  <option value="">- Manuell eingeben -</option>
                   {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
                 <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
@@ -316,7 +316,7 @@ export function DocumentModal({
           {/* Tax + totals */}
           <div className="bg-dark rounded-2xl p-4 space-y-2">
             {smallBusiness ? (
-              <p className="text-xs text-white/30 font-medium pb-1">Kleinunternehmer — keine USt. gemäß § 6 Abs. 1 Z 27 UStG.</p>
+              <p className="text-xs text-white/30 font-medium pb-1">Kleinunternehmer - keine USt. gemäß § 6 Abs. 1 Z 27 UStG.</p>
             ) : taxAdded ? (
               <div className="flex items-center justify-between">
                 <button type="button" onClick={removeTax} className="text-xs font-bold text-white/30 hover:text-accent transition-all">

@@ -3,16 +3,18 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
-  Grid2x2, Users, Calendar, Wand2, LogOut, Settings, Calculator, Contact,
+  LayoutDashboard, Users, Calendar, Sparkles, LogOut, Settings, Calculator, Contact,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Logo from '@/components/Logo'
+import { usePermissions } from '@/lib/usePermissions'
+import { hasAccess } from '@/lib/permissions'
 
 const NAV = [
-  { href: '/',           label: 'Dashboard',   icon: Grid2x2,    solid: true },
+  { href: '/',           label: 'Dashboard',   icon: LayoutDashboard, solid: true },
   { href: '/leads',      label: 'Leads',       icon: Users,      solid: false },
   { href: '/customers',  label: 'Kunden',      icon: Contact,    solid: false },
-  { href: '/generator',  label: 'Generator',   icon: Wand2,      solid: false },
+  { href: '/generator',  label: 'Generator',   icon: Sparkles,   solid: false },
   { href: '/calendar',   label: 'Kalender',    icon: Calendar,   solid: false },
   { href: '/accounting', label: 'Buchhaltung', icon: Calculator, solid: false },
 ]
@@ -21,6 +23,8 @@ export function Sidebar() {
   const pathname = usePathname()
   const router   = useRouter()
   const supabase = createClient()
+  const { permissions } = usePermissions()
+  const nav = NAV.filter(item => hasAccess(permissions, item.href))
 
   async function logout() {
     await supabase.auth.signOut()
@@ -40,7 +44,7 @@ export function Sidebar() {
 
       {/* Top navigation — start well down, generous spacing */}
       <nav className="pt-14 px-4 flex flex-col gap-2">
-        {NAV.map(({ href, label, icon: Icon, solid }) => {
+        {nav.map(({ href, label, icon: Icon, solid }) => {
           const active = isActive(href)
           return (
             <Link

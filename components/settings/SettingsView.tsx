@@ -6,6 +6,9 @@ import { createClient } from '@/lib/supabase/client'
 import { PasswordInput } from '@/components/ui/PasswordInput'
 import { formatDate } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
+import { PermissionPicker } from './PermissionPicker'
+import { EditUserModal } from './EditUserModal'
+import { PERMISSION_ITEMS } from '@/lib/permissions'
 
 type AdminUser = {
   id: string
@@ -13,6 +16,7 @@ type AdminUser = {
   username: string
   created_at: string
   last_sign_in_at: string | null
+  permissions: string[] | null
 }
 
 function Label({ text }: { text: string }) {
@@ -52,8 +56,10 @@ export function SettingsView() {
   const [newUserEmail, setNewUserEmail] = useState('')
   const [newUserPw, setNewUserPw]       = useState('')
   const [newUserName, setNewUserName]   = useState('')
+  const [newUserPerms, setNewUserPerms] = useState<string[]>(PERMISSION_ITEMS.map(i => i.href))
   const [addingUser, setAddingUser]     = useState(false)
   const [userError, setUserError]       = useState('')
+  const [editingUser, setEditingUser]   = useState<AdminUser | null>(null)
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -129,13 +135,14 @@ export function SettingsView() {
       const res = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: newUserEmail, password: newUserPw, username: newUserName }),
+        body: JSON.stringify({ email: newUserEmail, password: newUserPw, username: newUserName, permissions: newUserPerms }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Fehler')
       setNewUserEmail('')
       setNewUserPw('')
       setNewUserName('')
+      setNewUserPerms(PERMISSION_ITEMS.map(i => i.href))
       loadUsers()
     } catch (err: any) {
       setUserError(err.message)
@@ -172,7 +179,7 @@ export function SettingsView() {
             </h2>
             <p className="text-sm text-white/40 mt-0.5 truncate">{currentEmail}</p>
             {joinedAt && (
-              <p className="text-xs text-white/20 mt-1">Mitglied seit {formatDate(joinedAt)}</p>
+              <p className="text-xs text-white/20 mt-1">Nutzer seit {formatDate(joinedAt)}</p>
             )}
           </div>
           <button
@@ -285,7 +292,7 @@ export function SettingsView() {
                 <input type="checkbox" checked={company.small_business}
                   onChange={e => setCompany(c => ({ ...c, small_business: e.target.checked }))}
                   className="w-4 h-4 rounded accent-accent" />
-                <span className="text-sm text-white/70 font-medium">Kleinunternehmer (§ 6 Abs. 1 Z 27 UStG) — keine USt. auf Rechnungen</span>
+                <span className="text-sm text-white/70 font-medium">Kleinunternehmer (§ 6 Abs. 1 Z 27 UStG) - keine USt. auf Rechnungen</span>
               </label>
               {companyMsg && <p className="text-xs text-white/40">{companyMsg}</p>}
               <button type="submit" disabled={companySaving}
@@ -362,6 +369,10 @@ export function SettingsView() {
                   placeholder="••••••••" className={inputCls} />
               </div>
             </div>
+            <div>
+              <Label text="Zugriff auf" />
+              <PermissionPicker value={newUserPerms} onChange={setNewUserPerms} />
+            </div>
             {userError && <p className="text-xs text-accent font-bold">{userError}</p>}
             <button type="submit" disabled={addingUser || !newUserEmail || !newUserPw}
               className="w-full flex items-center justify-center gap-2 bg-accent hover:opacity-90 disabled:opacity-30 text-white font-black text-sm py-3 rounded-xl transition-all active:scale-[0.98]">
@@ -377,7 +388,11 @@ export function SettingsView() {
               <p className="text-sm text-white/40 text-center py-4 font-medium">Keine Benutzer.</p>
             ) : (
               users.map(u => (
-                <div key={u.id} className="flex items-center gap-3 bg-dark rounded-xl px-3.5 py-3">
+                <div
+                  key={u.id}
+                  onClick={() => u.email !== currentEmail && setEditingUser(u)}
+                  className={`flex items-center gap-3 bg-dark rounded-xl px-3.5 py-3 ${u.email !== currentEmail ? 'cursor-pointer hover:bg-white/5 transition-colors' : ''}`}
+                >
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold text-white truncate">
                       {u.username ? u.username : <span className="text-white/30 italic">Kein Name</span>}
@@ -393,7 +408,10 @@ export function SettingsView() {
                       <Check size={11} /> Du
                     </span>
                   ) : (
-                    <button onClick={() => removeUser(u.id)} className="text-white/20 hover:text-accent transition-colors shrink-0">
+                    <button
+                      onClick={e => { e.stopPropagation(); removeUser(u.id) }}
+                      className="text-white/20 hover:text-accent transition-colors shrink-0 p-1"
+                    >
                       <Trash2 size={14} />
                     </button>
                   )}
@@ -403,6 +421,15 @@ export function SettingsView() {
           </div>
         </div>}
       </div>
+
+      {editingUser && (
+        <EditUserModal
+          user={editingUser}
+          onClose={() => setEditingUser(null)}
+          onSaved={() => { setEditingUser(null); loadUsers() }}
+          onRemove={async id => { await removeUser(id); setEditingUser(null) }}
+        />
+      )}
     </div>
   )
 }
