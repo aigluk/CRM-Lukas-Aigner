@@ -3,7 +3,6 @@
 import { useState, useEffect, type FocusEvent } from 'react'
 import { X, Plus, Trash2, Save, ChevronDown } from 'lucide-react'
 import type { AccountingCustomer, AccountingDocument, DocLanguage, DocType, LineItem } from '@/lib/types'
-import { createClient } from '@/lib/supabase/client'
 import { DatePicker } from '@/components/accounting/DatePicker'
 
 function selectAllOnFocus(e: FocusEvent<HTMLInputElement>) {
@@ -62,10 +61,9 @@ export function DocumentModal({
   }, [])
 
   useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(({ data }) => {
-      setSmallBusiness(!!data.user?.user_metadata?.company?.small_business)
-    })
+    fetch('/api/company').then(r => r.json()).then(d => {
+      setSmallBusiness(!!d.company?.small_business)
+    }).catch(() => {})
   }, [])
 
   function addTax() { setTaxAdded(true); setTaxRate(20) }

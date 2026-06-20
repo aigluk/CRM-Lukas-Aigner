@@ -62,15 +62,16 @@ function handleShare(lead: Lead, e: React.MouseEvent) {
 }
 
 function Circle({
-  selected, partial, onClick,
-}: { selected: boolean; partial?: boolean; onClick: (e: React.MouseEvent) => void }) {
+  selected, partial, onClick, onAccent,
+}: { selected: boolean; partial?: boolean; onClick: (e: React.MouseEvent) => void; onAccent?: boolean }) {
   return (
     <button
       onClick={onClick}
       className={`w-5 h-5 rounded-full shrink-0 transition-all ${
-        selected  ? 'bg-accent' :
-        partial   ? 'bg-accent/45' :
-                    'bg-white/10 hover:bg-white/20'
+        selected ? (onAccent ? 'bg-white' : 'bg-accent') :
+        partial  ? (onAccent ? 'bg-white/70' : 'bg-accent/45') :
+        onAccent ? 'border-2 border-white/55 hover:border-white/85' :
+                   'bg-white/10 hover:bg-white/20'
       }`}
     />
   )
@@ -122,13 +123,13 @@ export function LeadTable({
 
   // Mobile: circle | company | phone | share | chevron  (5 cols)
   // SM:     circle | company | status+handler (auto) | phone | share | note | chevron  (7 cols)
-  const rowGrid = 'grid grid-cols-[36px_1fr_32px_32px_16px] sm:grid-cols-[36px_1fr_auto_32px_32px_32px_16px] gap-3 items-center px-4 sm:px-5'
+  const rowGrid = 'grid grid-cols-[36px_1fr_32px_32px_16px] sm:grid-cols-[36px_1fr_auto_32px_32px_32px_16px] gap-3 items-center px-4 sm:px-5 min-h-16'
 
   return (
     <div className="bg-panel rounded-2xl overflow-hidden">
       {/* Header */}
-      <div className={`${rowGrid} py-3 bg-accent`}>
-        <Circle selected={allSelected} partial={someSelected} onClick={e => { e.stopPropagation(); onToggleAll() }} />
+      <div className={`${rowGrid} bg-accent`}>
+        <Circle selected={allSelected} partial={someSelected} onAccent onClick={e => { e.stopPropagation(); onToggleAll() }} />
         <span className="text-sm font-bold text-white">Unternehmen</span>
         <span className="hidden sm:block text-xs font-bold text-white/70">Status / Bearbeiter</span>
         <span /><span /><span /><span />

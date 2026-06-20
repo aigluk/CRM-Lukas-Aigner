@@ -3,9 +3,12 @@
 import { useState, useEffect, useMemo } from 'react'
 import {
   Plus, FileText, TrendingUp, TrendingDown, Wallet,
-  Download, Trash2, ChevronDown, Image as ImageIcon, Eye, EyeOff, Calculator,
+  Download, Trash2, ChevronDown, ChevronLeft, ChevronRight, Image as ImageIcon, Eye, EyeOff, Calculator,
+  AlertTriangle, ShieldCheck, Landmark, Loader2,
 } from 'lucide-react'
 import type { AccountingDocument, AccountingReceipt, DocType, DocStatus, ReceiptType } from '@/lib/types'
+import type { CompanyInfo } from '@/lib/pdf/DocumentPdf'
+import type { ClosingPdfData } from '@/lib/pdf/ClosingPdf'
 import { DocumentModal } from './DocumentModal'
 import { ReceiptModal } from './ReceiptModal'
 import { PdfPreviewModal } from './PdfPreviewModal'
@@ -13,6 +16,151 @@ import { useClickOutside } from '@/lib/useClickOutside'
 import { useRef } from 'react'
 
 type Tab = 'invoices' | 'quotes' | 'receipts' | 'closings' | 'overview'
+
+type MonthPeriod = { month: number; year: number }
+type ListPeriod = 'all' | 'heute' | MonthPeriod | number
+
+const MONTHS_SHORT = ['Jän','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez']
+
+function inListPeriod(dateStr: string | undefined, period: ListPeriod): boolean {
+  if (period === 'all') return true
+  const d = new Date(dateStr || '')
+  if (isNaN(d.getTime())) return false
+  if (period === 'heute') return d.toDateString() === new Date().toDateString()
+  if (typeof period === 'object') return d.getMonth() === period.month && d.getFullYear() === period.year
+  return d.getFullYear() === period
+}
+
+function ListMonthDropdown({ period, onSelect }: { period: ListPeriod; onSelect: (p: MonthPeriod) => void }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  useClickOutside(ref, () => setOpen(false))
+  const isActive = typeof period === 'object'
+  const activeMonth = isActive ? (period as MonthPeriod).month : new Date().getMonth()
+  const [pickerYear, setPickerYear] = useState(() => isActive ? (period as MonthPeriod).year : new Date().getFullYear())
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1 ${
+          isActive ? 'bg-accent text-white' : 'bg-dark text-white/40 hover:text-white/70'
+        }`}
+      >
+        {isActive ? `${MONTHS_SHORT[activeMonth]} ${(period as MonthPeriod).year}` : 'Monat'}
+        <ChevronDown size={11} />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 bg-[#2a2a2a] rounded-xl z-20 shadow-xl border border-white/8 p-2 min-w-40">
+          <div className="flex items-center justify-between mb-2 px-1">
+            <button onClick={() => setPickerYear(y => y - 1)} className="text-white/40 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/8"><ChevronLeft size={13} /></button>
+            <span className="text-xs font-bold text-white/70">{pickerYear}</span>
+            <button onClick={() => setPickerYear(y => y + 1)} className="text-white/40 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/8"><ChevronRight size={13} /></button>
+          </div>
+          <div className="grid grid-cols-4 gap-0.5">
+            {MONTHS_SHORT.map((m, i) => (
+              <button
+                key={m}
+                onClick={() => { onSelect({ month: i, year: pickerYear }); setOpen(false) }}
+                className={`text-[11px] font-semibold py-1.5 rounded-lg transition-all ${
+                  isActive && i === activeMonth && (period as MonthPeriod).year === pickerYear ? 'bg-accent text-white' : 'text-white/55 hover:text-white hover:bg-white/8'
+                }`}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ListYearDropdown({ year, isActive, onSelect }: { year: number; isActive: boolean; onSelect: (y: number) => void }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  useClickOutside(ref, () => setOpen(false))
+  const current = new Date().getFullYear()
+  const years = Array.from({ length: 5 }, (_, i) => current - i)
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => { onSelect(year); setOpen(o => !o) }}
+        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1 ${
+          isActive ? 'bg-accent text-white' : 'bg-dark text-white/40 hover:text-white/70'
+        }`}
+      >
+        {year} <ChevronDown size={11} />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 bg-[#2a2a2a] rounded-xl overflow-hidden z-20 shadow-xl border border-white/8 min-w-20">
+          {years.map(y => (
+            <button
+              key={y}
+              onClick={() => { onSelect(y); setOpen(false) }}
+              className={`block w-full text-left px-4 py-2.5 text-xs font-semibold transition-all ${
+                y === year && isActive ? 'text-accent' : 'text-white/60 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              {y}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ListPeriodFilter({ period, onChange }: { period: ListPeriod; onChange: (p: ListPeriod) => void }) {
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+  return (
+    <div className="flex items-center gap-1.5 flex-wrap">
+      <button
+        onClick={() => onChange('all')}
+        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${period === 'all' ? 'bg-accent text-white' : 'bg-dark text-white/40 hover:text-white/70'}`}
+      >
+        Alle
+      </button>
+      <button
+        onClick={() => onChange('heute')}
+        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${period === 'heute' ? 'bg-accent text-white' : 'bg-dark text-white/40 hover:text-white/70'}`}
+      >
+        Heute
+      </button>
+      <ListMonthDropdown period={period} onSelect={p => onChange(p)} />
+      <ListYearDropdown
+        year={selectedYear}
+        isActive={typeof period === 'number'}
+        onSelect={y => { setSelectedYear(y); onChange(y) }}
+      />
+    </div>
+  )
+}
+
+const KU_LIMIT = 55000
+const KU_TOLERANCE = 60500
+const SVS_RATE = 0.2683
+
+const INCOME_TAX_BRACKETS_AT: [number, number, number][] = [
+  [0, 13539, 0],
+  [13539, 21992, 0.20],
+  [21992, 36458, 0.30],
+  [36458, 70365, 0.40],
+  [70365, 104859, 0.48],
+  [104859, 1000000, 0.50],
+  [1000000, Infinity, 0.55],
+]
+
+function estimateIncomeTaxAT(taxable: number): number {
+  if (taxable <= 0) return 0
+  let tax = 0
+  for (const [lo, hi, rate] of INCOME_TAX_BRACKETS_AT) {
+    if (taxable <= lo) break
+    tax += (Math.min(taxable, hi) - lo) * rate
+  }
+  return tax
+}
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'invoices',  label: 'Rechnungen' },
@@ -104,6 +252,9 @@ export function AccountingView() {
   const [receiptModal, setReceiptModal] = useState(false)
   const [previewDoc, setPreviewDoc] = useState<AccountingDocument | null>(null)
   const [kpiVisible, setKpiVisible] = useState(false)
+  const [company, setCompany] = useState<CompanyInfo>({})
+  const [listPeriod, setListPeriod] = useState<ListPeriod>('all')
+  const [exportingPdf, setExportingPdf] = useState(false)
 
   const [periodMode, setPeriodMode] = useState<PeriodMode>('month')
   const now = new Date()
@@ -125,10 +276,17 @@ export function AccountingView() {
     }
   }
 
-  useEffect(() => { loadAll() }, [])
+  useEffect(() => {
+    loadAll()
+    fetch('/api/company').then(r => r.json()).then(d => setCompany(d.company ?? {})).catch(() => {})
+  }, [])
 
   const invoices = useMemo(() => documents.filter(d => d.doc_type === 'invoice'), [documents])
   const quotes   = useMemo(() => documents.filter(d => d.doc_type === 'quote'), [documents])
+
+  const listInvoices = useMemo(() => invoices.filter(d => inListPeriod(d.issue_date, listPeriod)), [invoices, listPeriod])
+  const listQuotes   = useMemo(() => quotes.filter(d => inListPeriod(d.issue_date, listPeriod)), [quotes, listPeriod])
+  const listReceipts = useMemo(() => receipts.filter(r => inListPeriod(r.date, listPeriod)), [receipts, listPeriod])
 
   const totals = useMemo(() => {
     const year = new Date().getFullYear()
@@ -171,15 +329,71 @@ export function AccountingView() {
     const vorsteuer = expensesGross * (ASSUMED_EXPENSE_VAT_RATE / (100 + ASSUMED_EXPENSE_VAT_RATE))
     const expensesNet = expensesGross - vorsteuer
 
-    const vatPayable = vatCollected - vorsteuer
+    const smallBusinessActive = !!company.small_business
+    const vatPayable = smallBusinessActive ? 0 : vatCollected - vorsteuer
     const profitBeforeTax = revenueNet - expensesNet
+
+    // Kleinunternehmer-Grenze bezieht sich immer auf das volle Kalenderjahr, unabhängig vom gewählten Zeitraum
+    const ytdRevenueGross = invoices
+      .filter(d => d.status === 'paid' && new Date(d.issue_date).getFullYear() === periodYear)
+      .reduce((s, d) => s + docTotal(d), 0)
+
+    const annualizeFactor = periodMode === 'month' ? 12 : periodMode === 'quarter' ? 4 : 1
+    const annualizedProfit = profitBeforeTax * annualizeFactor
+    const estimatedAnnualIncomeTax = estimateIncomeTaxAT(Math.max(0, annualizedProfit))
+    const estimatedIncomeTax = estimatedAnnualIncomeTax / annualizeFactor
+    const estimatedQuarterlyPrepayment = estimatedAnnualIncomeTax / 4
+
+    const estimatedSvs = Math.max(0, profitBeforeTax) * SVS_RATE
+    const profitAfterTax = profitBeforeTax - estimatedIncomeTax - estimatedSvs
 
     return {
       label, revenueGross, revenueNet, vatCollected,
       expensesGross, expensesNet, vorsteuer, vatPayable, profitBeforeTax,
       invoiceCount: periodInvoices.length, receiptCount: periodExpenses.length,
+      smallBusinessActive, ytdRevenueGross,
+      estimatedIncomeTax, estimatedAnnualIncomeTax, estimatedQuarterlyPrepayment,
+      estimatedSvs, profitAfterTax,
     }
-  }, [invoices, receipts, periodMode, periodYear, periodMonth, periodQuarter])
+  }, [invoices, receipts, periodMode, periodYear, periodMonth, periodQuarter, company])
+
+  async function exportClosingPdf() {
+    setExportingPdf(true)
+    try {
+      const payload: ClosingPdfData = {
+        label: closing.label,
+        revenueNet: closing.revenueNet,
+        vatCollected: closing.vatCollected,
+        revenueGross: closing.revenueGross,
+        expensesNet: closing.expensesNet,
+        vorsteuer: closing.vorsteuer,
+        expensesGross: closing.expensesGross,
+        vatPayable: closing.vatPayable,
+        profitBeforeTax: closing.profitBeforeTax,
+        estimatedIncomeTax: closing.estimatedIncomeTax,
+        profitAfterTax: closing.profitAfterTax,
+        estimatedSvs: closing.estimatedSvs,
+        smallBusinessActive: closing.smallBusinessActive,
+        ytdRevenueGross: closing.ytdRevenueGross,
+        kuLimit: KU_LIMIT,
+        kuTolerance: KU_TOLERANCE,
+        invoiceCount: closing.invoiceCount,
+        receiptCount: closing.receiptCount,
+      }
+      const res = await fetch('/api/accounting/closing-pdf', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+      })
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `Abschluss-${closing.label.replace(/\s+/g, '-')}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } finally {
+      setExportingPdf(false)
+    }
+  }
 
   function nextNumberHint(type: DocType): string {
     const year = new Date().getFullYear()
@@ -305,6 +519,12 @@ export function AccountingView() {
         ))}
       </div>
 
+      {(tab === 'invoices' || tab === 'quotes' || tab === 'receipts') && (
+        <div className="mb-4">
+          <ListPeriodFilter period={listPeriod} onChange={setListPeriod} />
+        </div>
+      )}
+
       {loading ? (
         <p className="text-sm text-white/30 text-center py-16 font-medium">Lädt…</p>
       ) : tab === 'overview' ? (
@@ -422,8 +642,60 @@ export function AccountingView() {
             </div>
           </div>
 
+          {/* Kleinunternehmer-Status */}
+          <div className={`rounded-2xl p-5 ${
+            closing.smallBusinessActive
+              ? closing.ytdRevenueGross > KU_TOLERANCE ? 'bg-accent/10 border border-accent/30'
+              : closing.ytdRevenueGross > KU_LIMIT ? 'bg-yellow-500/10 border border-yellow-500/25'
+              : 'bg-panel'
+              : 'bg-panel'
+          }`}>
+            <div className="flex items-center gap-2 mb-3">
+              {closing.smallBusinessActive && closing.ytdRevenueGross <= KU_LIMIT
+                ? <ShieldCheck size={14} className="text-accent-green" />
+                : <AlertTriangle size={14} className={closing.smallBusinessActive ? 'text-accent' : 'text-white/30'} />}
+              <h2 className="text-sm font-black text-white">Kleinunternehmer-Status (§ 6 Abs. 1 Z 27 UStG)</h2>
+            </div>
+            {closing.smallBusinessActive ? (
+              <>
+                <div className="flex items-center justify-between text-xs font-bold text-white/50 mb-1.5">
+                  <span>Jahresumsatz brutto {periodYear}</span>
+                  <span className="text-white">{fmtMoney(closing.ytdRevenueGross)} / {fmtMoney(KU_LIMIT)}</span>
+                </div>
+                <div className="h-2 bg-white/8 rounded-full overflow-hidden mb-3">
+                  <div
+                    className={`h-full rounded-full transition-all ${closing.ytdRevenueGross > KU_TOLERANCE ? 'bg-accent' : closing.ytdRevenueGross > KU_LIMIT ? 'bg-yellow-500' : 'bg-accent-green'}`}
+                    style={{ width: `${Math.min(100, (closing.ytdRevenueGross / KU_LIMIT) * 100)}%` }}
+                  />
+                </div>
+                <p className="text-xs text-white/50 leading-relaxed">
+                  {closing.ytdRevenueGross > KU_TOLERANCE
+                    ? `Toleranzgrenze (${fmtMoney(KU_TOLERANCE)}) um mehr als 10 % überschritten — die USt-Befreiung entfällt sofort, rückwirkend ab dem Umsatz, mit dem die Grenze überschritten wurde. Bitte umgehend mit dem Finanzamt bzw. Steuerberater abklären.`
+                    : closing.ytdRevenueGross > KU_LIMIT
+                    ? `Grenze von ${fmtMoney(KU_LIMIT)} überschritten, aber innerhalb der 10 % Toleranz — die Befreiung bleibt ${periodYear} noch erhalten, entfällt aber automatisch ab ${periodYear + 1}.`
+                    : `Aktiv — solange der Jahresumsatz unter ${fmtMoney(KU_LIMIT)} brutto bleibt, fällt keine Umsatzsteuer an. Rechnungen weisen daher keine USt aus.`}
+                </p>
+              </>
+            ) : (
+              <p className="text-xs text-white/50 leading-relaxed">
+                Nicht aktiv — Regelbesteuerung. Umsatzsteuer wird auf Rechnungen ausgewiesen und ist im Rahmen der UVA an das Finanzamt abzuführen (siehe USt-Zahllast unten).
+                Aktivierbar in den Einstellungen unter Firmeninformationen, sofern der Jahresumsatz unter {fmtMoney(KU_LIMIT)} brutto bleibt.
+              </p>
+            )}
+          </div>
+
           <div className="bg-panel rounded-2xl p-6">
-            <h2 className="text-sm font-black text-white mb-1">Abschluss · {closing.label}</h2>
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-sm font-black text-white">Abschluss · {closing.label}</h2>
+              <button
+                onClick={exportClosingPdf}
+                disabled={exportingPdf}
+                className="flex items-center gap-1.5 bg-accent hover:bg-accent-hover text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 disabled:opacity-50"
+              >
+                {exportingPdf ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
+                PDF-Export
+              </button>
+            </div>
             <p className="text-xs text-white/30 mb-5">{closing.invoiceCount} bezahlte Rechnung(en) · {closing.receiptCount} Ausgabenbeleg(e)</p>
 
             <div className="space-y-2.5">
@@ -445,31 +717,68 @@ export function AccountingView() {
 
               <div className="flex items-center justify-between py-2.5 border-t border-panel-2 pt-3">
                 <span className="text-sm font-bold text-white">USt-Zahllast</span>
-                <span className={`text-sm font-black ${closing.vatPayable >= 0 ? 'text-accent' : 'text-accent-green'}`}>
+                <span className={`text-sm font-black ${closing.vatPayable > 0 ? 'text-accent' : 'text-accent-green'}`}>
                   {fmtMoney(closing.vatPayable)}
                 </span>
               </div>
-              <div className="flex items-center justify-between py-2.5">
+              <div className="flex items-center justify-between py-2">
+                <span className="text-sm text-white/50">Geschätzte Einkommensteuer (hochgerechnet)</span>
+                <span className="text-sm font-bold text-accent">−{fmtMoney(closing.estimatedIncomeTax)}</span>
+              </div>
+              <div className="flex items-center justify-between py-2">
+                <span className="text-sm text-white/50">Geschätzte SVS-Beiträge (ca. 26,83 % v. Gewinn)</span>
+                <span className="text-sm font-bold text-accent">−{fmtMoney(closing.estimatedSvs)}</span>
+              </div>
+              <div className="flex items-center justify-between py-2.5 border-t border-panel-2 pt-3">
                 <span className="text-base font-black text-white">Gewinn vor Steuern</span>
                 <span className={`text-base font-black ${closing.profitBeforeTax >= 0 ? 'text-accent-green' : 'text-accent'}`}>
                   {fmtMoney(closing.profitBeforeTax)}
                 </span>
               </div>
+              <div className="flex items-center justify-between py-2.5">
+                <span className="text-base font-black text-white">Gewinn nach geschätzter Steuer & SVS</span>
+                <span className={`text-base font-black ${closing.profitAfterTax >= 0 ? 'text-accent-green' : 'text-accent'}`}>
+                  {fmtMoney(closing.profitAfterTax)}
+                </span>
+              </div>
             </div>
+          </div>
+
+          {/* An das Finanzamt zu zahlen */}
+          <div className="bg-panel rounded-2xl p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Landmark size={14} className="text-white/30" />
+              <h2 className="text-sm font-black text-white">Zahlungen ans Finanzamt</h2>
+            </div>
+            <div className="space-y-2.5 mb-4">
+              <div className="flex items-center justify-between py-1.5">
+                <span className="text-sm text-white/50">USt-Zahllast {closing.label}</span>
+                <span className="text-sm font-bold text-white">{fmtMoney(Math.max(0, closing.vatPayable))}</span>
+              </div>
+              <div className="flex items-center justify-between py-1.5">
+                <span className="text-sm text-white/50">ESt-Vorauszahlung pro Quartal (hochgerechnet)</span>
+                <span className="text-sm font-bold text-white">{fmtMoney(closing.estimatedQuarterlyPrepayment)}</span>
+              </div>
+            </div>
+            <p className="text-xs text-white/35 leading-relaxed">
+              Fälligkeitstermine der quartalsweisen Einkommensteuer-Vorauszahlung: 15. Februar, 15. Mai, 15. August, 15. November.
+              Die tatsächliche Höhe legt das Finanzamt per Vorauszahlungsbescheid auf Basis des Vorjahresergebnisses (zzgl. 4–9 %) fest — die hier gezeigte Zahl ist eine Hochrechnung auf Basis
+              des aktuell erfassten Gewinns und kann abweichen. Da du als Einzelunternehmer auftrittst, fällt keine Körperschaftsteuer (KÖSt) an — diese wäre nur bei einer GmbH relevant.
+            </p>
           </div>
         </div>
       ) : tab === 'invoices' ? (
-        <DocList docs={invoices} type="invoice" />
+        <DocList docs={listInvoices} type="invoice" />
       ) : tab === 'quotes' ? (
-        <DocList docs={quotes} type="quote" />
+        <DocList docs={listQuotes} type="quote" />
       ) : (
         <div className="bg-panel rounded-2xl overflow-hidden">
-          {receipts.length === 0 ? (
+          {listReceipts.length === 0 ? (
             <div className="py-16 text-center"><p className="text-white/40 text-sm font-medium">Noch keine Belege.</p></div>
           ) : (
             <ul>
-              {receipts.map((r, i) => (
-                <li key={r.id} className={`flex items-center gap-3 px-4 sm:px-5 py-3.5 ${i < receipts.length - 1 ? 'border-b border-panel-2' : ''}`}>
+              {listReceipts.map((r, i) => (
+                <li key={r.id} className={`flex items-center gap-3 px-4 sm:px-5 py-3.5 ${i < listReceipts.length - 1 ? 'border-b border-panel-2' : ''}`}>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold text-white truncate">{r.vendor || RECEIPT_TYPE_LABELS[r.receipt_type]}</p>
                     <p className="text-xs text-white/35 mt-0.5">{fmtDate(r.date)}{r.category ? ` · ${r.category}` : ''}</p>
