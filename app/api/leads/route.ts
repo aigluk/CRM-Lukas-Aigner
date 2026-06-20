@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getWorkspaceOwnerId } from '@/lib/workspace'
 import { normalizeStatus } from '@/lib/utils'
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -23,11 +24,12 @@ export async function GET() {
   try {
     const user = await getAuthUser()
     if (!user) return NextResponse.json({ error: 'Nicht angemeldet' }, { status: 401 })
+    const ownerId = await getWorkspaceOwnerId(user.id)
 
     const { data, error } = await db()
       .from('leads')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', ownerId)
       .order('updated_at', { ascending: false })
 
     if (error) {
@@ -45,6 +47,7 @@ export async function POST(req: NextRequest) {
   try {
     const user = await getAuthUser()
     if (!user) return NextResponse.json({ error: 'Nicht angemeldet – bitte neu einloggen.' }, { status: 401 })
+    const ownerId = await getWorkspaceOwnerId(user.id)
 
     const body = await req.json()
 
@@ -52,7 +55,7 @@ export async function POST(req: NextRequest) {
     if (Array.isArray(body.leads)) {
       const rows = body.leads.map((l: any) => ({
         ...l,
-        user_id:     user.id,
+        user_id:     ownerId,
         status:      normalizeStatus(l.status),
         status_date: new Date().toISOString(),
       }))
@@ -60,7 +63,7 @@ export async function POST(req: NextRequest) {
       const { data: existing } = await db()
         .from('leads')
         .select('id, name, website, status, notes, note, appointment_date, appointment_from, appointment_to')
-        .eq('user_id', user.id)
+        .eq('user_id', ownerId)
 
       const existingMap = new Map<string, any>()
       ;(existing ?? []).forEach(l => existingMap.set(buildKey(l), l))
@@ -92,7 +95,7 @@ export async function POST(req: NextRequest) {
       }
       for (const u of toUpdate) {
         const { id, ...rest } = u
-        await db().from('leads').update(rest).eq('id', id).eq('user_id', user.id)
+        await db().from('leads').update(rest).eq('id', id).eq('user_id', ownerId)
       }
       return NextResponse.json({ inserted: toInsert.length, updated: toUpdate.length })
     }
@@ -101,7 +104,7 @@ export async function POST(req: NextRequest) {
     const { status_date, ...rest } = body
     const lead = {
       ...rest,
-      user_id:     user.id,
+      user_id:     ownerId,
       status:      normalizeStatus(body.status),
       status_date: new Date().toISOString(),
     }
@@ -122,6 +125,7 @@ export async function PATCH(req: NextRequest) {
   try {
     const user = await getAuthUser()
     if (!user) return NextResponse.json({ error: 'Nicht angemeldet' }, { status: 401 })
+    const ownerId = await getWorkspaceOwnerId(user.id)
 
     const { id, ...updates } = await req.json()
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })
@@ -135,7 +139,7 @@ export async function PATCH(req: NextRequest) {
       .from('leads')
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', id)
-      .eq('user_id', user.id)
+      .eq('user_id', ownerId)
       .select()
       .single()
 
@@ -151,6 +155,7 @@ export async function DELETE(req: NextRequest) {
   try {
     const user = await getAuthUser()
     if (!user) return NextResponse.json({ error: 'Nicht angemeldet' }, { status: 401 })
+    const ownerId = await getWorkspaceOwnerId(user.id)
 
     const url = new URL(req.url)
     const id = url.searchParams.get('id')
@@ -164,7 +169,7 @@ export async function DELETE(req: NextRequest) {
       .from('leads')
       .delete()
       .in('id', targetIds)
-      .eq('user_id', user.id)
+      .eq('user_id', ownerId)
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ success: true, deleted: targetIds.length })

@@ -46,11 +46,15 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
         if (d.users) setTeamUsers(d.users)
       })
 
+      // All leads belong to the shared workspace owner, not necessarily this
+      // user's own auth id — derive it from already-fetched rows.
+      const ownerId = initialLeads[0]?.user_id ?? user.id
+
       // Realtime: reflect changes made by any team member immediately
       const channel = supabase
         .channel('leads-live')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'leads',
-            filter: `user_id=eq.${user.id}` },
+            filter: `user_id=eq.${ownerId}` },
           ({ new: row }) => {
             setLeads(prev => {
               if (prev.some(l => l.id === (row as Lead).id)) return prev
@@ -59,7 +63,7 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
           }
         )
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'leads',
-            filter: `user_id=eq.${user.id}` },
+            filter: `user_id=eq.${ownerId}` },
           ({ new: row }) => {
             setLeads(prev => prev.map(l => l.id === (row as Lead).id ? row as Lead : l))
             setSelectedLead(prev => prev?.id === (row as Lead).id ? row as Lead : prev)
@@ -141,6 +145,7 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
   [leads, activeStatus, search, brancheFilter])
 
   async function handleUpdate(id: string, updates: Partial<Lead>) {
+    const prevLead = leads.find(l => l.id === id)
     const res = await fetch('/api/leads', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -150,6 +155,9 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
       const { lead } = await res.json()
       setLeads(prev => prev.map(l => l.id === id ? { ...l, ...lead } : l))
       if (selectedLead?.id === id) setSelectedLead(prev => prev ? { ...prev, ...lead } : prev)
+      if (updates.status === 'ABSCHLUSS' && prevLead?.status !== 'ABSCHLUSS') {
+        ensureCustomerForLead({ ...prevLead, ...lead } as Lead)
+      }
     } else {
       const data = await res.json().catch(() => ({}))
       if ('handler' in updates) {
@@ -159,6 +167,31 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
         setPatchError(data.error || 'Speichern fehlgeschlagen.')
         setTimeout(() => setPatchError(''), 5000)
       }
+    }
+  }
+
+  async function ensureCustomerForLead(lead: Lead) {
+    try {
+      const existing = await fetch('/api/accounting/customers').then(r => r.json())
+      const already = (existing.customers ?? []).some(
+        (c: { name: string }) => c.name.trim().toLowerCase() === lead.name.trim().toLowerCase()
+      )
+      if (already) return
+      await fetch('/api/accounting/customers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: lead.name,
+          contact_person: lead.ceos || lead.owner || undefined,
+          address: lead.address || lead.city || lead.region || undefined,
+          country: lead.region || undefined,
+          email: lead.email || lead.email_general || undefined,
+          phone: lead.phone || undefined,
+          website: lead.website || undefined,
+        }),
+      })
+    } catch {
+      // Best-effort — Lead bleibt trotzdem auf "Abschluss"
     }
   }
 

@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getWorkspaceOwnerId } from '@/lib/workspace'
 import { NextRequest, NextResponse } from 'next/server'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { DocumentPdf } from '@/lib/pdf/DocumentPdf'
@@ -25,6 +26,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params
   const user = await getAuthUser()
   if (!user) return NextResponse.json({ error: 'Nicht angemeldet' }, { status: 401 })
+  const ownerId = await getWorkspaceOwnerId(user.id)
 
   const forceDownload = req.nextUrl.searchParams.get('dl') === '1'
   const disposition = forceDownload ? 'attachment' : 'inline'
@@ -34,7 +36,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     .from('accounting_documents')
     .select('*')
     .eq('id', id)
-    .eq('user_id', user.id)
+    .eq('user_id', ownerId)
     .single()
 
   if (error || !doc) return NextResponse.json({ error: 'Nicht gefunden' }, { status: 404 })
@@ -54,7 +56,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   // Fallback: regenerate on the fly
-  const { data: userData } = await admin.auth.admin.getUserById(user.id)
+  const { data: userData } = await admin.auth.admin.getUserById(ownerId)
   const company = userData.user?.user_metadata?.company ?? {}
   const pdfBuffer = await renderToBuffer(DocumentPdf({ doc: doc as AccountingDocument, company }) as any)
 

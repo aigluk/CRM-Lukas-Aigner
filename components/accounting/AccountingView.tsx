@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import {
   Plus, FileText, TrendingUp, TrendingDown, Wallet,
-  Download, Trash2, ChevronDown, Image as ImageIcon, Eye,
+  Download, Trash2, ChevronDown, Image as ImageIcon, Eye, EyeOff, Calculator,
 } from 'lucide-react'
 import type { AccountingDocument, AccountingReceipt, DocType, DocStatus, ReceiptType } from '@/lib/types'
 import { DocumentModal } from './DocumentModal'
@@ -12,14 +12,19 @@ import { PdfPreviewModal } from './PdfPreviewModal'
 import { useClickOutside } from '@/lib/useClickOutside'
 import { useRef } from 'react'
 
-type Tab = 'overview' | 'invoices' | 'quotes' | 'receipts'
+type Tab = 'invoices' | 'quotes' | 'receipts' | 'closings' | 'overview'
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'overview',  label: 'Übersicht' },
   { id: 'invoices',  label: 'Rechnungen' },
   { id: 'quotes',    label: 'Angebote' },
   { id: 'receipts',  label: 'Belege' },
+  { id: 'closings',  label: 'Abschlüsse' },
+  { id: 'overview',  label: 'Übersicht' },
 ]
+
+const ASSUMED_EXPENSE_VAT_RATE = 20
+
+type PeriodMode = 'month' | 'quarter' | 'year'
 
 const STATUS_LABELS: Record<DocStatus, string> = {
   draft: 'Entwurf', sent: 'Versendet', paid: 'Bezahlt', overdue: 'Überfällig',
@@ -91,13 +96,20 @@ function KpiCard({ icon, label, value, tone = 'default' }: { icon: React.ReactNo
 }
 
 export function AccountingView() {
-  const [tab, setTab] = useState<Tab>('overview')
+  const [tab, setTab] = useState<Tab>('invoices')
   const [documents, setDocuments] = useState<AccountingDocument[]>([])
   const [receipts, setReceipts]   = useState<AccountingReceipt[]>([])
   const [loading, setLoading]     = useState(true)
   const [docModal, setDocModal]   = useState<{ type: DocType; doc?: AccountingDocument } | null>(null)
   const [receiptModal, setReceiptModal] = useState(false)
   const [previewDoc, setPreviewDoc] = useState<AccountingDocument | null>(null)
+  const [kpiVisible, setKpiVisible] = useState(false)
+
+  const [periodMode, setPeriodMode] = useState<PeriodMode>('month')
+  const now = new Date()
+  const [periodYear, setPeriodYear]   = useState(now.getFullYear())
+  const [periodMonth, setPeriodMonth] = useState(now.getMonth()) // 0-11
+  const [periodQuarter, setPeriodQuarter] = useState(Math.floor(now.getMonth() / 3)) // 0-3
 
   async function loadAll() {
     setLoading(true)
@@ -126,6 +138,48 @@ export function AccountingView() {
     const expenses = receipts.filter(r => r.receipt_type === 'expense' && inYear(r.date)).reduce((s, r) => s + r.amount, 0)
     return { incomePaid, incomeOpen, expenses, profit: incomePaid - expenses }
   }, [invoices, receipts])
+
+  const availableYears = useMemo(() => {
+    const years = new Set<number>([now.getFullYear()])
+    documents.forEach(d => years.add(new Date(d.issue_date).getFullYear()))
+    receipts.forEach(r => years.add(new Date(r.date).getFullYear()))
+    return Array.from(years).sort((a, b) => b - a)
+  }, [documents, receipts])
+
+  const closing = useMemo(() => {
+    let inPeriod: (isoDate: string) => boolean
+    let label: string
+    if (periodMode === 'month') {
+      inPeriod = iso => { const d = new Date(iso); return d.getFullYear() === periodYear && d.getMonth() === periodMonth }
+      label = new Date(periodYear, periodMonth, 1).toLocaleDateString('de-AT', { month: 'long', year: 'numeric' })
+    } else if (periodMode === 'quarter') {
+      const startM = periodQuarter * 3
+      inPeriod = iso => { const d = new Date(iso); return d.getFullYear() === periodYear && d.getMonth() >= startM && d.getMonth() < startM + 3 }
+      label = `Q${periodQuarter + 1} ${periodYear}`
+    } else {
+      inPeriod = iso => new Date(iso).getFullYear() === periodYear
+      label = `${periodYear}`
+    }
+
+    const periodInvoices = invoices.filter(d => d.status === 'paid' && inPeriod(d.issue_date))
+    const revenueGross = periodInvoices.reduce((s, d) => s + docTotal(d), 0)
+    const revenueNet = periodInvoices.reduce((s, d) => s + (d.line_items ?? []).reduce((x, i) => x + i.qty * i.unit_price, 0), 0)
+    const vatCollected = revenueGross - revenueNet
+
+    const periodExpenses = receipts.filter(r => r.receipt_type === 'expense' && inPeriod(r.date))
+    const expensesGross = periodExpenses.reduce((s, r) => s + r.amount, 0)
+    const vorsteuer = expensesGross * (ASSUMED_EXPENSE_VAT_RATE / (100 + ASSUMED_EXPENSE_VAT_RATE))
+    const expensesNet = expensesGross - vorsteuer
+
+    const vatPayable = vatCollected - vorsteuer
+    const profitBeforeTax = revenueNet - expensesNet
+
+    return {
+      label, revenueGross, revenueNet, vatCollected,
+      expensesGross, expensesNet, vorsteuer, vatPayable, profitBeforeTax,
+      invoiceCount: periodInvoices.length, receiptCount: periodExpenses.length,
+    }
+  }, [invoices, receipts, periodMode, periodYear, periodMonth, periodQuarter])
 
   function nextNumberHint(type: DocType): string {
     const year = new Date().getFullYear()
@@ -255,12 +309,33 @@ export function AccountingView() {
         <p className="text-sm text-white/30 text-center py-16 font-medium">Lädt…</p>
       ) : tab === 'overview' ? (
         <div className="space-y-5">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <KpiCard icon={<TrendingUp size={16} />} label="Einnahmen (bezahlt)" value={fmtMoney(totals.incomePaid)} tone="green" />
-            <KpiCard icon={<Wallet size={16} />} label="Offene Rechnungen" value={fmtMoney(totals.incomeOpen)} />
-            <KpiCard icon={<TrendingDown size={16} />} label="Ausgaben" value={fmtMoney(totals.expenses)} tone="accent" />
-            <KpiCard icon={<TrendingUp size={16} />} label="Gewinn (dieses Jahr)" value={fmtMoney(totals.profit)} tone={totals.profit >= 0 ? 'green' : 'accent'} />
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-black text-white/30 uppercase tracking-wide">Kennzahlen</h2>
+            <button
+              onClick={() => setKpiVisible(v => !v)}
+              className="flex items-center gap-1.5 text-xs font-bold text-white/35 hover:text-white transition-colors"
+            >
+              {kpiVisible ? <EyeOff size={13} /> : <Eye size={13} />}
+              {kpiVisible ? 'Verbergen' : 'Anzeigen'}
+            </button>
           </div>
+
+          {kpiVisible ? (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <KpiCard icon={<TrendingUp size={16} />} label="Einnahmen (bezahlt)" value={fmtMoney(totals.incomePaid)} tone="green" />
+              <KpiCard icon={<Wallet size={16} />} label="Offene Rechnungen" value={fmtMoney(totals.incomeOpen)} />
+              <KpiCard icon={<TrendingDown size={16} />} label="Ausgaben" value={fmtMoney(totals.expenses)} tone="accent" />
+              <KpiCard icon={<TrendingUp size={16} />} label="Gewinn (dieses Jahr)" value={fmtMoney(totals.profit)} tone={totals.profit >= 0 ? 'green' : 'accent'} />
+            </div>
+          ) : (
+            <button
+              onClick={() => setKpiVisible(true)}
+              className="w-full bg-panel rounded-2xl py-8 flex flex-col items-center justify-center gap-2 text-white/20 hover:text-white/40 transition-colors"
+            >
+              <Eye size={20} />
+              <span className="text-xs font-bold">Kennzahlen ausgeblendet — klicken zum Anzeigen</span>
+            </button>
+          )}
 
           <div className="bg-panel rounded-2xl p-6">
             <h2 className="text-sm font-black text-white mb-4">Letzte Belege & Rechnungen</h2>
@@ -283,6 +358,104 @@ export function AccountingView() {
             {documents.length === 0 && receipts.length === 0 && (
               <p className="text-sm text-white/35 text-center py-6 font-medium">Noch keine Einträge.</p>
             )}
+          </div>
+        </div>
+      ) : tab === 'closings' ? (
+        <div className="space-y-5">
+          <div className="bg-panel rounded-2xl p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Calculator size={14} className="text-white/30" />
+              <h2 className="text-sm font-black text-white">Zeitraum</h2>
+            </div>
+            <div className="flex gap-1.5 mb-4">
+              {([['month', 'Monat'], ['quarter', 'Quartal'], ['year', 'Jahr']] as [PeriodMode, string][]).map(([m, l]) => (
+                <button
+                  key={m} onClick={() => setPeriodMode(m)}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                    periodMode === m ? 'bg-accent text-white' : 'bg-dark text-white/35 hover:text-white/70'
+                  }`}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-1.5 flex-wrap">
+              {periodMode === 'month' && Array.from({ length: 12 }, (_, i) => i).map(m => (
+                <button
+                  key={m} onClick={() => setPeriodMonth(m)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    periodMonth === m ? 'bg-accent text-white' : 'bg-dark text-white/35 hover:text-white/70'
+                  }`}
+                >
+                  {new Date(2000, m, 1).toLocaleDateString('de-AT', { month: 'short' })}
+                </button>
+              ))}
+              {periodMode === 'quarter' && [0, 1, 2, 3].map(q => (
+                <button
+                  key={q} onClick={() => setPeriodQuarter(q)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    periodQuarter === q ? 'bg-accent text-white' : 'bg-dark text-white/35 hover:text-white/70'
+                  }`}
+                >
+                  Q{q + 1}
+                </button>
+              ))}
+              {periodMode !== 'year' && (
+                <select
+                  value={periodYear}
+                  onChange={e => setPeriodYear(parseInt(e.target.value, 10))}
+                  className="bg-dark text-white text-xs font-bold rounded-xl px-3 py-1.5 outline-none"
+                >
+                  {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+              )}
+              {periodMode === 'year' && availableYears.map(y => (
+                <button
+                  key={y} onClick={() => setPeriodYear(y)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    periodYear === y ? 'bg-accent text-white' : 'bg-dark text-white/35 hover:text-white/70'
+                  }`}
+                >
+                  {y}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-panel rounded-2xl p-6">
+            <h2 className="text-sm font-black text-white mb-1">Abschluss · {closing.label}</h2>
+            <p className="text-xs text-white/30 mb-5">{closing.invoiceCount} bezahlte Rechnung(en) · {closing.receiptCount} Ausgabenbeleg(e)</p>
+
+            <div className="space-y-2.5">
+              {[
+                ['Umsatz netto', closing.revenueNet, false],
+                ['Umsatzsteuer (USt.)', closing.vatCollected, false],
+                ['Umsatz brutto', closing.revenueGross, true],
+                ['Ausgaben netto', -closing.expensesNet, false],
+                ['Vorsteuer', -closing.vorsteuer, false],
+                ['Ausgaben brutto', -closing.expensesGross, true],
+              ].map(([label, val, bold], i) => (
+                <div key={i} className={`flex items-center justify-between py-2 ${bold ? 'border-t border-panel-2 pt-2.5' : ''}`}>
+                  <span className={`text-sm ${bold ? 'font-bold text-white' : 'text-white/50'}`}>{label as string}</span>
+                  <span className={`text-sm font-bold ${(val as number) < 0 ? 'text-accent' : 'text-white'}`}>
+                    {(val as number) < 0 ? '−' : ''}{fmtMoney(Math.abs(val as number))}
+                  </span>
+                </div>
+              ))}
+
+              <div className="flex items-center justify-between py-2.5 border-t border-panel-2 pt-3">
+                <span className="text-sm font-bold text-white">USt-Zahllast</span>
+                <span className={`text-sm font-black ${closing.vatPayable >= 0 ? 'text-accent' : 'text-accent-green'}`}>
+                  {fmtMoney(closing.vatPayable)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between py-2.5">
+                <span className="text-base font-black text-white">Gewinn vor Steuern</span>
+                <span className={`text-base font-black ${closing.profitBeforeTax >= 0 ? 'text-accent-green' : 'text-accent'}`}>
+                  {fmtMoney(closing.profitBeforeTax)}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       ) : tab === 'invoices' ? (

@@ -127,10 +127,10 @@ export function LeadTable({
   return (
     <div className="bg-panel rounded-2xl overflow-hidden">
       {/* Header */}
-      <div className={`${rowGrid} py-3 border-b border-panel-2`}>
+      <div className={`${rowGrid} py-3 bg-accent`}>
         <Circle selected={allSelected} partial={someSelected} onClick={e => { e.stopPropagation(); onToggleAll() }} />
-        <span className="text-sm font-bold text-accent">Unternehmen</span>
-        <span className="hidden sm:block text-xs font-bold text-white/25">Status / Bearbeiter</span>
+        <span className="text-sm font-bold text-white">Unternehmen</span>
+        <span className="hidden sm:block text-xs font-bold text-white/70">Status / Bearbeiter</span>
         <span /><span /><span /><span />
       </div>
 

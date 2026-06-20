@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getWorkspaceOwnerId } from '@/lib/workspace'
 import { NextRequest, NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'
@@ -24,11 +25,12 @@ export async function GET() {
   try {
     const user = await getAuthUser()
     if (!user) return NextResponse.json({ error: 'Nicht angemeldet' }, { status: 401 })
+    const ownerId = await getWorkspaceOwnerId(user.id)
 
     const { data, error } = await db()
       .from('accounting_customers')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', ownerId)
       .order('name', { ascending: true })
 
     if (error) {
@@ -46,12 +48,13 @@ export async function POST(req: NextRequest) {
   try {
     const user = await getAuthUser()
     if (!user) return NextResponse.json({ error: 'Nicht angemeldet' }, { status: 401 })
+    const ownerId = await getWorkspaceOwnerId(user.id)
 
     const body = await req.json()
     if (!body.name?.trim()) return NextResponse.json({ error: 'Name erforderlich' }, { status: 400 })
 
     const row = {
-      user_id:        user.id,
+      user_id:        ownerId,
       name:           body.name.trim(),
       contact_person: body.contact_person || null,
       address:        body.address || null,
@@ -80,6 +83,7 @@ export async function PATCH(req: NextRequest) {
   try {
     const user = await getAuthUser()
     if (!user) return NextResponse.json({ error: 'Nicht angemeldet' }, { status: 401 })
+    const ownerId = await getWorkspaceOwnerId(user.id)
 
     const { id, ...updates } = await req.json()
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })
@@ -88,7 +92,7 @@ export async function PATCH(req: NextRequest) {
       .from('accounting_customers')
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', id)
-      .eq('user_id', user.id)
+      .eq('user_id', ownerId)
       .select()
       .single()
 
@@ -104,11 +108,12 @@ export async function DELETE(req: NextRequest) {
   try {
     const user = await getAuthUser()
     if (!user) return NextResponse.json({ error: 'Nicht angemeldet' }, { status: 401 })
+    const ownerId = await getWorkspaceOwnerId(user.id)
 
     const id = req.nextUrl.searchParams.get('id')
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })
 
-    const { error } = await db().from('accounting_customers').delete().eq('id', id).eq('user_id', user.id)
+    const { error } = await db().from('accounting_customers').delete().eq('id', id).eq('user_id', ownerId)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
     return NextResponse.json({ success: true })

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Lead } from '@/lib/types'
 import { isSameDay, toDateInput } from '@/lib/utils'
 import { ChevronLeft, ChevronRight, Phone, Plus, X, Loader2 } from 'lucide-react'
@@ -31,6 +31,36 @@ function NewAppointmentModal({
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState('')
+
+  const [suggestionPool, setSuggestionPool] = useState<string[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const firmaWrapRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/leads').then(r => r.json()).catch(() => ({})),
+      fetch('/api/accounting/customers').then(r => r.json()).catch(() => ({})),
+    ]).then(([leadsRes, customersRes]) => {
+      const names = new Set<string>()
+      ;(leadsRes.leads ?? []).forEach((l: Lead) => { if (l.name?.trim()) names.add(l.name.trim()) })
+      ;(customersRes.customers ?? []).forEach((c: { name: string }) => { if (c.name?.trim()) names.add(c.name.trim()) })
+      setSuggestionPool(Array.from(names))
+    })
+  }, [])
+
+  useEffect(() => {
+    function close(e: MouseEvent) {
+      if (firmaWrapRef.current && !firmaWrapRef.current.contains(e.target as Node)) setShowSuggestions(false)
+    }
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [])
+
+  const suggestions = useMemo(() => {
+    const q = firma.trim().toLowerCase()
+    if (!q) return []
+    return suggestionPool.filter(n => n.toLowerCase().includes(q) && n.toLowerCase() !== q).slice(0, 6)
+  }, [firma, suggestionPool])
 
   async function save() {
     if (!firma || !date) return
@@ -73,16 +103,32 @@ function NewAppointmentModal({
         </div>
 
         <div className="space-y-3">
-          <div>
+          <div ref={firmaWrapRef} className="relative">
             <label className="block text-[11px] font-medium text-white/35 mb-1.5">Firma / Kunde *</label>
             <input
               autoFocus
               type="text"
               value={firma}
-              onChange={e => setFirma(e.target.value)}
+              onChange={e => { setFirma(e.target.value); setShowSuggestions(true) }}
+              onFocus={() => setShowSuggestions(true)}
               placeholder="Musterfirma GmbH"
+              autoComplete="off"
               className="w-full bg-dark rounded-xl px-3.5 py-3 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all"
             />
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="absolute left-0 right-0 top-full mt-1.5 z-10 bg-panel-hover rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.6)] border border-white/10 overflow-hidden">
+                {suggestions.map(name => (
+                  <button
+                    key={name}
+                    type="button"
+                    onClick={() => { setFirma(name); setShowSuggestions(false) }}
+                    className="w-full text-left px-3.5 py-2.5 text-sm text-white/80 hover:bg-white/8 transition-colors"
+                  >
+                    {name}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <DatePicker label="Datum *" value={date} onChange={setDate} />

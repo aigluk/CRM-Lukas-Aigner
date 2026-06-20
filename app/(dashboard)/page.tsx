@@ -1,4 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { getWorkspaceOwnerId } from '@/lib/workspace'
 import { StatTiles } from '@/components/dashboard/StatTiles'
 import { KPICards } from '@/components/dashboard/KPICards'
 import { ActivityFeed } from '@/components/dashboard/ActivityFeed'
@@ -15,11 +17,16 @@ export default async function DashboardPage() {
     !process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder')
   if (isSupabaseConfigured) {
     const supabase = await createClient()
-    const { data: leads } = await supabase
-      .from('leads')
-      .select('*')
-      .order('updated_at', { ascending: false })
-    all = leads ?? []
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const ownerId = await getWorkspaceOwnerId(user.id)
+      const { data: leads } = await createAdminClient()
+        .from('leads')
+        .select('*')
+        .eq('user_id', ownerId)
+        .order('updated_at', { ascending: false })
+      all = leads ?? []
+    }
   }
 
   return (

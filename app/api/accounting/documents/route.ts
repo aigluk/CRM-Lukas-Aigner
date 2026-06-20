@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getWorkspaceOwnerId } from '@/lib/workspace'
 import { NextRequest, NextResponse } from 'next/server'
 import { renderToBuffer } from '@react-pdf/renderer'
 import { DocumentPdf, type CompanyInfo } from '@/lib/pdf/DocumentPdf'
@@ -74,10 +75,11 @@ export async function GET(req: NextRequest) {
   try {
     const user = await getAuthUser()
     if (!user) return NextResponse.json({ error: 'Nicht angemeldet' }, { status: 401 })
+    const ownerId = await getWorkspaceOwnerId(user.id)
 
     const docType = req.nextUrl.searchParams.get('doc_type')
 
-    let query = db().from('accounting_documents').select('*').eq('user_id', user.id)
+    let query = db().from('accounting_documents').select('*').eq('user_id', ownerId)
     if (docType) query = query.eq('doc_type', docType)
 
     const { data, error } = await query.order('issue_date', { ascending: false })
@@ -96,15 +98,16 @@ export async function POST(req: NextRequest) {
   try {
     const user = await getAuthUser()
     if (!user) return NextResponse.json({ error: 'Nicht angemeldet' }, { status: 401 })
+    const ownerId = await getWorkspaceOwnerId(user.id)
 
     const body = await req.json()
     const docType: DocType = body.doc_type === 'quote' ? 'quote' : 'invoice'
     const lineItems: LineItem[] = Array.isArray(body.line_items) ? body.line_items : []
 
-    const docNumber = body.doc_number?.trim() || await nextDocNumber(user.id, docType)
+    const docNumber = body.doc_number?.trim() || await nextDocNumber(ownerId, docType)
 
     const row = {
-      user_id:        user.id,
+      user_id:        ownerId,
       doc_type:       docType,
       doc_number:     docNumber,
       customer_id:    body.customer_id || null,
@@ -129,7 +132,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    const pdfPath = await generateAndStorePdf(data as AccountingDocument, user.id)
+    const pdfPath = await generateAndStorePdf(data as AccountingDocument, ownerId)
     if (pdfPath) {
       await db().from('accounting_documents').update({ pdf_path: pdfPath }).eq('id', data.id)
       data.pdf_path = pdfPath
@@ -146,6 +149,7 @@ export async function PATCH(req: NextRequest) {
   try {
     const user = await getAuthUser()
     if (!user) return NextResponse.json({ error: 'Nicht angemeldet' }, { status: 401 })
+    const ownerId = await getWorkspaceOwnerId(user.id)
 
     const { id, ...updates } = await req.json()
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })
@@ -154,7 +158,7 @@ export async function PATCH(req: NextRequest) {
       .from('accounting_documents')
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', id)
-      .eq('user_id', user.id)
+      .eq('user_id', ownerId)
       .select()
       .single()
 
@@ -166,7 +170,7 @@ export async function PATCH(req: NextRequest) {
       'tax_rate', 'notes', 'due_date', 'issue_date', 'service_date', 'language',
     ].some(k => k in updates)
     if (contentChanged) {
-      const pdfPath = await generateAndStorePdf(data as AccountingDocument, user.id)
+      const pdfPath = await generateAndStorePdf(data as AccountingDocument, ownerId)
       if (pdfPath) data.pdf_path = pdfPath
     }
 
@@ -181,14 +185,15 @@ export async function DELETE(req: NextRequest) {
   try {
     const user = await getAuthUser()
     if (!user) return NextResponse.json({ error: 'Nicht angemeldet' }, { status: 401 })
+    const ownerId = await getWorkspaceOwnerId(user.id)
 
     const id = req.nextUrl.searchParams.get('id')
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })
 
-    const { data: doc } = await db().from('accounting_documents').select('pdf_path').eq('id', id).eq('user_id', user.id).single()
+    const { data: doc } = await db().from('accounting_documents').select('pdf_path').eq('id', id).eq('user_id', ownerId).single()
     if (doc?.pdf_path) await db().storage.from('accounting').remove([doc.pdf_path])
 
-    const { error } = await db().from('accounting_documents').delete().eq('id', id).eq('user_id', user.id)
+    const { error } = await db().from('accounting_documents').delete().eq('id', id).eq('user_id', ownerId)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
     return NextResponse.json({ success: true })

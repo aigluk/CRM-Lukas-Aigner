@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Lead } from '@/lib/types'
 import {
-  Sparkles, Plus, Loader2, MapPin, Phone, Mail,
+  Radar, Plus, Loader2, MapPin, Phone, Mail,
   ExternalLink, User, Building2, CheckCircle,
   Clock, X, RotateCcw,
 } from 'lucide-react'
@@ -35,6 +35,14 @@ type BranchItem = {
   custom: boolean
 }
 
+type CountryItem = {
+  id: string
+  code: string
+  label: string
+  cities: string[]
+  custom?: boolean
+}
+
 type FilterMode = 'all' | 'email' | 'ceo'
 
 // ── Static data ────────────────────────────────────────────────────────────────
@@ -44,7 +52,7 @@ const DEFAULT_LABELS = [
   'Projektentwicklung', 'Hotels', 'Events/Eventlocations', 'Vermietung',
 ]
 
-const COUNTRIES = [
+const DEFAULT_COUNTRIES: CountryItem[] = [
   { id: 'at', code: 'AT', label: 'Österreich', cities: ['Wien', 'Graz', 'Linz', 'Salzburg', 'Innsbruck', 'Klagenfurt', 'St. Pölten', 'Wels'] },
   { id: 'de', code: 'DE', label: 'Deutschland', cities: ['München', 'Berlin', 'Hamburg', 'Frankfurt', 'Stuttgart', 'Düsseldorf', 'Köln', 'Nürnberg'] },
   { id: 'ch', code: 'CH', label: 'Schweiz',     cities: ['Zürich', 'Genf', 'Basel', 'Bern', 'Lausanne', 'Zug'] },
@@ -61,6 +69,7 @@ const RADII = [
 ]
 
 const LS_BRANCHES = 'la-crm-gen-branches-v2'
+const LS_COUNTRIES = 'la-crm-gen-countries-v1'
 const LS_RECENT   = 'la-crm-gen-recent'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -106,6 +115,12 @@ export function GeneratorForm() {
   const [addingBranch, setAddingBranch] = useState(false)
   const addInputRef = useRef<HTMLInputElement>(null)
 
+  // Country management
+  const [countries, setCountries]       = useState<CountryItem[]>(DEFAULT_COUNTRIES)
+  const [newCountryInput, setNewCountryInput] = useState('')
+  const [addingCountry, setAddingCountry] = useState(false)
+  const addCountryInputRef = useRef<HTMLInputElement>(null)
+
   // Drag & drop
   const dragIdRef   = useRef<string | null>(null)
   const [dragOverId, setDragOverId] = useState<string | null>(null)
@@ -121,13 +136,48 @@ export function GeneratorForm() {
         ? stored
         : DEFAULT_LABELS.map(l => ({ id: l, label: l, custom: false }))
     )
+    const storedCountries = ls<CountryItem[]>(LS_COUNTRIES, [])
+    if (storedCountries.length > 0) setCountries(storedCountries)
     setRecentSearches(ls<RecentSearch[]>(LS_RECENT, []))
   }, [])
 
   useEffect(() => { if (addingBranch) addInputRef.current?.focus() }, [addingBranch])
+  useEffect(() => { if (addingCountry) addCountryInputRef.current?.focus() }, [addingCountry])
 
-  const country     = COUNTRIES.find(c => c.id === countryId)!
+  const country     = countries.find(c => c.id === countryId) ?? countries[0]
   const locationStr = customCity || city || country.label
+
+  // ── Country management ─────────────────────────────────────────────────────
+
+  function saveCountries(updated: CountryItem[]) {
+    setCountries(updated)
+    localStorage.setItem(LS_COUNTRIES, JSON.stringify(updated))
+  }
+
+  function addCountry() {
+    const label = newCountryInput.trim()
+    if (!label) return
+    const id = label.toLowerCase().replace(/\s+/g, '-')
+    if (!countries.find(c => c.id === id)) {
+      saveCountries([...countries, { id, code: label.slice(0, 2).toUpperCase(), label, cities: [], custom: true }])
+    }
+    setNewCountryInput(''); setAddingCountry(false)
+    setCountryId(id); setCity(''); setCustomCity('')
+  }
+
+  function removeCountry(id: string) {
+    const updated = countries.filter(c => c.id !== id)
+    saveCountries(updated)
+    if (countryId === id) {
+      setCountryId(updated[0]?.id ?? '')
+      setCity(''); setCustomCity('')
+    }
+  }
+
+  function restoreDefaultCountries() {
+    const customOnes = countries.filter(c => c.custom)
+    saveCountries([...DEFAULT_COUNTRIES, ...customOnes])
+  }
 
   // ── Branch management ──────────────────────────────────────────────────────
 
@@ -273,6 +323,7 @@ export function GeneratorForm() {
     }`
 
   const hasDefaultsHidden = !DEFAULT_LABELS.every(l => branches.some(b => b.id === l))
+  const hasDefaultCountriesHidden = !DEFAULT_COUNTRIES.every(dc => countries.some(c => c.id === dc.id))
 
   return (
     <div className="flex flex-col h-full">
@@ -295,7 +346,7 @@ export function GeneratorForm() {
           <div className="bg-panel rounded-2xl p-5">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2">
-                <Sparkles size={14} strokeWidth={2.6} className="text-accent" />
+                <Radar size={14} strokeWidth={2.6} className="text-accent" />
                 <h2 className="text-sm font-black text-white">Branche</h2>
               </div>
               {hasDefaultsHidden && (
@@ -375,28 +426,75 @@ export function GeneratorForm() {
 
           {/* Region */}
           <div className="bg-panel rounded-2xl p-5">
-            <div className="flex items-center gap-2 mb-5">
-              <MapPin size={14} className="text-white/30" />
-              <h2 className="text-sm font-black text-white">Region</h2>
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-2">
+                <MapPin size={14} className="text-white/30" />
+                <h2 className="text-sm font-black text-white">Region</h2>
+              </div>
+              {hasDefaultCountriesHidden && (
+                <button type="button" onClick={restoreDefaultCountries}
+                  className="text-[10px] font-bold text-white/25 hover:text-white/60 flex items-center gap-1 transition-colors">
+                  <RotateCcw size={10} />Standard
+                </button>
+              )}
             </div>
 
             <p className="text-xs font-black text-white/20 mb-2.5">Land</p>
-            <div className="flex flex-wrap gap-1.5 mb-5">
-              {COUNTRIES.map(c => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => { setCountryId(c.id); setCity(''); setCustomCity('') }}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                    countryId === c.id ? 'bg-accent text-white' : 'bg-dark text-white/35 hover:text-white/70'
-                  }`}
-                >
-                  <span className={`text-[8px] font-black tracking-wider px-1 py-0.5 rounded ${
-                    countryId === c.id ? 'bg-white/20 text-white' : 'bg-white/8 text-white/30'
-                  }`}>{c.code}</span>
-                  {c.label}
-                </button>
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {countries.map(c => (
+                <div key={c.id} className="relative group/pill">
+                  <button
+                    type="button"
+                    onClick={() => { setCountryId(c.id); setCity(''); setCustomCity('') }}
+                    className={`flex items-center gap-1.5 pr-7 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
+                      countryId === c.id ? 'bg-accent text-white' : 'bg-dark text-white/35 hover:text-white/70'
+                    }`}
+                  >
+                    <span className={`text-[8px] font-black tracking-wider px-1 py-0.5 rounded ${
+                      countryId === c.id ? 'bg-white/20 text-white' : 'bg-white/8 text-white/30'
+                    }`}>{c.code}</span>
+                    {c.label}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeCountry(c.id)}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full flex items-center justify-center opacity-0 group-hover/pill:opacity-100 hover:bg-white/20 transition-all"
+                  >
+                    <X size={8} className="text-white/60" />
+                  </button>
+                </div>
               ))}
+            </div>
+
+            <div className="mb-5">
+              {addingCountry ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={addCountryInputRef}
+                    type="text"
+                    value={newCountryInput}
+                    onChange={e => setNewCountryInput(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') { e.preventDefault(); addCountry() }
+                      if (e.key === 'Escape') setAddingCountry(false)
+                    }}
+                    placeholder="Land eingeben…"
+                    className="flex-1 bg-dark rounded-xl px-3 py-2 text-xs text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent"
+                  />
+                  <button type="button" onClick={addCountry}
+                    className="bg-accent text-white text-xs font-bold px-3 py-2 rounded-xl hover:bg-accent-hover transition-all">OK</button>
+                  <button type="button" onClick={() => setAddingCountry(false)}
+                    className="text-white/30 hover:text-white px-2 py-2 rounded-xl transition-colors"><X size={13} /></button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setAddingCountry(true)}
+                  className="flex items-center gap-1.5 text-xs font-bold text-white/25 hover:text-white/60 transition-colors"
+                >
+                  <Plus size={12} />Eigenes Land
+                </button>
+              )}
             </div>
 
             <p className="text-xs font-black text-white/20 mb-2.5">Stadt / Ort</p>
@@ -466,7 +564,7 @@ export function GeneratorForm() {
           >
             {loading
               ? <><Loader2 size={16} className="animate-spin" />Generiere…</>
-              : <><Sparkles size={16} strokeWidth={2.4} />Leads generieren</>
+              : <><Radar size={16} strokeWidth={2.4} />Leads generieren</>
             }
           </button>
         </form>
@@ -485,7 +583,7 @@ export function GeneratorForm() {
             <>
               <div className="bg-panel rounded-2xl flex items-center gap-5 px-6 py-6">
                 <div className="w-10 h-10 rounded-xl bg-accent/12 flex items-center justify-center shrink-0">
-                  <Sparkles size={18} strokeWidth={2.4} className="text-accent" />
+                  <Radar size={18} strokeWidth={2.4} className="text-accent" />
                 </div>
                 <div>
                   <p className="text-sm font-black text-white/25">Branche &amp; Region wählen</p>
@@ -501,7 +599,7 @@ export function GeneratorForm() {
                   </div>
                   <div>
                     {recentSearches.map((r, i) => {
-                      const loc = r.customCity || r.city || COUNTRIES.find(c => c.id === r.countryId)?.label || ''
+                      const loc = r.customCity || r.city || countries.find(c => c.id === r.countryId)?.label || ''
                       return (
                         <div
                           key={i}

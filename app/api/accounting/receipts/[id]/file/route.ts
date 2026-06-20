@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getWorkspaceOwnerId } from '@/lib/workspace'
 import { NextRequest, NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'
@@ -22,13 +23,14 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const { id } = await params
   const user = await getAuthUser()
   if (!user) return NextResponse.json({ error: 'Nicht angemeldet' }, { status: 401 })
+  const ownerId = await getWorkspaceOwnerId(user.id)
 
   const admin = createAdminClient()
   const { data: receipt, error } = await admin
     .from('accounting_receipts')
     .select('file_path')
     .eq('id', id)
-    .eq('user_id', user.id)
+    .eq('user_id', ownerId)
     .single()
 
   if (error || !receipt?.file_path) return NextResponse.json({ error: 'Nicht gefunden' }, { status: 404 })
