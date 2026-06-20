@@ -59,7 +59,7 @@ export function ReceiptModal({ onClose, onSaved }: { onClose: () => void; onSave
         setOcrRaw(data.raw ?? '')
       }
     } catch {
-      // OCR best-effort — manual entry still works
+      // OCR best-effort - manual entry still works
     } finally {
       setOcrLoading(false)
     }

@@ -134,7 +134,6 @@ function ListPeriodFilter({ period, onChange }: { period: ListPeriod; onChange: 
 
 const KU_LIMIT = 55000
 const KU_TOLERANCE = 60500
-const SVS_RATE = 0.2683
 
 const INCOME_TAX_BRACKETS_AT: [number, number, number][] = [
   [0, 13539, 0],
@@ -185,7 +184,7 @@ function fmtMoney(n: number): string {
   return n.toLocaleString('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
 }
 function fmtDate(d?: string): string {
-  if (!d) return '—'
+  if (!d) return '-'
   return new Date(d).toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 function docTotal(doc: AccountingDocument): number {
@@ -337,8 +336,7 @@ export function AccountingView() {
     const estimatedIncomeTax = estimatedAnnualIncomeTax / annualizeFactor
     const estimatedQuarterlyPrepayment = estimatedAnnualIncomeTax / 4
 
-    const estimatedSvs = Math.max(0, profitBeforeTax) * SVS_RATE
-    const profitAfterTax = profitBeforeTax - estimatedIncomeTax - estimatedSvs
+    const profitAfterTax = profitBeforeTax - estimatedIncomeTax
 
     return {
       label, revenueGross, revenueNet, vatCollected,
@@ -347,7 +345,7 @@ export function AccountingView() {
       periodInvoices,
       smallBusinessActive, ytdRevenueGross,
       estimatedIncomeTax, estimatedAnnualIncomeTax, estimatedQuarterlyPrepayment,
-      estimatedSvs, profitAfterTax,
+      profitAfterTax,
     }
   }, [invoices, receipts, periodMode, periodYear, periodMonth, periodQuarter, company])
 
@@ -366,7 +364,6 @@ export function AccountingView() {
         profitBeforeTax: closing.profitBeforeTax,
         estimatedIncomeTax: closing.estimatedIncomeTax,
         profitAfterTax: closing.profitAfterTax,
-        estimatedSvs: closing.estimatedSvs,
         smallBusinessActive: closing.smallBusinessActive,
         ytdRevenueGross: closing.ytdRevenueGross,
         kuLimit: KU_LIMIT,
@@ -562,7 +559,7 @@ export function AccountingView() {
               className="w-full bg-panel rounded-2xl py-8 flex flex-col items-center justify-center gap-2 text-white/20 hover:text-white/40 transition-colors"
             >
               <Eye size={20} />
-              <span className="text-xs font-bold">Kennzahlen ausgeblendet — klicken zum Anzeigen</span>
+              <span className="text-xs font-bold">Kennzahlen ausgeblendet - klicken zum Anzeigen</span>
             </button>
           )}
 
@@ -641,7 +638,7 @@ export function AccountingView() {
           </div>
 
           <div>
-            <p className="text-xs text-white/30 mb-2 px-1">Abschluss · {closing.label} — {closing.invoiceCount} bezahlte Rechnung(en)</p>
+            <p className="text-xs text-white/30 mb-2 px-1">Abschluss · {closing.label} - {closing.invoiceCount} bezahlte Rechnung(en)</p>
             <DocList docs={closing.periodInvoices} type="invoice" />
           </div>
         </div>

@@ -118,7 +118,7 @@ function fmtMoney(n: number): string {
 }
 
 function fmtDate(d?: string, lang: DocLanguage = 'de'): string {
-  if (!d) return '—'
+  if (!d) return '-'
   return new Date(d).toLocaleDateString(lang === 'en' ? 'en-GB' : 'de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
@@ -247,7 +247,7 @@ export function DocumentPdf({ doc, company }: { doc: AccountingDocument; company
               <Text style={styles.cPos}>{tr.pos} {i + 1}</Text>
               <Text style={styles.cSvc}>{item.description}</Text>
               <Text style={styles.cQty}>x{item.qty}</Text>
-              <Text style={styles.cDur}>{item.duration || '—'}</Text>
+              <Text style={styles.cDur}>{item.duration || '-'}</Text>
               <Text style={styles.cSum}>{fmtMoney(item.qty * item.unit_price)}</Text>
             </View>
           ))}

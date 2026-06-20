@@ -84,7 +84,6 @@ export interface ClosingPdfData {
   profitBeforeTax: number
   estimatedIncomeTax: number
   profitAfterTax: number
-  estimatedSvs: number
   smallBusinessActive: boolean
   ytdRevenueGross: number
   kuLimit: number
@@ -123,7 +122,7 @@ export function ClosingPdf({ data, company }: { data: ClosingPdfData; company: C
           <Text style={styles.titleText}>{data.label}</Text>
         </View>
         <Text style={styles.subtitle}>
-          Einnahmen-Überschuss-Rechnung (EÜR) — vorläufige Berechnung · {data.invoiceCount} bezahlte Rechnung(en) · {data.receiptCount} Ausgabenbeleg(e)
+          Einnahmen-Überschuss-Rechnung (EÜR) - vorläufige Berechnung · {data.invoiceCount} bezahlte Rechnung(en) · {data.receiptCount} Ausgabenbeleg(e)
         </Text>
 
         <Text style={styles.sectionTitle}>Einnahmen & Umsatzsteuer</Text>
@@ -153,12 +152,6 @@ export function ClosingPdf({ data, company }: { data: ClosingPdfData; company: C
 
         <Text style={styles.noteStrong}>Kleinunternehmer-Status</Text>
         <Text style={styles.note}>{kuStatusText}</Text>
-
-        <Text style={styles.noteStrong}>SVS-Beiträge (Sozialversicherung der Selbständigen)</Text>
-        <Text style={styles.note}>
-          Geschätzte SVS-Pflichtbeiträge für den Zeitraum: {fmtMoney(data.estimatedSvs)} (ca. 26,83 % vom Gewinn vor Steuern, GSVG-Pflichtversicherung exkl. Unfallversicherungspauschale).
-          Die tatsächliche Höhe richtet sich nach der vorläufigen bzw. endgültigen Beitragsgrundlage der SVS inkl. Mindestbeitragsgrundlage und kann abweichen.
-        </Text>
 
         <View style={styles.footerNotes}>
           <Text style={styles.footerPara}>

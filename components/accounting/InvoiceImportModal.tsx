@@ -59,7 +59,7 @@ export function InvoiceImportModal({
         if (data.invoice_number) setDetectedNumber(data.invoice_number)
       }
     } catch {
-      // OCR best-effort — manual entry still works
+      // OCR best-effort - manual entry still works
     } finally {
       setOcrLoading(false)
     }
