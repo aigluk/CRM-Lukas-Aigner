@@ -213,47 +213,60 @@ export function DocumentModal({
           {/* Line items */}
           <div>
             <label className={labelCls}>Positionen</label>
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {items.map((item, idx) => (
-                <div key={idx} className="flex gap-2 items-start flex-wrap">
-                  <input
-                    type="text" value={item.description}
-                    onChange={e => updateItem(idx, { description: e.target.value })}
-                    placeholder="Beschreibung"
-                    className={`${inputCls} flex-1 min-w-35`}
-                  />
-                  <input
-                    type="number" value={item.qty} min={0} step="any"
-                    onChange={e => updateItem(idx, { qty: parseFloat(e.target.value) || 0 })}
-                    placeholder="Anzahl"
-                    className={`${inputCls} w-20`}
-                  />
-                  <input
-                    type="text" value={item.duration ?? ''}
-                    onChange={e => updateItem(idx, { duration: e.target.value })}
-                    placeholder="Laufzeit"
-                    className={`${inputCls} w-24`}
-                  />
-                  <input
-                    type="number" value={item.unit_price} min={0} step="any"
-                    onChange={e => updateItem(idx, { unit_price: parseFloat(e.target.value) || 0 })}
-                    placeholder="Preis"
-                    className={`${inputCls} w-24`}
-                  />
+                <div key={idx} className="bg-dark rounded-2xl p-3.5 relative">
                   <button
                     type="button" onClick={() => removeItem(idx)}
-                    className="p-2.5 text-white/20 hover:text-accent transition-colors shrink-0"
+                    title="Position entfernen"
+                    className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full flex items-center justify-center text-white/25 hover:text-accent hover:bg-accent/10 transition-all"
                   >
-                    <Trash2 size={14} />
+                    <Trash2 size={13} />
                   </button>
+                  <div className="grid grid-cols-2 sm:grid-cols-[1fr_70px_90px_100px] gap-2.5 pr-9">
+                    <div className="col-span-2 sm:col-span-1">
+                      <label className="block text-[10px] font-black uppercase tracking-wide text-white/25 mb-1">Leistung</label>
+                      <input
+                        type="text" value={item.description}
+                        onChange={e => updateItem(idx, { description: e.target.value })}
+                        placeholder="Beschreibung"
+                        className={inputCls}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase tracking-wide text-white/25 mb-1">Anzahl</label>
+                      <input
+                        type="number" value={item.qty} min={0} step="any"
+                        onChange={e => updateItem(idx, { qty: parseFloat(e.target.value) || 0 })}
+                        className={`${inputCls} text-right`}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase tracking-wide text-white/25 mb-1">Laufzeit</label>
+                      <input
+                        type="text" value={item.duration ?? ''}
+                        onChange={e => updateItem(idx, { duration: e.target.value })}
+                        placeholder="optional"
+                        className={inputCls}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-black uppercase tracking-wide text-white/25 mb-1">Preis (€)</label>
+                      <input
+                        type="number" value={item.unit_price} min={0} step="any"
+                        onChange={e => updateItem(idx, { unit_price: parseFloat(e.target.value) || 0 })}
+                        className={`${inputCls} text-right`}
+                      />
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
             <button
               type="button" onClick={addItem}
-              className="flex items-center gap-1.5 text-xs font-bold text-white/40 hover:text-white transition-colors mt-2"
+              className="mt-3 w-full flex items-center justify-center gap-2 bg-accent hover:bg-accent-hover text-white font-black text-sm py-3 rounded-xl transition-all active:scale-[0.98]"
             >
-              <Plus size={13} />Position hinzufügen
+              <Plus size={16} strokeWidth={3} />Position hinzufügen
             </button>
           </div>
 

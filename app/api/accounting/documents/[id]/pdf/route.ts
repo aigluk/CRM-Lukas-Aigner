@@ -21,10 +21,13 @@ async function getAuthUser(): Promise<{ id: string } | null> {
   }
 }
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const user = await getAuthUser()
   if (!user) return NextResponse.json({ error: 'Nicht angemeldet' }, { status: 401 })
+
+  const forceDownload = req.nextUrl.searchParams.get('dl') === '1'
+  const disposition = forceDownload ? 'attachment' : 'inline'
 
   const admin = createAdminClient()
   const { data: doc, error } = await admin
@@ -44,7 +47,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       return new NextResponse(buffer, {
         headers: {
           'Content-Type': 'application/pdf',
-          'Content-Disposition': `inline; filename="${doc.doc_number}.pdf"`,
+          'Content-Disposition': `${disposition}; filename="${doc.doc_number}.pdf"`,
         },
       })
     }
@@ -58,7 +61,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   return new NextResponse(new Uint8Array(pdfBuffer), {
     headers: {
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `inline; filename="${doc.doc_number}.pdf"`,
+      'Content-Disposition': `${disposition}; filename="${doc.doc_number}.pdf"`,
     },
   })
 }

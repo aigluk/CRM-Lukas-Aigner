@@ -9,7 +9,6 @@ const STATUS_HEX: Record<string, string> = {
   'CLOSING CALL':     '#FF5252',
   'ABSCHLUSS':        '#B9FBC0',
   'KEIN INTERESSE':   'rgba(255,255,255,0.12)',
-  'BESTANDSKUNDE':    '#B9FBC0',
   'NO GO':            'rgba(255,255,255,0.06)',
 }
 

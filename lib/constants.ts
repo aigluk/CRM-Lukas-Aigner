@@ -7,7 +7,6 @@ export const STATUSES: LeadStatus[] = [
   'CLOSING CALL',
   'ABSCHLUSS',
   'KEIN INTERESSE',
-  'BESTANDSKUNDE',
   'NO GO',
 ]
 
@@ -18,7 +17,6 @@ export const STATUS_LABELS: Record<LeadStatus, string> = {
   'CLOSING CALL':    'Closing Call',
   'ABSCHLUSS':       'Abschluss',
   'KEIN INTERESSE':  'Kein Interesse',
-  'BESTANDSKUNDE':   'Bestandskunde',
   'NO GO':           'No Go',
 }
 
@@ -29,7 +27,6 @@ export const STATUS_COLORS: Record<LeadStatus, { bg: string; text: string; dot: 
   'CLOSING CALL':    { bg: 'bg-accent/20',       text: 'text-accent',       dot: 'bg-accent'      },
   'ABSCHLUSS':       { bg: 'bg-accent-green/15', text: 'text-accent-green', dot: 'bg-accent-green'},
   'KEIN INTERESSE':  { bg: 'bg-white/4',         text: 'text-white/22',     dot: 'bg-white/18'    },
-  'BESTANDSKUNDE':   { bg: 'bg-accent-green/20', text: 'text-accent-green', dot: 'bg-accent-green'},
   'NO GO':           { bg: 'bg-white/3',         text: 'text-white/12',     dot: 'bg-white/10'    },
 }
 

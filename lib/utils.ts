@@ -7,7 +7,6 @@ export function normalizeStatus(status?: string | null): LeadStatus {
   if (s.includes('verkauf') || s.includes('gespräch') || s.includes('termin') || s.includes('erst') || s.includes('kontakt')) return 'VERKAUFSGESPRÄCH'
   if (s.includes('abschluss') || s.includes('deal won'))                       return 'ABSCHLUSS'
   if (s.includes('kein') || s.includes('interesse'))                           return 'KEIN INTERESSE'
-  if (s.includes('bestand'))                                                   return 'BESTANDSKUNDE'
   if (s.includes('no go') || s.includes('nogo') || s.includes('blacklist'))   return 'NO GO'
   return 'NEU'
 }

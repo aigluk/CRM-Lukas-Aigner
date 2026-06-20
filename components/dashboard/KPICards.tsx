@@ -17,7 +17,6 @@ const STAGE_COLORS: Record<string, string> = {
   'CLOSING CALL':    'bg-accent',
   'ABSCHLUSS':       'bg-accent-green',
   'KEIN INTERESSE':  'bg-white/20',
-  'BESTANDSKUNDE':   'bg-accent-green/60',
   'NO GO':           'bg-white/10',
 }
 

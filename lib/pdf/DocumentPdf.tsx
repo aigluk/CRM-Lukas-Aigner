@@ -14,11 +14,10 @@ export interface CompanyInfo {
   small_business?: boolean
 }
 
-const ACCENT = '#FF5252'
 const INK = '#1A1A1A'
 const MUTED = '#7A7A7A'
 const RULE = '#1A1A1A'
-const ROW_ALT = '#F4F4F4'
+const RULE_LIGHT = '#BFBFBF'
 const HEAD_BG = '#E2E2E2'
 const TOTAL_BG = '#C9C9C9'
 
@@ -73,26 +72,26 @@ const styles = StyleSheet.create({
   brandRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 18 },
   logo: { width: 22, height: 22, marginRight: 10 },
   brandName: { fontSize: 14, fontWeight: 700, color: INK },
-  brandRule: { borderBottomWidth: 1, borderBottomColor: RULE, marginBottom: 22 },
+  brandRule: { borderBottomWidth: 0.5, borderBottomColor: RULE_LIGHT, marginBottom: 22 },
 
-  metaRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 22 },
+  metaRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 26 },
   metaCol: { flexDirection: 'column', width: '48%' },
   metaLine: { flexDirection: 'row', marginBottom: 5 },
-  metaLabel: { width: 70, fontSize: 8.5, fontWeight: 700, color: INK },
-  metaValue: { flex: 1, fontSize: 8.5, color: INK },
+  metaLineRight: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 },
+  metaLabel: { width: 64, fontSize: 8.5, fontWeight: 700, color: INK },
+  metaLabelRight: { fontSize: 8.5, fontWeight: 700, color: INK },
+  metaValue: { flex: 1, fontSize: 8.5, color: INK, textAlign: 'left' },
+  metaValueRight: { fontSize: 8.5, color: INK, textAlign: 'right' },
 
-  titleRule: { borderTopWidth: 1.2, borderTopColor: RULE, paddingTop: 10, marginBottom: 4 },
-  titleRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
+  titleRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 18 },
   titleText: { fontSize: 13, fontWeight: 700, color: INK },
-  titleRuleBottom: { borderBottomWidth: 1.2, borderBottomColor: RULE, marginBottom: 16 },
 
   greeting: { fontSize: 9, lineHeight: 1.5, marginBottom: 10 },
   smallBizNote: { fontSize: 9, lineHeight: 1.5, marginBottom: 16 },
 
   table: { marginTop: 4, marginBottom: 16 },
   tHeadRow: { flexDirection: 'row', backgroundColor: HEAD_BG, paddingVertical: 6, paddingHorizontal: 8 },
-  tRow: { flexDirection: 'row', paddingVertical: 6, paddingHorizontal: 8 },
-  tRowAlt: { backgroundColor: ROW_ALT },
+  tRow: { flexDirection: 'row', paddingVertical: 6, paddingHorizontal: 8, borderBottomWidth: 0.5, borderBottomColor: RULE_LIGHT },
   cPos:  { width: 48, fontSize: 8.5, fontWeight: 700 },
   cSvc:  { flex: 1, fontSize: 8.5 },
   cQty:  { width: 50, fontSize: 8.5, textAlign: 'right' },
@@ -107,11 +106,11 @@ const styles = StyleSheet.create({
   footerNotes: { marginTop: 'auto', paddingTop: 10 },
   footerPara: { fontSize: 8, lineHeight: 1.5, color: MUTED, marginBottom: 8 },
 
-  bottomRule: { borderTopWidth: 0.75, borderTopColor: '#BBBBBB', marginTop: 6, marginBottom: 10 },
+  bottomRule: { borderTopWidth: 0.5, borderTopColor: RULE_LIGHT, marginTop: 6, marginBottom: 10 },
   bottomRow: { flexDirection: 'row', justifyContent: 'space-between' },
   bottomCol: { flexDirection: 'column', width: '48%' },
   bottomLine: { fontSize: 8, color: INK, marginBottom: 2, fontWeight: 700 },
-  bottomLineMuted: { fontSize: 8, color: INK, marginBottom: 2 },
+  bottomLineMuted: { fontSize: 8, color: INK, marginBottom: 2, fontWeight: 700 },
 })
 
 function fmtMoney(n: number): string {
@@ -135,11 +134,11 @@ function BrandLogo() {
   return (
     <Svg viewBox="0 0 1080 1080" style={styles.logo}>
       <Polygon
-        fill={ACCENT}
+        fill={INK}
         points="778.73 456.88 486.36 456.88 604.46 147.27 990.54 0 660.64 0 473.2 0 236.36 620.89 348.58 620.89 423.8 620.89 778.73 620.89 778.73 1080 1017.92 456.88 910.89 456.88 778.73 456.88"
       />
       <Polygon
-        fill={ACCENT}
+        fill={INK}
         points="370.17 761.47 182.74 761.47 62.08 1077.77 171.52 1077.77 249.52 1077.77 595.15 1077.77 293.42 962.67 370.17 761.47"
       />
     </Svg>
@@ -194,36 +193,34 @@ export function DocumentPdf({ doc, company }: { doc: AccountingDocument; company
             )}
           </View>
           <View style={styles.metaCol}>
-            <View style={styles.metaLine}>
-              <Text style={styles.metaLabel}>{tr.docNo[k]}</Text>
-              <Text style={styles.metaValue}>{doc.doc_number}</Text>
+            <View style={styles.metaLineRight}>
+              <Text style={styles.metaLabelRight}>{tr.docNo[k]}</Text>
+              <Text style={styles.metaValueRight}>{doc.doc_number}</Text>
             </View>
-            <View style={styles.metaLine}>
-              <Text style={styles.metaLabel}>{tr.issueDate[k]}</Text>
-              <Text style={styles.metaValue}>{fmtDate(doc.issue_date, lang)}</Text>
+            <View style={styles.metaLineRight}>
+              <Text style={styles.metaLabelRight}>{tr.issueDate[k]}</Text>
+              <Text style={styles.metaValueRight}>{fmtDate(doc.issue_date, lang)}</Text>
             </View>
             {doc.service_date && (
-              <View style={styles.metaLine}>
-                <Text style={styles.metaLabel}>{tr.serviceDate}</Text>
-                <Text style={styles.metaValue}>{fmtDate(doc.service_date, lang)}</Text>
+              <View style={styles.metaLineRight}>
+                <Text style={styles.metaLabelRight}>{tr.serviceDate}</Text>
+                <Text style={styles.metaValueRight}>{fmtDate(doc.service_date, lang)}</Text>
               </View>
             )}
             {doc.due_date && (
-              <View style={styles.metaLine}>
-                <Text style={styles.metaLabel}>{tr.dueDate[k]}</Text>
-                <Text style={styles.metaValue}>{fmtDate(doc.due_date, lang)}</Text>
+              <View style={styles.metaLineRight}>
+                <Text style={styles.metaLabelRight}>{tr.dueDate[k]}</Text>
+                <Text style={styles.metaValueRight}>{fmtDate(doc.due_date, lang)}</Text>
               </View>
             )}
           </View>
         </View>
 
         {/* Title bar */}
-        <View style={styles.titleRule} />
         <View style={styles.titleRow}>
           <Text style={styles.titleText}>{tr.docTitle[k]}:</Text>
           <Text style={styles.titleText}>{doc.doc_number}</Text>
         </View>
-        <View style={styles.titleRuleBottom} />
 
         {/* Greeting */}
         <Lines text={tr.greeting[k]} style={styles.greeting} />
@@ -241,8 +238,8 @@ export function DocumentPdf({ doc, company }: { doc: AccountingDocument; company
             <Text style={[styles.cSum, styles.thText]}>{tr.sum}</Text>
           </View>
           {items.map((item, i) => (
-            <View key={i} style={i % 2 === 1 ? [styles.tRow, styles.tRowAlt] : styles.tRow}>
-              <Text style={styles.cPos}>{tr.pos.replace(':', '')} {i + 1}</Text>
+            <View key={i} style={styles.tRow}>
+              <Text style={styles.cPos}>{tr.pos} {i + 1}</Text>
               <Text style={styles.cSvc}>{item.description}</Text>
               <Text style={styles.cQty}>x{item.qty}</Text>
               <Text style={styles.cDur}>{item.duration || '—'}</Text>

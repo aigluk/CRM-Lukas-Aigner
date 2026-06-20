@@ -12,7 +12,6 @@ const DOT: Record<LeadStatus, string> = {
   'CLOSING CALL':    'bg-accent',
   'ABSCHLUSS':       'bg-accent-green',
   'KEIN INTERESSE':  'bg-white/15',
-  'BESTANDSKUNDE':   'bg-accent-green',
   'NO GO':           'bg-white/10',
 }
 

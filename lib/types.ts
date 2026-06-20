@@ -5,7 +5,6 @@ export type LeadStatus =
   | 'CLOSING CALL'
   | 'ABSCHLUSS'
   | 'KEIN INTERESSE'
-  | 'BESTANDSKUNDE'
   | 'NO GO'
 
 export interface Lead {

@@ -10,7 +10,6 @@ const ACTIVE_STYLE: Record<LeadStatus, string> = {
   'CLOSING CALL':    'bg-white text-dark',
   'ABSCHLUSS':       'bg-accent-green text-dark',
   'KEIN INTERESSE':  'bg-white text-dark',
-  'BESTANDSKUNDE':   'bg-accent-green text-dark',
   'NO GO':           'bg-accent text-white',
 }
 
