@@ -255,7 +255,7 @@ export function LeadDetailModal({
             >
               <Zap size={12} />Im Call
             </button>
-            {editing ? (
+            {editing || callMode ? (
               <>
                 <button
                   onClick={save} disabled={saving}
@@ -264,7 +264,10 @@ export function LeadDetailModal({
                   <Save size={12} />{saving ? '…' : 'Speichern'}
                 </button>
                 <button
-                  onClick={() => { setForm({ ...lead }); setEditAppt(!!lead.appointment_date); setEditing(false) }}
+                  onClick={() => {
+                    setForm({ ...lead }); setEditAppt(!!lead.appointment_date); setEditing(false)
+                    setCallMode(false); setChecked(new Set()); setQuickNote('')
+                  }}
                   className="px-3 py-1.5 bg-panel-hover text-white/40 hover:text-white text-xs font-bold rounded-xl transition-all"
                 >
                   Abbrechen

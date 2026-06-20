@@ -96,11 +96,11 @@ export function TodayPanel({ leads: initialLeads, onEdit }: Props) {
                       onClick={e => e.stopPropagation()}
                       className="flex items-center gap-1 text-xs text-white/40 hover:text-accent transition-colors"
                     >
-                      <Phone size={10} />{l.phone}
+                      <Phone size={11} strokeWidth={2.5} />{l.phone}
                     </a>
                   )}
                 </div>
-                <Pencil size={12} className="text-white/20 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                <Pencil size={13} strokeWidth={2.4} className="text-white/20 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
               </div>
             ))
           )}

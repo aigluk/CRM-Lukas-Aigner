@@ -52,7 +52,7 @@ export function Sidebar() {
                   : 'text-white/70 hover:text-white hover:bg-white/10'
               }`}
             >
-              <Icon size={15} strokeWidth={active ? 2.5 : 2} className={active ? 'text-accent' : 'text-white/55'} />
+              <Icon size={16} strokeWidth={active ? 2.75 : 2.4} className={active ? 'text-accent' : 'text-white/55'} />
               {label}
             </Link>
           )
@@ -74,14 +74,14 @@ export function Sidebar() {
               : 'text-white/70 hover:text-white hover:bg-white/10'
           }`}
         >
-          <Settings size={15} strokeWidth={isActive('/settings') ? 2.5 : 2} className={isActive('/settings') ? 'text-accent' : 'text-white/55'} />
+          <Settings size={16} strokeWidth={isActive('/settings') ? 2.75 : 2.4} className={isActive('/settings') ? 'text-accent' : 'text-white/55'} />
           Einstellungen
         </Link>
         <button
           onClick={logout}
           className={`${linkBase} text-white/70 hover:text-white hover:bg-white/10 w-full`}
         >
-          <LogOut size={15} strokeWidth={2} className="text-white/55" />
+          <LogOut size={16} strokeWidth={2.4} className="text-white/55" />
           Abmelden
         </button>
       </div>

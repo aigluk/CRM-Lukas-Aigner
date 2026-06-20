@@ -40,8 +40,8 @@ export function MobileNav() {
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-b-full bg-accent" />
               )}
               <Icon
-                size={21}
-                strokeWidth={active ? 2.5 : 1.8}
+                size={22}
+                strokeWidth={active ? 2.75 : 2.3}
                 className={active ? 'text-accent' : 'text-white/30'}
               />
               <span className={`text-[9px] font-black tracking-wide ${active ? 'text-accent' : 'text-white/25'}`}>
