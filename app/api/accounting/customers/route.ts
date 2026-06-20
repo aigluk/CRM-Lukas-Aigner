@@ -51,14 +51,17 @@ export async function POST(req: NextRequest) {
     if (!body.name?.trim()) return NextResponse.json({ error: 'Name erforderlich' }, { status: 400 })
 
     const row = {
-      user_id:    user.id,
-      name:       body.name.trim(),
-      address:    body.address || null,
-      country:    body.country || null,
-      vat_number: body.vat_number || null,
-      email:      body.email || null,
-      phone:      body.phone || null,
-      notes:      body.notes || null,
+      user_id:        user.id,
+      name:           body.name.trim(),
+      contact_person: body.contact_person || null,
+      address:        body.address || null,
+      country:        body.country || null,
+      vat_number:     body.vat_number || null,
+      vat_liable:     body.vat_liable ?? true,
+      email:          body.email || null,
+      phone:          body.phone || null,
+      website:        body.website || null,
+      notes:          body.notes || null,
     }
 
     const { data, error } = await db().from('accounting_customers').insert(row).select().single()

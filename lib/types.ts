@@ -67,11 +67,14 @@ export interface AccountingCustomer {
   id: string
   user_id: string
   name: string
+  contact_person?: string
   address?: string
   country?: string
   vat_number?: string
+  vat_liable?: boolean
   email?: string
   phone?: string
+  website?: string
   notes?: string
   created_at: string
   updated_at: string

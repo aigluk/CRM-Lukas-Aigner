@@ -89,17 +89,17 @@ const styles = StyleSheet.create({
   greeting: { fontSize: 9, lineHeight: 1.5, marginBottom: 10 },
   smallBizNote: { fontSize: 9, lineHeight: 1.5, marginBottom: 16 },
 
-  table: { marginTop: 4, marginBottom: 16 },
-  tHeadRow: { flexDirection: 'row', backgroundColor: HEAD_BG, paddingVertical: 6, paddingHorizontal: 8 },
-  tRow: { flexDirection: 'row', paddingVertical: 6, paddingHorizontal: 8, borderBottomWidth: 0.5, borderBottomColor: RULE_LIGHT },
-  cPos:  { width: 48, fontSize: 8.5, fontWeight: 700 },
-  cSvc:  { flex: 1, fontSize: 8.5 },
-  cQty:  { width: 50, fontSize: 8.5, textAlign: 'right' },
-  cDur:  { width: 60, fontSize: 8.5, textAlign: 'right' },
-  cSum:  { width: 70, fontSize: 8.5, textAlign: 'right', fontWeight: 700 },
+  table: { marginTop: 4, marginBottom: 16, borderWidth: 0.5, borderColor: RULE_LIGHT },
+  tHeadRow: { flexDirection: 'row', backgroundColor: HEAD_BG, borderBottomWidth: 0.5, borderBottomColor: RULE_LIGHT },
+  tRow: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: RULE_LIGHT },
+  cPos:  { width: 48, fontSize: 8.5, fontWeight: 700, paddingVertical: 6, paddingHorizontal: 8, borderRightWidth: 0.5, borderRightColor: RULE_LIGHT },
+  cSvc:  { flex: 1, fontSize: 8.5, paddingVertical: 6, paddingHorizontal: 8, borderRightWidth: 0.5, borderRightColor: RULE_LIGHT },
+  cQty:  { width: 50, fontSize: 8.5, textAlign: 'right', paddingVertical: 6, paddingHorizontal: 8, borderRightWidth: 0.5, borderRightColor: RULE_LIGHT },
+  cDur:  { width: 60, fontSize: 8.5, textAlign: 'right', paddingVertical: 6, paddingHorizontal: 8, borderRightWidth: 0.5, borderRightColor: RULE_LIGHT },
+  cSum:  { width: 70, fontSize: 8.5, textAlign: 'right', fontWeight: 700, paddingVertical: 6, paddingHorizontal: 8 },
   thText: { fontSize: 8, fontWeight: 700, color: INK },
 
-  totalRow: { flexDirection: 'row', backgroundColor: TOTAL_BG, paddingVertical: 7, paddingHorizontal: 8 },
+  totalRow: { flexDirection: 'row', backgroundColor: TOTAL_BG },
 
   notes: { fontSize: 8.5, lineHeight: 1.5, marginBottom: 14, color: INK },
 

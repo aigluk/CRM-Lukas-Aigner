@@ -16,11 +16,14 @@ export function CustomerModal({
 }) {
   const isEdit = !!customer
   const [name, setName] = useState(customer?.name ?? '')
+  const [contactPerson, setContactPerson] = useState(customer?.contact_person ?? '')
   const [address, setAddress] = useState(customer?.address ?? '')
   const [country, setCountry] = useState(customer?.country ?? '')
   const [vatNumber, setVatNumber] = useState(customer?.vat_number ?? '')
+  const [vatLiable, setVatLiable] = useState(customer?.vat_liable ?? true)
   const [email, setEmail] = useState(customer?.email ?? '')
   const [phone, setPhone] = useState(customer?.phone ?? '')
+  const [website, setWebsite] = useState(customer?.website ?? '')
   const [notes, setNotes] = useState(customer?.notes ?? '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -32,11 +35,14 @@ export function CustomerModal({
 
     const payload = {
       name: name.trim(),
+      contact_person: contactPerson || null,
       address: address || null,
       country: country || null,
       vat_number: vatNumber || null,
+      vat_liable: vatLiable,
       email: email || null,
       phone: phone || null,
+      website: website || null,
       notes: notes || null,
     }
 
@@ -75,9 +81,15 @@ export function CustomerModal({
         </div>
 
         <div className="px-5 py-5 space-y-4">
-          <div>
-            <label className={labelCls}>Name / Firma</label>
-            <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Musterfirma GmbH" className={inputCls} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className={labelCls}>Name / Firma</label>
+              <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Musterfirma GmbH" className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Ansprechperson</label>
+              <input type="text" value={contactPerson} onChange={e => setContactPerson(e.target.value)} placeholder="Max Mustermann" className={inputCls} />
+            </div>
           </div>
           <div>
             <label className={labelCls}>Adresse (mehrzeilig)</label>
@@ -90,8 +102,27 @@ export function CustomerModal({
               <input type="text" value={country} onChange={e => setCountry(e.target.value)} placeholder="Österreich" className={inputCls} />
             </div>
             <div>
+              <label className={labelCls}>Firmen-Webseite</label>
+              <input type="text" value={website} onChange={e => setWebsite(e.target.value)} placeholder="www.firma.at" className={inputCls} />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
               <label className={labelCls}>UID / Firmenbuchnr.</label>
               <input type="text" value={vatNumber} onChange={e => setVatNumber(e.target.value)} placeholder="ATU00000000" className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Umsatzsteuerpflichtig</label>
+              <div className="flex bg-dark rounded-xl p-1">
+                <button
+                  type="button" onClick={() => setVatLiable(true)}
+                  className={`flex-1 py-1.5 rounded-lg text-sm font-bold transition-all ${vatLiable ? 'bg-accent text-white' : 'text-white/40 hover:text-white'}`}
+                >Ja</button>
+                <button
+                  type="button" onClick={() => setVatLiable(false)}
+                  className={`flex-1 py-1.5 rounded-lg text-sm font-bold transition-all ${!vatLiable ? 'bg-accent text-white' : 'text-white/40 hover:text-white'}`}
+                >Nein</button>
+              </div>
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

@@ -1,8 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type FocusEvent } from 'react'
 import { X, Plus, Trash2, Save, ChevronDown } from 'lucide-react'
 import type { AccountingCustomer, AccountingDocument, DocLanguage, DocType, LineItem } from '@/lib/types'
+import { createClient } from '@/lib/supabase/client'
+import { DatePicker } from '@/components/accounting/DatePicker'
+
+function selectAllOnFocus(e: FocusEvent<HTMLInputElement>) {
+  e.target.select()
+}
 
 const inputCls = 'w-full bg-dark rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all'
 const labelCls = 'block text-xs font-bold text-white/30 mb-1.5'
@@ -37,7 +43,9 @@ export function DocumentModal({
   const [serviceDate, setServiceDate] = useState(doc?.service_date ?? '')
   const [dueDate, setDueDate]       = useState(doc?.due_date ?? '')
   const [language, setLanguage]     = useState<DocLanguage>(doc?.language ?? 'de')
-  const [taxRate, setTaxRate]       = useState(doc?.tax_rate ?? 20)
+  const [smallBusiness, setSmallBusiness] = useState(false)
+  const [taxAdded, setTaxAdded]     = useState(!!doc && doc.tax_rate > 0)
+  const [taxRate, setTaxRate]       = useState(doc?.tax_rate ?? 0)
   const [notes, setNotes]           = useState(doc?.notes ?? '')
   const [items, setItems]           = useState<LineItem[]>(doc?.line_items?.length ? doc.line_items : [emptyItem()])
   const [saving, setSaving]         = useState(false)
@@ -47,8 +55,19 @@ export function DocumentModal({
     fetch('/api/accounting/customers').then(r => r.json()).then(d => setCustomers(d.customers ?? [])).catch(() => {})
   }, [])
 
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data }) => {
+      setSmallBusiness(!!data.user?.user_metadata?.company?.small_business)
+    })
+  }, [])
+
+  function addTax() { setTaxAdded(true); setTaxRate(20) }
+  function removeTax() { setTaxAdded(false); setTaxRate(0) }
+
   const subtotal = items.reduce((s, i) => s + (i.qty || 0) * (i.unit_price || 0), 0)
-  const tax = subtotal * (taxRate / 100)
+  const effectiveTaxRate = smallBusiness ? 0 : taxRate
+  const tax = subtotal * (effectiveTaxRate / 100)
   const total = subtotal + tax
 
   function applyCustomer(id: string) {
@@ -89,7 +108,7 @@ export function DocumentModal({
       due_date: dueDate || null,
       language,
       line_items: items.filter(i => i.description.trim()),
-      tax_rate: taxRate,
+      tax_rate: effectiveTaxRate,
       notes: notes || null,
     }
 
@@ -154,15 +173,15 @@ export function DocumentModal({
             </div>
             <div>
               <label className={labelCls}>{docType === 'invoice' ? 'Rechnungsdatum' : 'Angebotsdatum'}</label>
-              <input type="date" value={issueDate} onChange={e => setIssueDate(e.target.value)} className={inputCls} />
+              <DatePicker value={issueDate} onChange={setIssueDate} className={inputCls} />
             </div>
             <div>
               <label className={labelCls}>Leistungsdatum</label>
-              <input type="date" value={serviceDate} onChange={e => setServiceDate(e.target.value)} className={inputCls} />
+              <DatePicker value={serviceDate} onChange={setServiceDate} className={inputCls} />
             </div>
             <div>
               <label className={labelCls}>{docType === 'invoice' ? 'Fällig bis' : 'Gültig bis'}</label>
-              <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className={inputCls} />
+              <DatePicker value={dueDate} onChange={setDueDate} className={inputCls} />
             </div>
           </div>
 
@@ -238,6 +257,7 @@ export function DocumentModal({
                       <input
                         type="number" value={item.qty} min={0} step="any"
                         onChange={e => updateItem(idx, { qty: parseFloat(e.target.value) || 0 })}
+                        onFocus={selectAllOnFocus}
                         className={`${inputCls} text-right`}
                       />
                     </div>
@@ -255,6 +275,7 @@ export function DocumentModal({
                       <input
                         type="number" value={item.unit_price} min={0} step="any"
                         onChange={e => updateItem(idx, { unit_price: parseFloat(e.target.value) || 0 })}
+                        onFocus={selectAllOnFocus}
                         className={`${inputCls} text-right`}
                       />
                     </div>
@@ -272,20 +293,36 @@ export function DocumentModal({
 
           {/* Tax + totals */}
           <div className="bg-dark rounded-2xl p-4 space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-white/30">USt.-Satz (%)</label>
-              <input
-                type="number" value={taxRate} min={0} max={100} step="any"
-                onChange={e => setTaxRate(parseFloat(e.target.value) || 0)}
-                className="w-20 bg-panel rounded-lg px-2.5 py-1.5 text-sm text-white text-right outline-none focus:ring-1 focus:ring-accent"
-              />
-            </div>
+            {smallBusiness ? (
+              <p className="text-xs text-white/30 font-medium pb-1">Kleinunternehmer — keine USt. gemäß § 6 Abs. 1 Z 27 UStG.</p>
+            ) : taxAdded ? (
+              <div className="flex items-center justify-between">
+                <button type="button" onClick={removeTax} className="text-xs font-bold text-white/30 hover:text-accent transition-all">
+                  USt.-Satz (%) entfernen
+                </button>
+                <input
+                  type="number" value={taxRate} min={0} max={100} step="any"
+                  onChange={e => setTaxRate(parseFloat(e.target.value) || 0)}
+                  onFocus={selectAllOnFocus}
+                  className="w-20 bg-panel rounded-lg px-2.5 py-1.5 text-sm text-white text-right outline-none focus:ring-1 focus:ring-accent"
+                />
+              </div>
+            ) : (
+              <button
+                type="button" onClick={addTax}
+                className="flex items-center gap-1.5 text-xs font-black text-accent hover:text-accent-hover transition-all"
+              >
+                <Plus size={13} strokeWidth={3} />USt. hinzufügen
+              </button>
+            )}
             <div className="flex items-center justify-between text-sm text-white/50">
               <span>Zwischensumme</span><span>{fmtMoney(subtotal)}</span>
             </div>
-            <div className="flex items-center justify-between text-sm text-white/50">
-              <span>USt. ({taxRate}%)</span><span>{fmtMoney(tax)}</span>
-            </div>
+            {!smallBusiness && taxAdded && (
+              <div className="flex items-center justify-between text-sm text-white/50">
+                <span>USt. ({taxRate}%)</span><span>{fmtMoney(tax)}</span>
+              </div>
+            )}
             <div className="flex items-center justify-between pt-2 border-t border-white/10">
               <span className="text-sm font-black text-white">Gesamtbetrag</span>
               <span className="text-sm font-black text-accent">{fmtMoney(total)}</span>
