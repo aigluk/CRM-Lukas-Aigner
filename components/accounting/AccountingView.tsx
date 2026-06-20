@@ -164,8 +164,8 @@ export function AccountingView() {
       )
     }
     return (
-      <div className="bg-panel rounded-2xl overflow-hidden">
-        <ul>
+      <div className="bg-panel rounded-2xl overflow-visible">
+        <ul className="overflow-visible">
           {docs.map((doc, i) => (
             <li key={doc.id} className={`flex items-center gap-3 px-4 sm:px-5 py-3.5 ${i < docs.length - 1 ? 'border-b border-panel-2' : ''}`}>
               <button

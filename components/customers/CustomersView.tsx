@@ -22,6 +22,20 @@ export function CustomersView() {
 
   useEffect(() => { load() }, [])
 
+  // Deep link from dashboard reminders: ?openCustomer=<id>
+  useEffect(() => {
+    if (loading) return
+    const params = new URLSearchParams(window.location.search)
+    const openId = params.get('openCustomer')
+    if (openId) {
+      const customer = customers.find(c => c.id === openId)
+      if (customer) setModal({ customer })
+      const url = new URL(window.location.href)
+      url.searchParams.delete('openCustomer')
+      window.history.replaceState({}, '', url.toString())
+    }
+  }, [loading, customers])
+
   async function deleteCustomer(id: string) {
     if (!confirm('Kunde wirklich löschen?')) return
     setCustomers(prev => prev.filter(c => c.id !== id))

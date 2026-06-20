@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { X, Save } from 'lucide-react'
 import type { AccountingCustomer } from '@/lib/types'
+import { addReminder } from '@/lib/useReminders'
 
 const inputCls = 'w-full bg-dark rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all'
 const labelCls = 'block text-xs font-bold text-white/30 mb-1.5'
@@ -52,10 +53,15 @@ export function CustomerModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(isEdit ? { id: customer!.id, ...payload } : payload),
       })
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || 'Speichern fehlgeschlagen.')
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Speichern fehlgeschlagen.')
+
+      const originalNotes = customer?.notes ?? ''
+      if (notes.trim() && notes.trim() !== originalNotes.trim()) {
+        const id = customer?.id ?? data.customer?.id
+        if (id) addReminder({ refType: 'customer', refId: id, refName: name.trim(), text: notes.trim() })
       }
+
       onSaved()
     } catch (err: any) {
       setError(err.message)

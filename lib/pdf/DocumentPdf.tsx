@@ -122,6 +122,11 @@ function fmtDate(d?: string, lang: DocLanguage = 'de'): string {
   return new Date(d).toLocaleDateString(lang === 'en' ? 'en-GB' : 'de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
+function fmtDocNumber(n: string, lang: DocLanguage): string {
+  if (lang !== 'en') return n
+  return n.replace(/^RE-/, 'INV-').replace(/^AN-/, 'QT-')
+}
+
 function Lines({ text, style }: { text: string; style: any }) {
   return (
     <>
@@ -195,7 +200,7 @@ export function DocumentPdf({ doc, company }: { doc: AccountingDocument; company
           <View style={styles.metaCol}>
             <View style={styles.metaLineRight}>
               <Text style={styles.metaLabelRight}>{tr.docNo[k]}</Text>
-              <Text style={styles.metaValueRight}>{doc.doc_number}</Text>
+              <Text style={styles.metaValueRight}>{fmtDocNumber(doc.doc_number, lang)}</Text>
             </View>
             <View style={styles.metaLineRight}>
               <Text style={styles.metaLabelRight}>{tr.issueDate[k]}</Text>
@@ -219,7 +224,7 @@ export function DocumentPdf({ doc, company }: { doc: AccountingDocument; company
         {/* Title bar */}
         <View style={styles.titleRow}>
           <Text style={styles.titleText}>{tr.docTitle[k]}:</Text>
-          <Text style={styles.titleText}>{doc.doc_number}</Text>
+          <Text style={styles.titleText}>{fmtDocNumber(doc.doc_number, lang)}</Text>
         </View>
 
         {/* Greeting */}

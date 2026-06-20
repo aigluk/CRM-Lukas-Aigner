@@ -84,6 +84,19 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
     }
   }, [])
 
+  // Deep link from dashboard reminders: ?openLead=<id>
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const openId = params.get('openLead')
+    if (openId) {
+      const lead = leads.find(l => l.id === openId)
+      if (lead) setSelectedLead(lead)
+      const url = new URL(window.location.href)
+      url.searchParams.delete('openLead')
+      window.history.replaceState({}, '', url.toString())
+    }
+  }, [leads])
+
   // Close branch dropdown on outside click
   useEffect(() => {
     if (!brancheOpen) return

@@ -7,7 +7,7 @@ import { ChevronLeft, ChevronRight, Phone, Plus, X, Loader2 } from 'lucide-react
 import { DatePicker, TimePicker } from '@/components/ui/DateTimePicker'
 import { AppointmentEditModal } from '@/components/ui/AppointmentEditModal'
 import { TodayPanel } from '@/components/dashboard/TodayPanel'
-import { TodoWidget } from '@/components/dashboard/TodoWidget'
+import { ReminderWidget } from '@/components/dashboard/ReminderWidget'
 
 type View = 'month' | 'week' | 'day'
 
@@ -242,7 +242,7 @@ export function CalendarView({ leads: initialLeads }: { leads: Lead[] }) {
         </div>
         <div className="lg:col-span-1 flex flex-col gap-5">
           <div className="h-60"><TodayPanel leads={leads} onEdit={setEditLead} /></div>
-          <div className="h-80"><TodoWidget /></div>
+          <div className="h-80"><ReminderWidget /></div>
         </div>
       </div>
     </div>

@@ -2,61 +2,71 @@
 
 import { useEffect, useState } from 'react'
 import { BellRing, X } from 'lucide-react'
-import { useTodos } from '@/lib/useTodos'
+import { useRouter } from 'next/navigation'
+import { useReminders, Reminder } from '@/lib/useReminders'
 
-const DISMISSED_KEY = 'la-crm-dismissed-reminders'
+const SEEN_KEY = 'la-crm-seen-reminders'
 
-function getDismissedToday(): string[] {
+function getSeen(): string[] {
   try {
-    const raw = localStorage.getItem(DISMISSED_KEY)
-    if (!raw) return []
-    const { date, ids } = JSON.parse(raw)
-    return date === new Date().toDateString() ? ids : []
+    const raw = sessionStorage.getItem(SEEN_KEY)
+    return raw ? JSON.parse(raw) : []
   } catch {
     return []
   }
 }
 
-function saveDismissed(ids: string[]) {
-  localStorage.setItem(DISMISSED_KEY, JSON.stringify({ date: new Date().toDateString(), ids }))
+function saveSeen(ids: string[]) {
+  sessionStorage.setItem(SEEN_KEY, JSON.stringify(ids))
+}
+
+function targetUrl(r: Reminder): string {
+  return r.refType === 'lead' ? `/leads?openLead=${r.refId}` : `/customers?openCustomer=${r.refId}`
 }
 
 export function ReminderBanner() {
-  const { todos, isDue } = useTodos()
-  const [dismissed, setDismissed] = useState<string[]>([])
+  const { reminders } = useReminders()
+  const router = useRouter()
+  const [seen, setSeen] = useState<string[]>([])
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    setDismissed(getDismissedToday())
+    setSeen(getSeen())
     setReady(true)
   }, [])
 
-  const due = todos.filter(t => isDue(t) && !dismissed.includes(t.id))
-  if (!ready || due.length === 0) return null
+  const unseen = reminders.filter(r => !r.done && !seen.includes(r.id))
+  if (!ready || unseen.length === 0) return null
 
-  function dismiss() {
-    const ids = [...dismissed, ...due.map(t => t.id)]
-    setDismissed(ids)
-    saveDismissed(ids)
+  function dismiss(id?: string) {
+    const ids = id ? [...seen, id] : [...seen, ...unseen.map(r => r.id)]
+    setSeen(ids)
+    saveSeen(ids)
   }
 
+  // Fixed/floating popup — never part of page layout, so it can't push content down.
   return (
-    <div className="bg-accent rounded-2xl px-5 py-4 flex items-center gap-3 flex-wrap">
-      <BellRing size={15} className="text-white shrink-0" />
-      <div className="flex-1 flex items-center gap-2 flex-wrap">
-        {due.map(t => (
-          <span key={t.id} className="bg-white/15 rounded-xl px-3 py-1.5">
-            <span className="text-sm font-medium text-white">{t.text}</span>
-          </span>
-        ))}
-      </div>
-      <button
-        onClick={dismiss}
-        className="text-white/60 hover:text-white transition-colors shrink-0"
-        title="Ausblenden"
-      >
-        <X size={16} />
-      </button>
+    <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 w-[calc(100vw-2rem)] sm:w-80">
+      {unseen.slice(0, 3).map(r => (
+        <div key={r.id} className="bg-accent rounded-2xl px-4 py-3 flex items-start gap-2.5 shadow-2xl">
+          <BellRing size={14} className="text-white shrink-0 mt-0.5" />
+          <button
+            onClick={() => { dismiss(r.id); router.push(targetUrl(r)) }}
+            className="flex-1 text-left min-w-0"
+          >
+            <p className="text-xs font-bold text-white truncate">{r.refName}</p>
+            <p className="text-xs text-white/80 truncate">{r.text}</p>
+          </button>
+          <button onClick={() => dismiss(r.id)} className="text-white/60 hover:text-white transition-colors shrink-0">
+            <X size={14} />
+          </button>
+        </div>
+      ))}
+      {unseen.length > 1 && (
+        <button onClick={() => dismiss()} className="text-[11px] text-white/50 hover:text-white font-bold self-end">
+          Alle ausblenden
+        </button>
+      )}
     </div>
   )
 }

@@ -11,10 +11,10 @@ import Logo from '@/components/Logo'
 const NAV = [
   { href: '/',           label: 'Dashboard',   icon: LayoutDashboard },
   { href: '/leads',      label: 'Leads',       icon: Users },
-  { href: '/calendar',   label: 'Kalender',    icon: Calendar },
-  { href: '/generator',  label: 'Generator',   icon: Zap },
-  { href: '/accounting', label: 'Buchhaltung', icon: Wallet },
   { href: '/customers',  label: 'Kunden',      icon: Contact },
+  { href: '/generator',  label: 'Generator',   icon: Zap },
+  { href: '/calendar',   label: 'Kalender',    icon: Calendar },
+  { href: '/accounting', label: 'Buchhaltung', icon: Wallet },
 ]
 
 export function Sidebar() {

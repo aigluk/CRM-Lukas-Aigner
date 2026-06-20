@@ -14,7 +14,13 @@ const inputCls = 'w-full bg-dark rounded-xl px-3.5 py-2.5 text-sm text-white pla
 const labelCls = 'block text-xs font-bold text-white/30 mb-1.5'
 
 function emptyItem(): LineItem {
-  return { description: '', qty: 1, unit_price: 0, duration: '' }
+  return { description: '', qty: 1, unit_price: 0, duration: '1' }
+}
+
+function addDays(dateStr: string, days: number): string {
+  const d = new Date(dateStr)
+  d.setDate(d.getDate() + days)
+  return d.toISOString().slice(0, 10)
 }
 
 function fmtMoney(n: number): string {
@@ -41,7 +47,7 @@ export function DocumentModal({
   const [clientEmail, setClientEmail] = useState(doc?.client_email ?? '')
   const [issueDate, setIssueDate]   = useState(doc?.issue_date ?? new Date().toISOString().slice(0, 10))
   const [serviceDate, setServiceDate] = useState(doc?.service_date ?? '')
-  const [dueDate, setDueDate]       = useState(doc?.due_date ?? '')
+  const [dueDate, setDueDate]       = useState(doc?.due_date ?? addDays(doc?.issue_date ?? new Date().toISOString().slice(0, 10), 14))
   const [language, setLanguage]     = useState<DocLanguage>(doc?.language ?? 'de')
   const [smallBusiness, setSmallBusiness] = useState(false)
   const [taxAdded, setTaxAdded]     = useState(!!doc && doc.tax_rate > 0)
@@ -242,7 +248,7 @@ export function DocumentModal({
                   >
                     <Trash2 size={13} />
                   </button>
-                  <div className="grid grid-cols-2 sm:grid-cols-[1fr_70px_90px_100px] gap-2.5 pr-9">
+                  <div className="grid grid-cols-2 sm:grid-cols-[1fr_120px_90px_100px] gap-2.5 pr-9">
                     <div className="col-span-2 sm:col-span-1">
                       <label className="block text-[10px] font-black uppercase tracking-wide text-white/25 mb-1">Leistung</label>
                       <input
@@ -254,12 +260,28 @@ export function DocumentModal({
                     </div>
                     <div>
                       <label className="block text-[10px] font-black uppercase tracking-wide text-white/25 mb-1">Anzahl</label>
-                      <input
-                        type="number" value={item.qty} min={0} step="any"
-                        onChange={e => updateItem(idx, { qty: parseFloat(e.target.value) || 0 })}
-                        onFocus={selectAllOnFocus}
-                        className={`${inputCls} text-right`}
-                      />
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => updateItem(idx, { qty: Math.max(0, (item.qty || 0) - 1) })}
+                          className="shrink-0 w-8 h-9 rounded-lg bg-accent hover:bg-accent-hover text-white font-black text-base flex items-center justify-center transition-all active:scale-90"
+                        >
+                          −
+                        </button>
+                        <input
+                          type="number" value={item.qty} min={0} step="any"
+                          onChange={e => updateItem(idx, { qty: parseFloat(e.target.value) || 0 })}
+                          onFocus={selectAllOnFocus}
+                          className={`${inputCls} text-center px-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => updateItem(idx, { qty: (item.qty || 0) + 1 })}
+                          className="shrink-0 w-8 h-9 rounded-lg bg-accent hover:bg-accent-hover text-white font-black text-base flex items-center justify-center transition-all active:scale-90"
+                        >
+                          +
+                        </button>
+                      </div>
                     </div>
                     <div>
                       <label className="block text-[10px] font-black uppercase tracking-wide text-white/25 mb-1">Laufzeit</label>
@@ -276,7 +298,7 @@ export function DocumentModal({
                         type="number" value={item.unit_price} min={0} step="any"
                         onChange={e => updateItem(idx, { unit_price: parseFloat(e.target.value) || 0 })}
                         onFocus={selectAllOnFocus}
-                        className={`${inputCls} text-right`}
+                        className={`${inputCls} text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
                       />
                     </div>
                   </div>

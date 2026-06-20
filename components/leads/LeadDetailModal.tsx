@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { DatePicker, TimePicker } from '@/components/ui/DateTimePicker'
 import { useClickOutside } from '@/lib/useClickOutside'
+import { addReminder } from '@/lib/useReminders'
 
 export type TeamUser = { id: string; username: string }
 
@@ -185,15 +186,21 @@ export function LeadDetailModal({
 
   async function save() {
     setSaving(true)
+    const originalNotes = lead.notes ?? ''
     let finalNotes = form.notes ?? ''
+    let callLine = ''
     if (callMode && (checked.size > 0 || quickNote.trim())) {
       const ts = new Date().toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit' })
       const items = Array.from(checked).map(i => `✓ ${i}`).join(', ')
       const note  = quickNote.trim()
-      const line  = `[${ts}] Nachfolge: ${[items, note].filter(Boolean).join(' — ')}`
-      finalNotes = finalNotes ? `${finalNotes}\n${line}` : line
+      callLine  = `[${ts}] Nachfolge: ${[items, note].filter(Boolean).join(' — ')}`
+      finalNotes = finalNotes ? `${finalNotes}\n${callLine}` : callLine
     }
     await onUpdate(lead.id, { ...form, notes: finalNotes })
+    if (finalNotes.trim() !== originalNotes.trim()) {
+      const text = callLine || finalNotes.slice(originalNotes.length).trim() || finalNotes.trim()
+      addReminder({ refType: 'lead', refId: lead.id, refName: lead.name, text })
+    }
     setSaving(false)
     setEditing(false)
     setCallMode(false)
