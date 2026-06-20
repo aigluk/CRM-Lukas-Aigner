@@ -128,7 +128,7 @@ export function LeadTable({
   return (
     <div className="bg-panel rounded-2xl overflow-hidden mt-2">
       {/* Header */}
-      <div className={`${rowGrid} bg-accent`}>
+      <div className={`${rowGrid} bg-accent mb-2`}>
         <Circle selected={allSelected} partial={someSelected} onAccent onClick={e => { e.stopPropagation(); onToggleAll() }} />
         <span className="text-sm font-bold text-white">Unternehmen</span>
         <span className="hidden sm:block text-xs font-bold text-white/70">Status / Bearbeiter</span>
