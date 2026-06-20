@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { Bell, Check, Trash2, Users, Contact, Lightbulb } from 'lucide-react'
+import { BellRing, Check, Trash2, Users, Contact } from 'lucide-react'
 import { useReminders, Reminder } from '@/lib/useReminders'
 import { formatRelativeDateTime } from '@/lib/utils'
 
@@ -19,7 +19,7 @@ export function ReminderWidget() {
   return (
     <div className="bg-panel rounded-2xl p-5 flex flex-col h-full">
       <div className="flex items-center gap-2 mb-4 shrink-0">
-        <Bell size={14} className="text-accent" />
+        <BellRing size={15} strokeWidth={1.5} fill="currentColor" className="text-accent" />
         <h2 className="text-sm font-bold text-white flex-1">Erinnerungen</h2>
         {openCount > 0 && (
           <span className="text-[10px] font-bold text-white/30 bg-white/8 rounded-lg px-2 py-0.5">{openCount}</span>
@@ -29,7 +29,7 @@ export function ReminderWidget() {
       <div className="flex-1 overflow-y-auto min-h-0 -mx-1 px-1 space-y-0.5">
         {reminders.length === 0 ? (
           <div className="h-full flex items-center justify-center py-6">
-            <Lightbulb size={34} className="text-white/10" fill="currentColor" strokeWidth={0} />
+            <BellRing size={56} strokeWidth={1.5} fill="currentColor" className="text-white/15" />
           </div>
         ) : (
           reminders.map(r => (

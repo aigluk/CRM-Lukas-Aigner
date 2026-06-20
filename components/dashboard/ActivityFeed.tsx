@@ -3,7 +3,7 @@
 import { Lead, LeadStatus } from '@/lib/types'
 import { STATUS_COLORS, STATUS_LABELS } from '@/lib/constants'
 import { formatRelativeDateTime } from '@/lib/utils'
-import { Activity } from 'lucide-react'
+import { History } from 'lucide-react'
 
 const DOT: Record<LeadStatus, string> = {
   'NEU':             'bg-white/35',
@@ -24,7 +24,7 @@ export function ActivityFeed({ leads, compact }: { leads: Lead[]; compact?: bool
     return (
       <div className="bg-panel rounded-2xl p-5 flex flex-col h-full">
         <div className="flex items-center gap-2 mb-4 shrink-0">
-          <Activity size={15} strokeWidth={2.6} className="text-accent" />
+          <History size={15} strokeWidth={2.6} className="text-accent" />
           <h2 className="text-sm font-bold text-white">Letzte Aktivitäten</h2>
         </div>
         <div className="flex-1 overflow-y-auto space-y-1 min-h-0">

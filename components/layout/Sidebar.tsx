@@ -3,18 +3,18 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
-  LayoutDashboard, Users, Calendar, Zap, LogOut, Settings, Wallet, Contact,
+  Grid2x2, Users, Calendar, Wand2, LogOut, Settings, Calculator, Contact,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Logo from '@/components/Logo'
 
 const NAV = [
-  { href: '/',           label: 'Dashboard',   icon: LayoutDashboard },
-  { href: '/leads',      label: 'Leads',       icon: Users },
-  { href: '/customers',  label: 'Kunden',      icon: Contact },
-  { href: '/generator',  label: 'Generator',   icon: Zap },
-  { href: '/calendar',   label: 'Kalender',    icon: Calendar },
-  { href: '/accounting', label: 'Buchhaltung', icon: Wallet },
+  { href: '/',           label: 'Dashboard',   icon: Grid2x2,    solid: true },
+  { href: '/leads',      label: 'Leads',       icon: Users,      solid: false },
+  { href: '/customers',  label: 'Kunden',      icon: Contact,    solid: false },
+  { href: '/generator',  label: 'Generator',   icon: Wand2,      solid: false },
+  { href: '/calendar',   label: 'Kalender',    icon: Calendar,   solid: false },
+  { href: '/accounting', label: 'Buchhaltung', icon: Calculator, solid: false },
 ]
 
 export function Sidebar() {
@@ -40,7 +40,7 @@ export function Sidebar() {
 
       {/* Top navigation — start well down, generous spacing */}
       <nav className="pt-14 px-4 flex flex-col gap-2">
-        {NAV.map(({ href, label, icon: Icon }) => {
+        {NAV.map(({ href, label, icon: Icon, solid }) => {
           const active = isActive(href)
           return (
             <Link
@@ -52,7 +52,12 @@ export function Sidebar() {
                   : 'text-white/70 hover:text-white hover:bg-white/10'
               }`}
             >
-              <Icon size={16} strokeWidth={active ? 2.75 : 2.4} className={active ? 'text-accent' : 'text-white/55'} />
+              <Icon
+                size={16}
+                strokeWidth={solid ? 1.5 : (active ? 2.75 : 2.4)}
+                fill={solid ? 'currentColor' : 'none'}
+                className={active ? 'text-accent' : 'text-white/55'}
+              />
               {label}
             </Link>
           )

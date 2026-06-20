@@ -12,6 +12,9 @@ export interface Reminder {
   text: string
   createdAt: string
   done: boolean
+  manual?: boolean
+  remindAt?: string
+  seen?: boolean
 }
 
 const KEY = 'la-crm-reminders'
@@ -25,13 +28,21 @@ function read(): Reminder[] {
   }
 }
 
-export function addReminder(entry: { refType: ReminderRefType; refId: string; refName: string; text: string }) {
+export function addReminder(entry: {
+  refType: ReminderRefType
+  refId: string
+  refName: string
+  text: string
+  manual?: boolean
+  remindAt?: string
+}) {
   if (typeof window === 'undefined') return
   const reminders = read()
   reminders.unshift({
     id: crypto.randomUUID(),
     createdAt: new Date().toISOString(),
     done: false,
+    seen: false,
     ...entry,
   })
   localStorage.setItem(KEY, JSON.stringify(reminders))
@@ -64,6 +75,16 @@ export function useReminders() {
   function remove(id: string) {
     setReminders(prev => prev.filter(r => r.id !== id))
   }
+  function markSeen(id: string) {
+    setReminders(prev => prev.map(r => r.id === id ? { ...r, seen: true } : r))
+  }
+  function snooze(id: string, hours: number) {
+    setReminders(prev => prev.map(r => r.id === id ? {
+      ...r,
+      seen: false,
+      remindAt: new Date(Date.now() + hours * 60 * 60 * 1000).toISOString(),
+    } : r))
+  }
 
-  return { reminders, toggle, remove }
+  return { reminders, toggle, remove, markSeen, snooze }
 }

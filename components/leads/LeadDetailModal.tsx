@@ -7,7 +7,7 @@ import { formatDate, formatRelativeDateTime } from '@/lib/utils'
 import {
   X, Edit3, Save, Trash2, Phone, Mail, Globe,
   MapPin, User, Building2, FileText, Calendar,
-  ExternalLink, CheckSquare, Square, Zap, Plus, Tag, ChevronDown,
+  ExternalLink, CheckSquare, Square, Zap, Plus, Tag, ChevronDown, BellRing,
 } from 'lucide-react'
 import { DatePicker, TimePicker } from '@/components/ui/DateTimePicker'
 import { useClickOutside } from '@/lib/useClickOutside'
@@ -171,9 +171,27 @@ export function LeadDetailModal({
   const [quickNote, setQuickNote] = useState('')
   const [showAppt, setShowAppt]   = useState(false)
   const [editAppt, setEditAppt]   = useState(!!lead.appointment_date)
+  const [showReminder, setShowReminder] = useState(false)
+  const [reminderText, setReminderText] = useState('')
+  const [reminderDate, setReminderDate] = useState('')
 
   function set<K extends keyof Lead>(field: K, value: Lead[K]) {
     setForm(prev => ({ ...prev, [field]: value }))
+  }
+
+  function saveReminder() {
+    if (!reminderText.trim()) return
+    addReminder({
+      refType: 'lead',
+      refId: lead.id,
+      refName: lead.name,
+      text: reminderText.trim(),
+      manual: true,
+      remindAt: reminderDate ? new Date(reminderDate).toISOString() : undefined,
+    })
+    setReminderText('')
+    setReminderDate('')
+    setShowReminder(false)
   }
 
   function toggleCheck(item: string) {
@@ -379,9 +397,40 @@ export function LeadDetailModal({
                   currentUsername={currentUsername}
                   onChange={v => onSetHandler?.(lead.id, v)}
                 />
+                <button
+                  onClick={() => setShowReminder(v => !v)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                    showReminder ? 'bg-accent text-white' : 'bg-panel-hover text-white/40 hover:text-white'
+                  }`}
+                >
+                  <BellRing size={12} />Erinnerung hinzufügen
+                </button>
                 {lead.status_date && (
                   <span className="text-xs text-white/25">seit {formatDate(lead.status_date)}</span>
                 )}
+              </div>
+            )}
+            {showReminder && (
+              <div className="mt-3 bg-dark rounded-2xl p-4 space-y-3">
+                <textarea
+                  value={reminderText}
+                  onChange={e => setReminderText(e.target.value)}
+                  placeholder="Worüber soll erinnert werden?"
+                  rows={2}
+                  className="w-full bg-panel rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all resize-none"
+                />
+                <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <DatePicker value={reminderDate} onChange={setReminderDate} />
+                  </div>
+                  <button
+                    onClick={saveReminder}
+                    disabled={!reminderText.trim()}
+                    className="px-4 py-2.5 bg-accent text-white text-sm font-bold rounded-xl transition-all disabled:opacity-40"
+                  >
+                    Speichern
+                  </button>
+                </div>
               </div>
             )}
           </div>

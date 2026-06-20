@@ -1,9 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Save } from 'lucide-react'
+import { X, Save, BellRing } from 'lucide-react'
 import type { AccountingCustomer } from '@/lib/types'
 import { addReminder } from '@/lib/useReminders'
+import { DatePicker } from '@/components/ui/DateTimePicker'
 
 const inputCls = 'w-full bg-dark rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all'
 const labelCls = 'block text-xs font-bold text-white/30 mb-1.5'
@@ -28,6 +29,24 @@ export function CustomerModal({
   const [notes, setNotes] = useState(customer?.notes ?? '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [showReminder, setShowReminder] = useState(false)
+  const [reminderText, setReminderText] = useState('')
+  const [reminderDate, setReminderDate] = useState('')
+
+  function saveReminder() {
+    if (!reminderText.trim() || !customer?.id) return
+    addReminder({
+      refType: 'customer',
+      refId: customer.id,
+      refName: customer.name,
+      text: reminderText.trim(),
+      manual: true,
+      remindAt: reminderDate ? new Date(reminderDate).toISOString() : undefined,
+    })
+    setReminderText('')
+    setReminderDate('')
+    setShowReminder(false)
+  }
 
   async function save() {
     if (!name.trim()) { setError('Name ist erforderlich.'); return }
@@ -80,13 +99,46 @@ export function CustomerModal({
         style={{ maxHeight: 'calc(94dvh - env(safe-area-inset-bottom))', WebkitOverflowScrolling: 'touch' }}
       >
         <div className="sticky top-0 bg-panel z-10 px-5 pt-4 pb-3 border-b border-rim-subtle flex items-center justify-between gap-3">
-          <h2 className="text-base font-black text-white">{isEdit ? 'Kunde bearbeiten' : 'Neuer Kunde'}</h2>
+          <h2 className="text-base font-black text-white flex-1 truncate">{isEdit ? 'Kunde bearbeiten' : 'Neuer Kunde'}</h2>
+          {isEdit && (
+            <button
+              onClick={() => setShowReminder(v => !v)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                showReminder ? 'bg-accent text-white' : 'bg-panel-hover text-white/40 hover:text-white'
+              }`}
+            >
+              <BellRing size={12} />Erinnerung hinzufügen
+            </button>
+          )}
           <button onClick={onClose} className="p-1.5 rounded-xl bg-panel-hover text-white/30 hover:text-white transition-all shrink-0">
             <X size={16} />
           </button>
         </div>
 
         <div className="px-5 py-5 space-y-4">
+          {showReminder && (
+            <div className="bg-dark rounded-2xl p-4 space-y-3">
+              <textarea
+                value={reminderText}
+                onChange={e => setReminderText(e.target.value)}
+                placeholder="Worüber soll erinnert werden?"
+                rows={2}
+                className={`${inputCls} resize-none`}
+              />
+              <div className="flex items-center gap-2">
+                <div className="flex-1">
+                  <DatePicker value={reminderDate} onChange={setReminderDate} />
+                </div>
+                <button
+                  onClick={saveReminder}
+                  disabled={!reminderText.trim()}
+                  className="px-4 py-2.5 bg-accent text-white text-sm font-bold rounded-xl transition-all disabled:opacity-40"
+                >
+                  Speichern
+                </button>
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className={labelCls}>Name / Firma</label>

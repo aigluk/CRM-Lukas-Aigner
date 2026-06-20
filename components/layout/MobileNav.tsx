@@ -2,16 +2,16 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Users, Calendar, Zap, Settings, Wallet, Contact } from 'lucide-react'
+import { Grid2x2, Users, Calendar, Wand2, Settings, Calculator, Contact } from 'lucide-react'
 
 const NAV = [
-  { href: '/',           label: 'Dashboard',   icon: LayoutDashboard },
-  { href: '/leads',      label: 'Leads',       icon: Users },
-  { href: '/customers',  label: 'Kunden',      icon: Contact },
-  { href: '/generator',  label: 'Generator',   icon: Zap },
-  { href: '/calendar',   label: 'Kalender',    icon: Calendar },
-  { href: '/accounting', label: 'Buchhaltung', icon: Wallet },
-  { href: '/settings',   label: 'Profil',      icon: Settings },
+  { href: '/',           label: 'Dashboard',   icon: Grid2x2,    solid: true },
+  { href: '/leads',      label: 'Leads',       icon: Users,      solid: false },
+  { href: '/customers',  label: 'Kunden',      icon: Contact,    solid: false },
+  { href: '/generator',  label: 'Generator',   icon: Wand2,      solid: false },
+  { href: '/calendar',   label: 'Kalender',    icon: Calendar,   solid: false },
+  { href: '/accounting', label: 'Buchhaltung', icon: Calculator, solid: false },
+  { href: '/settings',   label: 'Profil',      icon: Settings,   solid: false },
 ]
 
 export function MobileNav() {
@@ -28,7 +28,7 @@ export function MobileNav() {
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <div className="flex items-stretch h-18 overflow-x-auto">
-        {NAV.map(({ href, label, icon: Icon }) => {
+        {NAV.map(({ href, label, icon: Icon, solid }) => {
           const active = isActive(href)
           return (
             <Link
@@ -41,7 +41,8 @@ export function MobileNav() {
               )}
               <Icon
                 size={22}
-                strokeWidth={active ? 2.75 : 2.3}
+                strokeWidth={solid ? 1.5 : (active ? 2.75 : 2.3)}
+                fill={solid ? 'currentColor' : 'none'}
                 className={active ? 'text-accent' : 'text-white/30'}
               />
               <span className={`text-[9px] font-black tracking-wide ${active ? 'text-accent' : 'text-white/25'}`}>

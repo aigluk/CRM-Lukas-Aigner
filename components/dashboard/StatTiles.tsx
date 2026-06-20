@@ -9,7 +9,7 @@ import { Users, Flame, CheckCircle2, Percent } from 'lucide-react'
 type MonthPeriod = { month: number; year: number }
 type Period = 'heute' | MonthPeriod | number
 
-const ACTIVE_STATUSES = ['NEU', 'VERKAUFSGESPRÄCH', 'FOLLOW UP', 'CLOSING CALL']
+const ACTIVE_STATUSES = ['VERKAUFSGESPRÄCH', 'FOLLOW UP', 'CLOSING CALL']
 const MONTHS = ['Jän','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez']
 
 function inPeriod(dateStr: string | undefined, period: Period): boolean {

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Lead } from '@/lib/types'
 import { isSameDay } from '@/lib/utils'
-import { Phone, Pencil } from 'lucide-react'
+import { Phone, Pencil, CalendarDays } from 'lucide-react'
 import { AppointmentEditModal } from '@/components/ui/AppointmentEditModal'
 
 interface Props {
@@ -79,7 +79,10 @@ export function TodayPanel({ leads: initialLeads, onEdit }: Props) {
         {/* Appointment list */}
         <div className="flex-1 overflow-y-auto min-h-0 space-y-2">
           {appts.length === 0 ? (
-            <p className="text-xs text-white/25 font-medium">Keine Termine heute</p>
+            <div className="h-full flex flex-col items-center justify-center gap-2 py-4">
+              <CalendarDays size={48} strokeWidth={1.5} fill="currentColor" className="text-white/10" />
+              <p className="text-xs text-white/25 font-medium">Keine Termine heute</p>
+            </div>
           ) : (
             appts.map(l => (
               <div
