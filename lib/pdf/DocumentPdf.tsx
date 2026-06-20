@@ -1,5 +1,5 @@
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
-import type { AccountingDocument } from '@/lib/types'
+import { Document, Page, Text, View, StyleSheet, Svg, Polygon } from '@react-pdf/renderer'
+import type { AccountingDocument, DocLanguage } from '@/lib/types'
 
 export interface CompanyInfo {
   name?: string
@@ -8,164 +8,277 @@ export interface CompanyInfo {
   phone?: string
   iban?: string
   uid?: string
+  bank_name?: string
+  bic?: string
+  gisa?: string
+  small_business?: boolean
 }
 
 const ACCENT = '#FF5252'
 const INK = '#1A1A1A'
-const MUTED = '#8A8A8A'
+const MUTED = '#7A7A7A'
+const RULE = '#1A1A1A'
+const ROW_ALT = '#F4F4F4'
+const HEAD_BG = '#E2E2E2'
+const TOTAL_BG = '#C9C9C9'
+
+const T = {
+  de: {
+    docTitle: { invoice: 'Rechnung', quote: 'Angebot' },
+    customer: 'Kunde:', address: 'Anschrift:', country: 'Land:', vat: 'Ust. Nr.:',
+    docNo: { invoice: 'Rechnungsnr.', quote: 'Angebotsnr.' },
+    issueDate: { invoice: 'Rechnungsdatum:', quote: 'Angebotsdatum:' },
+    serviceDate: 'Leistungsdatum:',
+    dueDate: { invoice: 'Fälligkeitsdatum:', quote: 'Gültig bis:' },
+    greeting: {
+      invoice: 'Sehr geehrte Damen und Herren,\nvielen Dank für Ihren Auftrag und das damit verbundene Vertrauen!\nHiermit stelle ich Ihnen die folgenden Leistungen in Rechnung:',
+      quote: 'Sehr geehrte Damen und Herren,\nvielen Dank für Ihre Anfrage!\nHiermit unterbreite ich Ihnen folgendes Angebot:',
+    },
+    smallBusiness: 'Gemäß § 6 Abs. 1 Z 27 UStG wird keine USt. berechnet!',
+    pos: 'Pos.:', service: 'Leistung', qty: 'Anzahl', duration: 'Laufzeit', sum: 'Summe:',
+    total: 'Ges.:',
+    payment: 'Bitte überweisen Sie den Rechnungsbetrag auf das unten angegebene Konto unter Angabe der Rechnungsnummer!',
+    terms: {
+      invoice: 'Die Leistungserbringung erfolgt auf Grundlage meiner Allgemeinen Geschäftsbedingungen (AGB), die die Rahmenbedingungen der Zusammenarbeit festlegen.\nDiese Rechnung bezieht sich auf diese Bedingungen.\nDie AGB sowie die Datenschutzerklärung werden auf Wunsch jederzeit gerne in geeigneter Form zur Verfügung gestellt.',
+      quote: 'Die Leistungserbringung erfolgt — bei Auftragserteilung — auf Grundlage meiner Allgemeinen Geschäftsbedingungen (AGB), die die Rahmenbedingungen der Zusammenarbeit festlegen.\nDieses Angebot bezieht sich auf diese Bedingungen.\nDie AGB sowie die Datenschutzerklärung werden auf Wunsch jederzeit gerne in geeigneter Form zur Verfügung gestellt.',
+    },
+    bank: 'Bank:', iban: 'IBAN.:', bic: 'BIC.:', gisa: 'GISA-Zahl:',
+  },
+  en: {
+    docTitle: { invoice: 'Invoice', quote: 'Quote' },
+    customer: 'Customer:', address: 'Address:', country: 'Country:', vat: 'VAT No.:',
+    docNo: { invoice: 'Invoice No.', quote: 'Quote No.' },
+    issueDate: { invoice: 'Invoice Date:', quote: 'Quote Date:' },
+    serviceDate: 'Service Date:',
+    dueDate: { invoice: 'Due Date:', quote: 'Valid Until:' },
+    greeting: {
+      invoice: 'Dear Sir or Madam,\nthank you for your order and your trust!\nPlease find the following services invoiced below:',
+      quote: 'Dear Sir or Madam,\nthank you for your inquiry!\nPlease find the following quote below:',
+    },
+    smallBusiness: 'No VAT is charged in accordance with § 6 para. 1 no. 27 of the Austrian VAT Act (small business exemption).',
+    pos: 'Item:', service: 'Description', qty: 'Qty', duration: 'Duration', sum: 'Total:',
+    total: 'Total:',
+    payment: 'Please transfer the invoice amount to the account stated below, quoting the invoice number.',
+    terms: {
+      invoice: 'Services are provided on the basis of my General Terms and Conditions (GTC), which govern the framework of our cooperation.\nThis invoice is subject to these terms.\nThe GTC and privacy policy are available on request at any time in a suitable format.',
+      quote: 'Should this quote be accepted, services will be provided on the basis of my General Terms and Conditions (GTC), which govern the framework of our cooperation.\nThis quote is subject to these terms.\nThe GTC and privacy policy are available on request at any time in a suitable format.',
+    },
+    bank: 'Bank:', iban: 'IBAN:', bic: 'BIC:', gisa: 'GISA No.:',
+  },
+} as const
 
 const styles = StyleSheet.create({
-  page: { padding: 48, fontSize: 9.5, fontFamily: 'Helvetica', color: INK },
+  page: { padding: 44, fontSize: 9, fontFamily: 'Helvetica', color: INK },
 
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 36 },
-  companyName: { fontSize: 14, fontWeight: 700, color: ACCENT, marginBottom: 4 },
-  companyLine: { fontSize: 8.5, color: MUTED, lineHeight: 1.5 },
+  brandRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 18 },
+  logo: { width: 22, height: 22, marginRight: 10 },
+  brandName: { fontSize: 14, fontWeight: 700, color: INK },
+  brandRule: { borderBottomWidth: 1, borderBottomColor: RULE, marginBottom: 22 },
 
-  docTitleBlock: { alignItems: 'flex-end' },
-  docTitle: { fontSize: 20, fontWeight: 700, color: INK, marginBottom: 2 },
-  docNumber: { fontSize: 9.5, color: MUTED },
+  metaRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 22 },
+  metaCol: { flexDirection: 'column', width: '48%' },
+  metaLine: { flexDirection: 'row', marginBottom: 5 },
+  metaLabel: { width: 70, fontSize: 8.5, fontWeight: 700, color: INK },
+  metaValue: { flex: 1, fontSize: 8.5, color: INK },
 
-  metaRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 28 },
-  block: { flexDirection: 'column' },
-  blockLabel: { fontSize: 7.5, fontWeight: 700, color: MUTED, marginBottom: 4, letterSpacing: 0.5 },
-  blockValue: { fontSize: 9.5, lineHeight: 1.5 },
+  titleRule: { borderTopWidth: 1.2, borderTopColor: RULE, paddingTop: 10, marginBottom: 4 },
+  titleRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
+  titleText: { fontSize: 13, fontWeight: 700, color: INK },
+  titleRuleBottom: { borderBottomWidth: 1.2, borderBottomColor: RULE, marginBottom: 16 },
 
-  table: { marginTop: 10 },
-  tableHeaderRow: {
-    flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#DDDDDD',
-    paddingBottom: 6, marginBottom: 6,
-  },
-  tableRow: {
-    flexDirection: 'row', paddingVertical: 6,
-    borderBottomWidth: 0.5, borderBottomColor: '#EEEEEE',
-  },
-  thDesc:  { flex: 5, fontSize: 7.5, fontWeight: 700, color: MUTED },
-  thQty:   { flex: 1, fontSize: 7.5, fontWeight: 700, color: MUTED, textAlign: 'right' },
-  thPrice: { flex: 1.5, fontSize: 7.5, fontWeight: 700, color: MUTED, textAlign: 'right' },
-  thTotal: { flex: 1.5, fontSize: 7.5, fontWeight: 700, color: MUTED, textAlign: 'right' },
-  tdDesc:  { flex: 5, fontSize: 9.5 },
-  tdQty:   { flex: 1, fontSize: 9.5, textAlign: 'right' },
-  tdPrice: { flex: 1.5, fontSize: 9.5, textAlign: 'right' },
-  tdTotal: { flex: 1.5, fontSize: 9.5, textAlign: 'right', fontWeight: 700 },
+  greeting: { fontSize: 9, lineHeight: 1.5, marginBottom: 10 },
+  smallBizNote: { fontSize: 9, lineHeight: 1.5, marginBottom: 16 },
 
-  totalsBlock: { marginTop: 16, alignItems: 'flex-end' },
-  totalsRow: { flexDirection: 'row', width: 220, justifyContent: 'space-between', paddingVertical: 3 },
-  totalsLabel: { fontSize: 9.5, color: MUTED },
-  totalsValue: { fontSize: 9.5 },
-  grandTotalRow: {
-    flexDirection: 'row', width: 220, justifyContent: 'space-between',
-    paddingTop: 8, marginTop: 4, borderTopWidth: 1, borderTopColor: INK,
-  },
-  grandTotalLabel: { fontSize: 11, fontWeight: 700 },
-  grandTotalValue: { fontSize: 11, fontWeight: 700, color: ACCENT },
+  table: { marginTop: 4, marginBottom: 16 },
+  tHeadRow: { flexDirection: 'row', backgroundColor: HEAD_BG, paddingVertical: 6, paddingHorizontal: 8 },
+  tRow: { flexDirection: 'row', paddingVertical: 6, paddingHorizontal: 8 },
+  tRowAlt: { backgroundColor: ROW_ALT },
+  cPos:  { width: 48, fontSize: 8.5, fontWeight: 700 },
+  cSvc:  { flex: 1, fontSize: 8.5 },
+  cQty:  { width: 50, fontSize: 8.5, textAlign: 'right' },
+  cDur:  { width: 60, fontSize: 8.5, textAlign: 'right' },
+  cSum:  { width: 70, fontSize: 8.5, textAlign: 'right', fontWeight: 700 },
+  thText: { fontSize: 8, fontWeight: 700, color: INK },
 
-  notes: { marginTop: 32, fontSize: 8.5, color: MUTED, lineHeight: 1.5 },
-  footer: {
-    position: 'absolute', bottom: 40, left: 48, right: 48,
-    borderTopWidth: 0.5, borderTopColor: '#DDDDDD', paddingTop: 10,
-    flexDirection: 'row', justifyContent: 'space-between',
-  },
-  footerText: { fontSize: 7.5, color: MUTED },
+  totalRow: { flexDirection: 'row', backgroundColor: TOTAL_BG, paddingVertical: 7, paddingHorizontal: 8 },
+
+  notes: { fontSize: 8.5, lineHeight: 1.5, marginBottom: 14, color: INK },
+
+  footerNotes: { marginTop: 'auto', paddingTop: 10 },
+  footerPara: { fontSize: 8, lineHeight: 1.5, color: MUTED, marginBottom: 8 },
+
+  bottomRule: { borderTopWidth: 0.75, borderTopColor: '#BBBBBB', marginTop: 6, marginBottom: 10 },
+  bottomRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  bottomCol: { flexDirection: 'column', width: '48%' },
+  bottomLine: { fontSize: 8, color: INK, marginBottom: 2, fontWeight: 700 },
+  bottomLineMuted: { fontSize: 8, color: INK, marginBottom: 2 },
 })
 
 function fmtMoney(n: number): string {
   return n.toLocaleString('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
 }
 
-function fmtDate(d?: string): string {
+function fmtDate(d?: string, lang: DocLanguage = 'de'): string {
   if (!d) return '—'
-  return new Date(d).toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  return new Date(d).toLocaleDateString(lang === 'en' ? 'en-GB' : 'de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+function Lines({ text, style }: { text: string; style: any }) {
+  return (
+    <>
+      {text.split('\n').map((line, i) => <Text key={i} style={style}>{line}</Text>)}
+    </>
+  )
+}
+
+function BrandLogo() {
+  return (
+    <Svg viewBox="0 0 1080 1080" style={styles.logo}>
+      <Polygon
+        fill={ACCENT}
+        points="778.73 456.88 486.36 456.88 604.46 147.27 990.54 0 660.64 0 473.2 0 236.36 620.89 348.58 620.89 423.8 620.89 778.73 620.89 778.73 1080 1017.92 456.88 910.89 456.88 778.73 456.88"
+      />
+      <Polygon
+        fill={ACCENT}
+        points="370.17 761.47 182.74 761.47 62.08 1077.77 171.52 1077.77 249.52 1077.77 595.15 1077.77 293.42 962.67 370.17 761.47"
+      />
+    </Svg>
+  )
 }
 
 export function DocumentPdf({ doc, company }: { doc: AccountingDocument; company: CompanyInfo }) {
   const items = doc.line_items ?? []
   const subtotal = items.reduce((s, i) => s + i.qty * i.unit_price, 0)
-  const tax = subtotal * (doc.tax_rate / 100)
+  const tax = company.small_business ? 0 : subtotal * (doc.tax_rate / 100)
   const total = subtotal + tax
   const isInvoice = doc.doc_type === 'invoice'
+  const k = isInvoice ? 'invoice' : 'quote'
+  const lang: DocLanguage = doc.language === 'en' ? 'en' : 'de'
+  const tr = T[lang]
+  const addressLines = (company.address || '').split('\n').filter(Boolean)
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* Header */}
-        <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.companyName}>{company.name || 'Mein Unternehmen'}</Text>
-            <Text style={styles.companyLine}>{company.address || ''}</Text>
-            <Text style={styles.companyLine}>
-              {[company.email, company.phone].filter(Boolean).join('  ·  ')}
-            </Text>
-            {company.uid && <Text style={styles.companyLine}>UID: {company.uid}</Text>}
-          </View>
-          <View style={styles.docTitleBlock}>
-            <Text style={styles.docTitle}>{isInvoice ? 'Rechnung' : 'Angebot'}</Text>
-            <Text style={styles.docNumber}>Nr. {doc.doc_number}</Text>
-          </View>
+        {/* Brand header */}
+        <View style={styles.brandRow}>
+          <BrandLogo />
+          <Text style={styles.brandName}>{company.name || 'Lukas Aigner'}</Text>
         </View>
+        <View style={styles.brandRule} />
 
-        {/* Client + dates */}
+        {/* Client + meta */}
         <View style={styles.metaRow}>
-          <View style={styles.block}>
-            <Text style={styles.blockLabel}>{isInvoice ? 'RECHNUNG AN' : 'ANGEBOT FÜR'}</Text>
-            <Text style={styles.blockValue}>{doc.client_name}</Text>
-            {doc.client_address && <Text style={styles.blockValue}>{doc.client_address}</Text>}
-            {doc.client_email && <Text style={styles.blockValue}>{doc.client_email}</Text>}
+          <View style={styles.metaCol}>
+            <View style={styles.metaLine}>
+              <Text style={styles.metaLabel}>{tr.customer}</Text>
+              <Text style={styles.metaValue}>{doc.client_name}</Text>
+            </View>
+            {doc.client_address && (
+              <View style={styles.metaLine}>
+                <Text style={styles.metaLabel}>{tr.address}</Text>
+                <Text style={styles.metaValue}>{doc.client_address}</Text>
+              </View>
+            )}
+            {doc.client_country && (
+              <View style={styles.metaLine}>
+                <Text style={styles.metaLabel}>{tr.country}</Text>
+                <Text style={styles.metaValue}>{doc.client_country}</Text>
+              </View>
+            )}
+            {doc.client_vat && (
+              <View style={styles.metaLine}>
+                <Text style={styles.metaLabel}>{tr.vat}</Text>
+                <Text style={styles.metaValue}>{doc.client_vat}</Text>
+              </View>
+            )}
           </View>
-          <View style={styles.block}>
-            <Text style={styles.blockLabel}>{isInvoice ? 'RECHNUNGSDATUM' : 'ANGEBOTSDATUM'}</Text>
-            <Text style={styles.blockValue}>{fmtDate(doc.issue_date)}</Text>
+          <View style={styles.metaCol}>
+            <View style={styles.metaLine}>
+              <Text style={styles.metaLabel}>{tr.docNo[k]}</Text>
+              <Text style={styles.metaValue}>{doc.doc_number}</Text>
+            </View>
+            <View style={styles.metaLine}>
+              <Text style={styles.metaLabel}>{tr.issueDate[k]}</Text>
+              <Text style={styles.metaValue}>{fmtDate(doc.issue_date, lang)}</Text>
+            </View>
+            {doc.service_date && (
+              <View style={styles.metaLine}>
+                <Text style={styles.metaLabel}>{tr.serviceDate}</Text>
+                <Text style={styles.metaValue}>{fmtDate(doc.service_date, lang)}</Text>
+              </View>
+            )}
             {doc.due_date && (
-              <>
-                <Text style={[styles.blockLabel, { marginTop: 8 }]}>
-                  {isInvoice ? 'FÄLLIG BIS' : 'GÜLTIG BIS'}
-                </Text>
-                <Text style={styles.blockValue}>{fmtDate(doc.due_date)}</Text>
-              </>
+              <View style={styles.metaLine}>
+                <Text style={styles.metaLabel}>{tr.dueDate[k]}</Text>
+                <Text style={styles.metaValue}>{fmtDate(doc.due_date, lang)}</Text>
+              </View>
             )}
           </View>
         </View>
 
+        {/* Title bar */}
+        <View style={styles.titleRule} />
+        <View style={styles.titleRow}>
+          <Text style={styles.titleText}>{tr.docTitle[k]}:</Text>
+          <Text style={styles.titleText}>{doc.doc_number}</Text>
+        </View>
+        <View style={styles.titleRuleBottom} />
+
+        {/* Greeting */}
+        <Lines text={tr.greeting[k]} style={styles.greeting} />
+        {isInvoice && company.small_business && (
+          <Text style={styles.smallBizNote}>{tr.smallBusiness}</Text>
+        )}
+
         {/* Line items table */}
         <View style={styles.table}>
-          <View style={styles.tableHeaderRow}>
-            <Text style={styles.thDesc}>Beschreibung</Text>
-            <Text style={styles.thQty}>Menge</Text>
-            <Text style={styles.thPrice}>Einzelpreis</Text>
-            <Text style={styles.thTotal}>Gesamt</Text>
+          <View style={styles.tHeadRow}>
+            <Text style={[styles.cPos, styles.thText]}>{tr.pos}</Text>
+            <Text style={[styles.cSvc, styles.thText]}>{tr.service}</Text>
+            <Text style={[styles.cQty, styles.thText]}>{tr.qty}</Text>
+            <Text style={[styles.cDur, styles.thText]}>{tr.duration}</Text>
+            <Text style={[styles.cSum, styles.thText]}>{tr.sum}</Text>
           </View>
           {items.map((item, i) => (
-            <View key={i} style={styles.tableRow}>
-              <Text style={styles.tdDesc}>{item.description}</Text>
-              <Text style={styles.tdQty}>{item.qty}</Text>
-              <Text style={styles.tdPrice}>{fmtMoney(item.unit_price)}</Text>
-              <Text style={styles.tdTotal}>{fmtMoney(item.qty * item.unit_price)}</Text>
+            <View key={i} style={i % 2 === 1 ? [styles.tRow, styles.tRowAlt] : styles.tRow}>
+              <Text style={styles.cPos}>{tr.pos.replace(':', '')} {i + 1}</Text>
+              <Text style={styles.cSvc}>{item.description}</Text>
+              <Text style={styles.cQty}>x{item.qty}</Text>
+              <Text style={styles.cDur}>{item.duration || '—'}</Text>
+              <Text style={styles.cSum}>{fmtMoney(item.qty * item.unit_price)}</Text>
             </View>
           ))}
-        </View>
-
-        {/* Totals */}
-        <View style={styles.totalsBlock}>
-          <View style={styles.totalsRow}>
-            <Text style={styles.totalsLabel}>Zwischensumme</Text>
-            <Text style={styles.totalsValue}>{fmtMoney(subtotal)}</Text>
-          </View>
-          <View style={styles.totalsRow}>
-            <Text style={styles.totalsLabel}>USt. ({doc.tax_rate}%)</Text>
-            <Text style={styles.totalsValue}>{fmtMoney(tax)}</Text>
-          </View>
-          <View style={styles.grandTotalRow}>
-            <Text style={styles.grandTotalLabel}>Gesamtbetrag</Text>
-            <Text style={styles.grandTotalValue}>{fmtMoney(total)}</Text>
+          <View style={styles.totalRow}>
+            <Text style={[styles.cPos, styles.thText]}></Text>
+            <Text style={[styles.cSvc, styles.thText]}></Text>
+            <Text style={[styles.cQty, styles.thText]}></Text>
+            <Text style={[styles.cDur, styles.thText]}>{tr.total}</Text>
+            <Text style={[styles.cSum, styles.thText]}>{fmtMoney(total)}</Text>
           </View>
         </View>
 
-        {/* Notes */}
+        {/* Custom notes */}
         {doc.notes && <Text style={styles.notes}>{doc.notes}</Text>}
 
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>{company.name || ''}</Text>
-          {company.iban && <Text style={styles.footerText}>IBAN: {company.iban}</Text>}
+        {/* Footer notes + bank block, pushed to bottom */}
+        <View style={styles.footerNotes}>
+          {isInvoice && <Text style={styles.footerPara}>{tr.payment}</Text>}
+          <Lines text={tr.terms[k]} style={styles.footerPara} />
+
+          <View style={styles.bottomRule} />
+          <View style={styles.bottomRow}>
+            <View style={styles.bottomCol}>
+              <Text style={styles.bottomLine}>{company.name || ''}</Text>
+              {addressLines.map((l, i) => <Text key={i} style={styles.bottomLineMuted}>{l}</Text>)}
+            </View>
+            <View style={[styles.bottomCol, { alignItems: 'flex-end' }]}>
+              {company.gisa && <Text style={styles.bottomLineMuted}>{tr.gisa} {company.gisa}</Text>}
+              {company.bank_name && <Text style={styles.bottomLineMuted}>{company.bank_name}</Text>}
+              {company.iban && <Text style={styles.bottomLineMuted}>{tr.iban} {company.iban}</Text>}
+              {company.bic && <Text style={styles.bottomLineMuted}>{tr.bic} {company.bic}</Text>}
+            </View>
+          </View>
         </View>
       </Page>
     </Document>

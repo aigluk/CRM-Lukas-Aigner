@@ -1,14 +1,14 @@
 'use client'
 
-import { useState } from 'react'
-import { X, Plus, Trash2, Save } from 'lucide-react'
-import type { AccountingDocument, DocType, LineItem } from '@/lib/types'
+import { useState, useEffect } from 'react'
+import { X, Plus, Trash2, Save, ChevronDown } from 'lucide-react'
+import type { AccountingCustomer, AccountingDocument, DocLanguage, DocType, LineItem } from '@/lib/types'
 
 const inputCls = 'w-full bg-dark rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all'
 const labelCls = 'block text-xs font-bold text-white/30 mb-1.5'
 
 function emptyItem(): LineItem {
-  return { description: '', qty: 1, unit_price: 0 }
+  return { description: '', qty: 1, unit_price: 0, duration: '' }
 }
 
 function fmtMoney(n: number): string {
@@ -25,21 +25,43 @@ export function DocumentModal({
   onSaved: () => void
 }) {
   const isEdit = !!doc
+  const [customers, setCustomers] = useState<AccountingCustomer[]>([])
+  const [customerId, setCustomerId] = useState(doc?.customer_id ?? '')
   const [docNumber, setDocNumber]   = useState(doc?.doc_number ?? nextNumberHint ?? '')
   const [clientName, setClientName] = useState(doc?.client_name ?? '')
   const [clientAddress, setClientAddress] = useState(doc?.client_address ?? '')
+  const [clientCountry, setClientCountry] = useState(doc?.client_country ?? '')
+  const [clientVat, setClientVat] = useState(doc?.client_vat ?? '')
   const [clientEmail, setClientEmail] = useState(doc?.client_email ?? '')
   const [issueDate, setIssueDate]   = useState(doc?.issue_date ?? new Date().toISOString().slice(0, 10))
+  const [serviceDate, setServiceDate] = useState(doc?.service_date ?? '')
   const [dueDate, setDueDate]       = useState(doc?.due_date ?? '')
+  const [language, setLanguage]     = useState<DocLanguage>(doc?.language ?? 'de')
   const [taxRate, setTaxRate]       = useState(doc?.tax_rate ?? 20)
   const [notes, setNotes]           = useState(doc?.notes ?? '')
   const [items, setItems]           = useState<LineItem[]>(doc?.line_items?.length ? doc.line_items : [emptyItem()])
   const [saving, setSaving]         = useState(false)
   const [error, setError]           = useState('')
 
+  useEffect(() => {
+    fetch('/api/accounting/customers').then(r => r.json()).then(d => setCustomers(d.customers ?? [])).catch(() => {})
+  }, [])
+
   const subtotal = items.reduce((s, i) => s + (i.qty || 0) * (i.unit_price || 0), 0)
   const tax = subtotal * (taxRate / 100)
   const total = subtotal + tax
+
+  function applyCustomer(id: string) {
+    setCustomerId(id)
+    const c = customers.find(x => x.id === id)
+    if (c) {
+      setClientName(c.name)
+      setClientAddress(c.address || '')
+      setClientCountry(c.country || '')
+      setClientVat(c.vat_number || '')
+      setClientEmail(c.email || '')
+    }
+  }
 
   function updateItem(idx: number, patch: Partial<LineItem>) {
     setItems(prev => prev.map((it, i) => i === idx ? { ...it, ...patch } : it))
@@ -56,11 +78,16 @@ export function DocumentModal({
     const payload = {
       doc_type: docType,
       doc_number: docNumber,
+      customer_id: customerId || null,
       client_name: clientName,
       client_address: clientAddress || null,
+      client_country: clientCountry || null,
+      client_vat: clientVat || null,
       client_email: clientEmail || null,
       issue_date: issueDate,
+      service_date: serviceDate || null,
       due_date: dueDate || null,
+      language,
       line_items: items.filter(i => i.description.trim()),
       tax_rate: taxRate,
       notes: notes || null,
@@ -98,14 +125,29 @@ export function DocumentModal({
           <h2 className="text-base font-black text-white">
             {isEdit ? 'Bearbeiten' : docType === 'invoice' ? 'Neue Rechnung' : 'Neues Angebot'}
           </h2>
-          <button onClick={onClose} className="p-1.5 rounded-xl bg-panel-hover text-white/30 hover:text-white transition-all shrink-0">
-            <X size={16} />
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Language toggle */}
+            <div className="flex bg-dark rounded-lg p-0.5">
+              {(['de', 'en'] as DocLanguage[]).map(l => (
+                <button
+                  key={l} type="button" onClick={() => setLanguage(l)}
+                  className={`px-2.5 py-1 rounded-md text-xs font-black transition-all ${
+                    language === l ? 'bg-accent text-white' : 'text-white/40 hover:text-white'
+                  }`}
+                >
+                  {l.toUpperCase()}
+                </button>
+              ))}
+            </div>
+            <button onClick={onClose} className="p-1.5 rounded-xl bg-panel-hover text-white/30 hover:text-white transition-all">
+              <X size={16} />
+            </button>
+          </div>
         </div>
 
         <div className="px-5 py-5 space-y-5">
           {/* Number + dates */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div>
               <label className={labelCls}>Nummer</label>
               <input type="text" value={docNumber} onChange={e => setDocNumber(e.target.value)} className={inputCls} />
@@ -115,10 +157,32 @@ export function DocumentModal({
               <input type="date" value={issueDate} onChange={e => setIssueDate(e.target.value)} className={inputCls} />
             </div>
             <div>
+              <label className={labelCls}>Leistungsdatum</label>
+              <input type="date" value={serviceDate} onChange={e => setServiceDate(e.target.value)} className={inputCls} />
+            </div>
+            <div>
               <label className={labelCls}>{docType === 'invoice' ? 'Fällig bis' : 'Gültig bis'}</label>
               <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className={inputCls} />
             </div>
           </div>
+
+          {/* Customer picker */}
+          {customers.length > 0 && (
+            <div>
+              <label className={labelCls}>Gespeicherter Kunde übernehmen</label>
+              <div className="relative">
+                <select
+                  value={customerId}
+                  onChange={e => applyCustomer(e.target.value)}
+                  className={`${inputCls} appearance-none pr-9`}
+                >
+                  <option value="">— Manuell eingeben —</option>
+                  {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+              </div>
+            </div>
+          )}
 
           {/* Client */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -135,24 +199,40 @@ export function DocumentModal({
             <label className={labelCls}>Adresse</label>
             <input type="text" value={clientAddress} onChange={e => setClientAddress(e.target.value)} placeholder="Straße Nr., PLZ Ort" className={inputCls} />
           </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className={labelCls}>Land</label>
+              <input type="text" value={clientCountry} onChange={e => setClientCountry(e.target.value)} placeholder="Österreich" className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>UID / Firmenbuchnr.</label>
+              <input type="text" value={clientVat} onChange={e => setClientVat(e.target.value)} placeholder="ATU00000000" className={inputCls} />
+            </div>
+          </div>
 
           {/* Line items */}
           <div>
             <label className={labelCls}>Positionen</label>
             <div className="space-y-2">
               {items.map((item, idx) => (
-                <div key={idx} className="flex gap-2 items-start">
+                <div key={idx} className="flex gap-2 items-start flex-wrap">
                   <input
                     type="text" value={item.description}
                     onChange={e => updateItem(idx, { description: e.target.value })}
                     placeholder="Beschreibung"
-                    className={`${inputCls} flex-1`}
+                    className={`${inputCls} flex-1 min-w-35`}
                   />
                   <input
                     type="number" value={item.qty} min={0} step="any"
                     onChange={e => updateItem(idx, { qty: parseFloat(e.target.value) || 0 })}
-                    placeholder="Menge"
+                    placeholder="Anzahl"
                     className={`${inputCls} w-20`}
+                  />
+                  <input
+                    type="text" value={item.duration ?? ''}
+                    onChange={e => updateItem(idx, { duration: e.target.value })}
+                    placeholder="Laufzeit"
+                    className={`${inputCls} w-24`}
                   />
                   <input
                     type="number" value={item.unit_price} min={0} step="any"

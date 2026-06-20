@@ -38,7 +38,10 @@ export function SettingsView() {
   const [pwSaving, setPwSaving]         = useState(false)
   const [pwMsg, setPwMsg]               = useState('')
 
-  const [company, setCompany]           = useState({ name: '', address: '', email: '', phone: '', iban: '', uid: '' })
+  const [company, setCompany]           = useState({
+    name: '', address: '', email: '', phone: '', iban: '', uid: '',
+    bank_name: '', bic: '', gisa: '', small_business: false,
+  })
   const [companySaving, setCompanySaving] = useState(false)
   const [companyMsg, setCompanyMsg]     = useState('')
 
@@ -58,6 +61,7 @@ export function SettingsView() {
       setJoinedAt(data.user?.created_at ?? '')
       setCompany({
         name: '', address: '', email: '', phone: '', iban: '', uid: '',
+        bank_name: '', bic: '', gisa: '', small_business: false,
         ...(data.user?.user_metadata?.company ?? {}),
       })
     })
@@ -230,9 +234,10 @@ export function SettingsView() {
                   placeholder="z. B. Lukas Aigner e.U." className={inputCls} />
               </div>
               <div>
-                <Label text="Adresse" />
-                <input type="text" value={company.address} onChange={e => setCompany(c => ({ ...c, address: e.target.value }))}
-                  placeholder="Straße Nr., PLZ Ort" className={inputCls} />
+                <Label text="Adresse (mehrzeilig: Straße / PLZ Ort / Land)" />
+                <textarea value={company.address} onChange={e => setCompany(c => ({ ...c, address: e.target.value }))}
+                  placeholder={'Mahring 24\n4113 Sankt Martin i.M.\nÖsterreich'} rows={3}
+                  className={`${inputCls} resize-none`} />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
@@ -253,11 +258,34 @@ export function SettingsView() {
                     placeholder="AT00 0000 0000 0000 0000" className={inputCls} />
                 </div>
                 <div>
+                  <Label text="BIC" />
+                  <input type="text" value={company.bic} onChange={e => setCompany(c => ({ ...c, bic: e.target.value }))}
+                    placeholder="RZOOAT2L300" className={inputCls} />
+                </div>
+              </div>
+              <div>
+                <Label text="Bank" />
+                <input type="text" value={company.bank_name} onChange={e => setCompany(c => ({ ...c, bank_name: e.target.value }))}
+                  placeholder="z. B. Raiffeisenbank Neufelden" className={inputCls} />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
                   <Label text="UID / Steuernummer" />
                   <input type="text" value={company.uid} onChange={e => setCompany(c => ({ ...c, uid: e.target.value }))}
                     placeholder="ATU00000000" className={inputCls} />
                 </div>
+                <div>
+                  <Label text="GISA-Zahl" />
+                  <input type="text" value={company.gisa} onChange={e => setCompany(c => ({ ...c, gisa: e.target.value }))}
+                    placeholder="38510595" className={inputCls} />
+                </div>
               </div>
+              <label className="flex items-center gap-2.5 bg-dark rounded-xl px-3.5 py-3 cursor-pointer">
+                <input type="checkbox" checked={company.small_business}
+                  onChange={e => setCompany(c => ({ ...c, small_business: e.target.checked }))}
+                  className="w-4 h-4 rounded accent-accent" />
+                <span className="text-sm text-white/70 font-medium">Kleinunternehmer (§ 6 Abs. 1 Z 27 UStG) — keine USt. auf Rechnungen</span>
+              </label>
               {companyMsg && <p className="text-xs text-white/40">{companyMsg}</p>}
               <button type="submit" disabled={companySaving}
                 className="w-full bg-accent hover:opacity-90 disabled:opacity-30 text-white font-black text-sm py-3 rounded-xl transition-all active:scale-[0.98]">

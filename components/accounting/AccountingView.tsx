@@ -3,21 +3,23 @@
 import { useState, useEffect, useMemo } from 'react'
 import {
   Plus, FileText, TrendingUp, TrendingDown, Wallet,
-  Download, Trash2, ChevronDown, Image as ImageIcon,
+  Download, Trash2, ChevronDown, Image as ImageIcon, Pencil,
 } from 'lucide-react'
-import type { AccountingDocument, AccountingReceipt, DocType, DocStatus, ReceiptType } from '@/lib/types'
+import type { AccountingCustomer, AccountingDocument, AccountingReceipt, DocType, DocStatus, ReceiptType } from '@/lib/types'
 import { DocumentModal } from './DocumentModal'
 import { ReceiptModal } from './ReceiptModal'
+import { CustomerModal } from './CustomerModal'
 import { useClickOutside } from '@/lib/useClickOutside'
 import { useRef } from 'react'
 
-type Tab = 'overview' | 'invoices' | 'quotes' | 'receipts'
+type Tab = 'overview' | 'invoices' | 'quotes' | 'customers' | 'receipts'
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'overview', label: 'Übersicht' },
-  { id: 'invoices', label: 'Rechnungen' },
-  { id: 'quotes',   label: 'Angebote' },
-  { id: 'receipts', label: 'Belege' },
+  { id: 'overview',  label: 'Übersicht' },
+  { id: 'invoices',  label: 'Rechnungen' },
+  { id: 'quotes',    label: 'Angebote' },
+  { id: 'customers', label: 'Kunden' },
+  { id: 'receipts',  label: 'Belege' },
 ]
 
 const STATUS_LABELS: Record<DocStatus, string> = {
@@ -93,19 +95,23 @@ export function AccountingView() {
   const [tab, setTab] = useState<Tab>('overview')
   const [documents, setDocuments] = useState<AccountingDocument[]>([])
   const [receipts, setReceipts]   = useState<AccountingReceipt[]>([])
+  const [customers, setCustomers] = useState<AccountingCustomer[]>([])
   const [loading, setLoading]     = useState(true)
   const [docModal, setDocModal]   = useState<{ type: DocType; doc?: AccountingDocument } | null>(null)
   const [receiptModal, setReceiptModal] = useState(false)
+  const [customerModal, setCustomerModal] = useState<{ customer?: AccountingCustomer } | null>(null)
 
   async function loadAll() {
     setLoading(true)
     try {
-      const [docsRes, receiptsRes] = await Promise.all([
+      const [docsRes, receiptsRes, customersRes] = await Promise.all([
         fetch('/api/accounting/documents').then(r => r.json()),
         fetch('/api/accounting/receipts').then(r => r.json()),
+        fetch('/api/accounting/customers').then(r => r.json()),
       ])
       setDocuments(docsRes.documents ?? [])
       setReceipts(receiptsRes.receipts ?? [])
+      setCustomers(customersRes.customers ?? [])
     } finally {
       setLoading(false)
     }
@@ -151,6 +157,12 @@ export function AccountingView() {
     if (!confirm('Beleg wirklich löschen?')) return
     setReceipts(prev => prev.filter(r => r.id !== id))
     await fetch(`/api/accounting/receipts?id=${id}`, { method: 'DELETE' })
+  }
+
+  async function deleteCustomer(id: string) {
+    if (!confirm('Kunde wirklich löschen?')) return
+    setCustomers(prev => prev.filter(c => c.id !== id))
+    await fetch(`/api/accounting/customers?id=${id}`, { method: 'DELETE' })
   }
 
   function DocList({ docs, type }: { docs: AccountingDocument[]; type: DocType }) {
@@ -222,6 +234,11 @@ export function AccountingView() {
             <Plus size={16} /><span className="hidden sm:inline">Beleg hinzufügen</span>
           </button>
         )}
+        {tab === 'customers' && (
+          <button onClick={() => setCustomerModal({})} className="flex items-center gap-2 bg-accent hover:bg-accent-hover text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95">
+            <Plus size={16} /><span className="hidden sm:inline">Neuer Kunde</span>
+          </button>
+        )}
       </div>
 
       {/* Tabs */}
@@ -276,6 +293,41 @@ export function AccountingView() {
         <DocList docs={invoices} type="invoice" />
       ) : tab === 'quotes' ? (
         <DocList docs={quotes} type="quote" />
+      ) : tab === 'customers' ? (
+        customers.length === 0 ? (
+          <div className="bg-panel rounded-2xl py-16 text-center">
+            <p className="text-white/40 text-sm font-medium">Noch keine Kunden angelegt.</p>
+          </div>
+        ) : (
+          <div className="bg-panel rounded-2xl overflow-hidden">
+            <ul>
+              {customers.map((c, i) => (
+                <li key={c.id} className={`flex items-center gap-3 px-4 sm:px-5 py-3.5 ${i < customers.length - 1 ? 'border-b border-panel-2' : ''}`}>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-white truncate">{c.name}</p>
+                    <p className="text-xs text-white/35 mt-0.5 truncate">
+                      {[c.address?.split('\n')[0], c.country, c.email].filter(Boolean).join(' · ') || '—'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setCustomerModal({ customer: c })}
+                    title="Bearbeiten"
+                    className="w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 flex items-center justify-center text-white/40 hover:text-white transition-all shrink-0"
+                  >
+                    <Pencil size={13} />
+                  </button>
+                  <button
+                    onClick={() => deleteCustomer(c.id)}
+                    title="Löschen"
+                    className="w-8 h-8 rounded-full bg-white/6 hover:bg-accent/20 flex items-center justify-center text-white/30 hover:text-accent transition-all shrink-0"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )
       ) : (
         <div className="bg-panel rounded-2xl overflow-hidden">
           {receipts.length === 0 ? (
@@ -325,6 +377,13 @@ export function AccountingView() {
         <ReceiptModal
           onClose={() => setReceiptModal(false)}
           onSaved={() => { setReceiptModal(false); loadAll() }}
+        />
+      )}
+      {customerModal && (
+        <CustomerModal
+          customer={customerModal.customer}
+          onClose={() => setCustomerModal(null)}
+          onSaved={() => { setCustomerModal(null); loadAll() }}
         />
       )}
     </div>

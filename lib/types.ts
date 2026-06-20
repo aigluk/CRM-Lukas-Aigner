@@ -55,11 +55,27 @@ export interface GenerateResult {
 
 export type DocType = 'invoice' | 'quote'
 export type DocStatus = 'draft' | 'sent' | 'paid' | 'overdue'
+export type DocLanguage = 'de' | 'en'
 
 export interface LineItem {
   description: string
   qty: number
   unit_price: number
+  duration?: string
+}
+
+export interface AccountingCustomer {
+  id: string
+  user_id: string
+  name: string
+  address?: string
+  country?: string
+  vat_number?: string
+  email?: string
+  phone?: string
+  notes?: string
+  created_at: string
+  updated_at: string
 }
 
 export interface AccountingDocument {
@@ -67,15 +83,20 @@ export interface AccountingDocument {
   user_id: string
   doc_type: DocType
   doc_number: string
+  customer_id?: string | null
   client_name: string
   client_address?: string
   client_email?: string
+  client_country?: string
+  client_vat?: string
   issue_date: string
+  service_date?: string
   due_date?: string
   line_items: LineItem[]
   tax_rate: number
   notes?: string
   status: DocStatus
+  language: DocLanguage
   pdf_path?: string
   created_at: string
   updated_at: string

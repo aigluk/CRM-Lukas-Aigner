@@ -107,11 +107,16 @@ export async function POST(req: NextRequest) {
       user_id:        user.id,
       doc_type:       docType,
       doc_number:     docNumber,
+      customer_id:    body.customer_id || null,
       client_name:    body.client_name ?? '',
       client_address: body.client_address ?? null,
+      client_country: body.client_country ?? null,
+      client_vat:     body.client_vat ?? null,
       client_email:   body.client_email ?? null,
       issue_date:     body.issue_date || new Date().toISOString().slice(0, 10),
+      service_date:   body.service_date || null,
       due_date:       body.due_date || null,
+      language:       body.language === 'en' ? 'en' : 'de',
       line_items:     lineItems,
       tax_rate:       typeof body.tax_rate === 'number' ? body.tax_rate : 20,
       notes:          body.notes ?? null,
@@ -156,8 +161,10 @@ export async function PATCH(req: NextRequest) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
     // Regenerate PDF if content fields changed (not just a status flip)
-    const contentChanged = ['line_items', 'client_name', 'client_address', 'client_email', 'tax_rate', 'notes', 'due_date', 'issue_date']
-      .some(k => k in updates)
+    const contentChanged = [
+      'line_items', 'client_name', 'client_address', 'client_country', 'client_vat', 'client_email',
+      'tax_rate', 'notes', 'due_date', 'issue_date', 'service_date', 'language',
+    ].some(k => k in updates)
     if (contentChanged) {
       const pdfPath = await generateAndStorePdf(data as AccountingDocument, user.id)
       if (pdfPath) data.pdf_path = pdfPath

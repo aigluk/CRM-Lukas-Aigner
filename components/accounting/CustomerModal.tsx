@@ -1,0 +1,128 @@
+'use client'
+
+import { useState } from 'react'
+import { X, Save } from 'lucide-react'
+import type { AccountingCustomer } from '@/lib/types'
+
+const inputCls = 'w-full bg-dark rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all'
+const labelCls = 'block text-xs font-bold text-white/30 mb-1.5'
+
+export function CustomerModal({
+  customer, onClose, onSaved,
+}: {
+  customer?: AccountingCustomer
+  onClose: () => void
+  onSaved: () => void
+}) {
+  const isEdit = !!customer
+  const [name, setName] = useState(customer?.name ?? '')
+  const [address, setAddress] = useState(customer?.address ?? '')
+  const [country, setCountry] = useState(customer?.country ?? '')
+  const [vatNumber, setVatNumber] = useState(customer?.vat_number ?? '')
+  const [email, setEmail] = useState(customer?.email ?? '')
+  const [phone, setPhone] = useState(customer?.phone ?? '')
+  const [notes, setNotes] = useState(customer?.notes ?? '')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  async function save() {
+    if (!name.trim()) { setError('Name ist erforderlich.'); return }
+    setSaving(true)
+    setError('')
+
+    const payload = {
+      name: name.trim(),
+      address: address || null,
+      country: country || null,
+      vat_number: vatNumber || null,
+      email: email || null,
+      phone: phone || null,
+      notes: notes || null,
+    }
+
+    try {
+      const res = await fetch('/api/accounting/customers', {
+        method: isEdit ? 'PATCH' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(isEdit ? { id: customer!.id, ...payload } : payload),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Speichern fehlgeschlagen.')
+      }
+      onSaved()
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-60 flex items-end sm:items-center justify-center px-3 sm:p-4"
+      style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+      onClick={e => e.target === e.currentTarget && onClose()}
+    >
+      <div
+        className="bg-panel w-full sm:max-w-lg rounded-2xl overflow-y-auto shadow-2xl overscroll-contain"
+        style={{ maxHeight: 'calc(94dvh - env(safe-area-inset-bottom))', WebkitOverflowScrolling: 'touch' }}
+      >
+        <div className="sticky top-0 bg-panel z-10 px-5 pt-4 pb-3 border-b border-rim-subtle flex items-center justify-between gap-3">
+          <h2 className="text-base font-black text-white">{isEdit ? 'Kunde bearbeiten' : 'Neuer Kunde'}</h2>
+          <button onClick={onClose} className="p-1.5 rounded-xl bg-panel-hover text-white/30 hover:text-white transition-all shrink-0">
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="px-5 py-5 space-y-4">
+          <div>
+            <label className={labelCls}>Name / Firma</label>
+            <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Musterfirma GmbH" className={inputCls} />
+          </div>
+          <div>
+            <label className={labelCls}>Adresse (mehrzeilig)</label>
+            <textarea value={address} onChange={e => setAddress(e.target.value)} rows={2}
+              placeholder={'Bsp Adresse / 5330 XYZ'} className={`${inputCls} resize-none`} />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className={labelCls}>Land</label>
+              <input type="text" value={country} onChange={e => setCountry(e.target.value)} placeholder="Österreich" className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>UID / Firmenbuchnr.</label>
+              <input type="text" value={vatNumber} onChange={e => setVatNumber(e.target.value)} placeholder="ATU00000000" className={inputCls} />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className={labelCls}>E-Mail</label>
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="kunde@firma.at" className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Telefon</label>
+              <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+43 ..." className={inputCls} />
+            </div>
+          </div>
+          <div>
+            <label className={labelCls}>Notizen</label>
+            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
+              placeholder="Interne Notizen..." className={`${inputCls} resize-none`} />
+          </div>
+
+          {error && <p className="text-xs text-accent font-bold">{error}</p>}
+
+          <button
+            onClick={save} disabled={saving}
+            className="w-full flex items-center justify-center gap-2 bg-accent hover:opacity-90 disabled:opacity-50 text-white font-black text-sm py-3.5 rounded-xl transition-all active:scale-[0.98]"
+          >
+            <Save size={14} />
+            {saving ? 'Speichern…' : 'Kunde speichern'}
+          </button>
+
+          <div style={{ height: 'max(1rem, env(safe-area-inset-bottom))' }} />
+        </div>
+      </div>
+    </div>
+  )
+}
