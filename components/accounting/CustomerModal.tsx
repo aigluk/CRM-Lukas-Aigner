@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { X, Save, BellRing } from 'lucide-react'
 import type { AccountingCustomer } from '@/lib/types'
 import { addReminder } from '@/lib/useReminders'
-import { DatePicker } from '@/components/ui/DateTimePicker'
+import { DatePicker, TimePicker } from '@/components/ui/DateTimePicker'
 
 const inputCls = 'w-full bg-dark rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all'
 const labelCls = 'block text-xs font-bold text-white/30 mb-1.5'
@@ -32,6 +32,7 @@ export function CustomerModal({
   const [showReminder, setShowReminder] = useState(false)
   const [reminderText, setReminderText] = useState('')
   const [reminderDate, setReminderDate] = useState('')
+  const [reminderTime, setReminderTime] = useState('09:00')
 
   function saveReminder() {
     if (!reminderText.trim() || !customer?.id) return
@@ -41,10 +42,11 @@ export function CustomerModal({
       refName: customer.name,
       text: reminderText.trim(),
       manual: true,
-      remindAt: reminderDate ? new Date(reminderDate).toISOString() : undefined,
+      remindAt: reminderDate ? new Date(`${reminderDate}T${reminderTime}:00`).toISOString() : undefined,
     })
     setReminderText('')
     setReminderDate('')
+    setReminderTime('09:00')
     setShowReminder(false)
   }
 
@@ -129,10 +131,13 @@ export function CustomerModal({
                 <div className="flex-1">
                   <DatePicker value={reminderDate} onChange={setReminderDate} />
                 </div>
+                <div className="flex-1">
+                  <TimePicker value={reminderTime} onChange={setReminderTime} />
+                </div>
                 <button
                   onClick={saveReminder}
                   disabled={!reminderText.trim()}
-                  className="px-4 py-2.5 bg-accent text-white text-sm font-bold rounded-xl transition-all disabled:opacity-40"
+                  className="px-4 py-2.5 bg-accent text-white text-sm font-bold rounded-xl transition-all disabled:opacity-40 shrink-0"
                 >
                   Speichern
                 </button>

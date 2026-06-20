@@ -295,7 +295,7 @@ export function GeneratorForm() {
           <div className="bg-panel rounded-2xl p-5">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2">
-                <Wand2 size={14} className="text-accent" />
+                <Wand2 size={14} strokeWidth={2.6} className="text-accent" />
                 <h2 className="text-sm font-black text-white">Branche</h2>
               </div>
               {hasDefaultsHidden && (
@@ -466,7 +466,7 @@ export function GeneratorForm() {
           >
             {loading
               ? <><Loader2 size={16} className="animate-spin" />Generiere…</>
-              : <><Wand2 size={16} />Leads generieren</>
+              : <><Wand2 size={16} strokeWidth={2.4} />Leads generieren</>
             }
           </button>
         </form>
@@ -484,8 +484,8 @@ export function GeneratorForm() {
           {!result && !loading && !error && (
             <>
               <div className="bg-panel rounded-2xl flex items-center gap-5 px-6 py-6">
-                <div className="w-10 h-10 rounded-xl bg-dark flex items-center justify-center shrink-0">
-                  <Wand2 size={18} className="text-white/10" />
+                <div className="w-10 h-10 rounded-xl bg-accent/12 flex items-center justify-center shrink-0">
+                  <Wand2 size={18} strokeWidth={2.4} className="text-accent" />
                 </div>
                 <div>
                   <p className="text-sm font-black text-white/25">Branche &amp; Region wählen</p>

@@ -174,6 +174,7 @@ export function LeadDetailModal({
   const [showReminder, setShowReminder] = useState(false)
   const [reminderText, setReminderText] = useState('')
   const [reminderDate, setReminderDate] = useState('')
+  const [reminderTime, setReminderTime] = useState('09:00')
 
   function set<K extends keyof Lead>(field: K, value: Lead[K]) {
     setForm(prev => ({ ...prev, [field]: value }))
@@ -187,10 +188,11 @@ export function LeadDetailModal({
       refName: lead.name,
       text: reminderText.trim(),
       manual: true,
-      remindAt: reminderDate ? new Date(reminderDate).toISOString() : undefined,
+      remindAt: reminderDate ? new Date(`${reminderDate}T${reminderTime}:00`).toISOString() : undefined,
     })
     setReminderText('')
     setReminderDate('')
+    setReminderTime('09:00')
     setShowReminder(false)
   }
 
@@ -423,10 +425,13 @@ export function LeadDetailModal({
                   <div className="flex-1">
                     <DatePicker value={reminderDate} onChange={setReminderDate} />
                   </div>
+                  <div className="flex-1">
+                    <TimePicker value={reminderTime} onChange={setReminderTime} />
+                  </div>
                   <button
                     onClick={saveReminder}
                     disabled={!reminderText.trim()}
-                    className="px-4 py-2.5 bg-accent text-white text-sm font-bold rounded-xl transition-all disabled:opacity-40"
+                    className="px-4 py-2.5 bg-accent text-white text-sm font-bold rounded-xl transition-all disabled:opacity-40 shrink-0"
                   >
                     Speichern
                   </button>

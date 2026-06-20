@@ -62,7 +62,13 @@ export function TodayPanel({ leads: initialLeads, onEdit }: Props) {
       >
         {/* Date header */}
         <div className="flex items-center gap-4 mb-4 shrink-0">
-          <div className="w-14 h-14 bg-accent rounded-2xl flex items-center justify-center shrink-0">
+          <div className="relative w-14 h-14 bg-accent rounded-2xl flex items-center justify-center shrink-0">
+            {appts.length > 0 && (
+              <>
+                <span className="absolute top-1.5 left-3 w-1 h-2 rounded-full bg-white/50" />
+                <span className="absolute top-1.5 right-3 w-1 h-2 rounded-full bg-white/50" />
+              </>
+            )}
             <span className="text-2xl font-black text-white leading-none">{dayNum}</span>
           </div>
           <div className="min-w-0">
@@ -80,7 +86,9 @@ export function TodayPanel({ leads: initialLeads, onEdit }: Props) {
         <div className="flex-1 overflow-y-auto min-h-0 space-y-2">
           {appts.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center gap-2 py-4">
-              <CalendarDays size={48} strokeWidth={1.5} fill="currentColor" className="text-white/10" />
+              <div className="w-14 h-14 rounded-2xl bg-accent/12 flex items-center justify-center">
+                <CalendarDays size={26} strokeWidth={2.2} className="text-accent" />
+              </div>
               <p className="text-xs text-white/25 font-medium">Keine Termine heute</p>
             </div>
           ) : (

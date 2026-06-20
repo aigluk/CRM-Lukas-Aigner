@@ -187,7 +187,12 @@ export function StatTiles({ leads }: { leads: Lead[] }) {
               className="bg-panel rounded-2xl p-5 hover:bg-panel-hover transition-colors block"
             >
               <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-4 ${t.iconBg}`}>
-                <Icon size={17} strokeWidth={2.5} className={t.iconColor} />
+                <Icon
+                  size={17}
+                  strokeWidth={t.label === 'Aktive Pipeline' ? 0 : 2.75}
+                  fill={t.label === 'Aktive Pipeline' ? 'currentColor' : 'none'}
+                  className={t.iconColor}
+                />
               </div>
               <p className="text-2xl font-black text-white leading-none">{t.value}</p>
               <p className="text-xs font-medium text-white/35 mt-2 leading-tight">{t.label}</p>

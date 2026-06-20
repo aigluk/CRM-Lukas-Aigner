@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Mail, Lock, Users, Plus, Loader2, Check, Trash2, AtSign, User, LogOut, Building2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 import { formatDate } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
 
@@ -324,7 +325,7 @@ export function SettingsView() {
             <form onSubmit={savePassword} className="space-y-3">
               <div>
                 <Label text="Neues Passwort" />
-                <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)}
+                <PasswordInput value={newPassword} onChange={setNewPassword}
                   placeholder="••••••••" className={inputCls} />
               </div>
               {pwMsg && <p className="text-xs text-white/40">{pwMsg}</p>}
@@ -357,7 +358,7 @@ export function SettingsView() {
               </div>
               <div>
                 <Label text="Passwort" />
-                <input type="password" value={newUserPw} onChange={e => setNewUserPw(e.target.value)}
+                <PasswordInput value={newUserPw} onChange={setNewUserPw}
                   placeholder="••••••••" className={inputCls} />
               </div>
             </div>

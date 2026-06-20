@@ -65,7 +65,7 @@ export function ReminderBanner() {
 
         {r.remindAt && (
           <p className="text-[11px] text-white/25 text-center mt-4 font-medium">
-            Geplant für {formatDate(r.remindAt)}
+            Geplant für {formatDate(r.remindAt)} · {new Date(r.remindAt).toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit' })} Uhr
           </p>
         )}
       </div>
