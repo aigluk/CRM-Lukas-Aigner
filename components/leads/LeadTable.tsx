@@ -126,7 +126,7 @@ export function LeadTable({
   const rowGrid = 'grid grid-cols-[36px_1fr_32px_32px_16px] sm:grid-cols-[36px_1fr_auto_32px_32px_32px_16px] gap-3 items-center px-4 sm:px-5 min-h-16'
 
   return (
-    <div className="bg-panel rounded-2xl overflow-hidden">
+    <div className="bg-panel rounded-2xl overflow-hidden mt-2">
       {/* Header */}
       <div className={`${rowGrid} bg-accent`}>
         <Circle selected={allSelected} partial={someSelected} onAccent onClick={e => { e.stopPropagation(); onToggleAll() }} />

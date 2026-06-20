@@ -1,16 +1,15 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { X, Save, Camera, Loader2, Sparkles } from 'lucide-react'
-import type { ReceiptType } from '@/lib/types'
+import { X, Save, Upload, Loader2, Sparkles } from 'lucide-react'
+import type { DocStatus } from '@/lib/types'
 import { DatePicker } from './DatePicker'
 
 const inputCls = 'w-full bg-dark rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all'
 const labelCls = 'block text-xs font-bold text-white/30 mb-1.5'
 
-const TYPE_LABELS: Record<Exclude<ReceiptType, 'income_other'>, string> = {
-  expense: 'Ausgabe',
-  cash: 'Barrechnung',
+const STATUS_LABELS: Record<DocStatus, string> = {
+  draft: 'Entwurf', sent: 'Versendet', paid: 'Bezahlt', overdue: 'Überfällig',
 }
 
 function fileToBase64(file: File): Promise<string> {
@@ -22,19 +21,21 @@ function fileToBase64(file: File): Promise<string> {
   })
 }
 
-export function ReceiptModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
-  const [receiptType, setReceiptType] = useState<ReceiptType>('expense')
-  const [vendor, setVendor]   = useState('')
-  const [amount, setAmount]   = useState('')
-  const [date, setDate]       = useState(new Date().toISOString().slice(0, 10))
-  const [category, setCategory] = useState('')
-  const [notes, setNotes]     = useState('')
-  const [file, setFile]       = useState<File | null>(null)
+export function InvoiceImportModal({
+  nextNumberHint, onClose, onSaved,
+}: { nextNumberHint: string; onClose: () => void; onSaved: () => void }) {
+  const [docNumber, setDocNumber] = useState(nextNumberHint)
+  const [detectedNumber, setDetectedNumber] = useState('')
+  const [clientName, setClientName] = useState('')
+  const [issueDate, setIssueDate] = useState(new Date().toISOString().slice(0, 10))
+  const [amount, setAmount] = useState('')
+  const [taxRate, setTaxRate] = useState('20')
+  const [status, setStatus] = useState<DocStatus>('paid')
+  const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
-  const [ocrRaw, setOcrRaw]   = useState('')
   const [ocrLoading, setOcrLoading] = useState(false)
-  const [saving, setSaving]   = useState(false)
-  const [error, setError]     = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
 
   async function handleFile(f: File) {
@@ -45,18 +46,17 @@ export function ReceiptModal({ onClose, onSaved }: { onClose: () => void; onSave
     setOcrLoading(true)
     try {
       const base64 = await fileToBase64(f)
-      const res = await fetch('/api/accounting/receipts/ocr', {
+      const res = await fetch('/api/accounting/documents/ocr', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageBase64: base64, mediaType: f.type }),
       })
       const data = await res.json()
       if (res.ok) {
-        if (data.vendor) setVendor(data.vendor)
+        if (data.client_name) setClientName(data.client_name)
+        if (data.date) setIssueDate(data.date)
         if (data.amount) setAmount(String(data.amount))
-        if (data.date) setDate(data.date)
-        if (data.category) setCategory(data.category)
-        setOcrRaw(data.raw ?? '')
+        if (data.invoice_number) setDetectedNumber(data.invoice_number)
       }
     } catch {
       // OCR best-effort — manual entry still works
@@ -68,24 +68,30 @@ export function ReceiptModal({ onClose, onSaved }: { onClose: () => void; onSave
   async function save() {
     const amt = parseFloat(amount)
     if (!amt || amt <= 0) { setError('Betrag fehlt.'); return }
+    if (!clientName.trim()) { setError('Kundenname fehlt.'); return }
+    if (!docNumber.trim()) { setError('Rechnungsnummer fehlt.'); return }
     setSaving(true)
     setError('')
 
     try {
-      const form = new FormData()
-      if (file) form.append('file', file)
-      form.append('receipt_type', receiptType)
-      form.append('vendor', vendor)
-      form.append('amount', String(amt))
-      form.append('date', date)
-      form.append('category', category)
-      form.append('notes', notes)
-      form.append('ocr_raw', ocrRaw)
-
-      const res = await fetch('/api/accounting/receipts', { method: 'POST', body: form })
+      const rate = parseFloat(taxRate) || 0
+      const unitPrice = amt / (1 + rate / 100)
+      const res = await fetch('/api/accounting/documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          doc_type: 'invoice',
+          doc_number: docNumber.trim(),
+          client_name: clientName.trim(),
+          issue_date: issueDate,
+          tax_rate: rate,
+          status,
+          line_items: [{ description: 'Leistung', qty: 1, unit_price: unitPrice }],
+        }),
+      })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || 'Speichern fehlgeschlagen.')
+        throw new Error(data.error || 'Import fehlgeschlagen.')
       }
       onSaved()
     } catch (err: any) {
@@ -105,7 +111,7 @@ export function ReceiptModal({ onClose, onSaved }: { onClose: () => void; onSave
         style={{ maxHeight: 'calc(94dvh - env(safe-area-inset-bottom))', WebkitOverflowScrolling: 'touch' }}
       >
         <div className="sticky top-0 bg-panel z-10 px-5 pt-4 pb-3 border-b border-rim-subtle flex items-center justify-between gap-3">
-          <h2 className="text-base font-black text-white">Beleg hinzufügen</h2>
+          <h2 className="text-base font-black text-white">Rechnung importieren</h2>
           <button onClick={onClose} className="p-1.5 rounded-xl bg-panel-hover text-white/30 hover:text-white transition-all shrink-0">
             <X size={16} />
           </button>
@@ -114,7 +120,7 @@ export function ReceiptModal({ onClose, onSaved }: { onClose: () => void; onSave
         <div className="px-5 py-5 space-y-4">
           {/* Upload */}
           <input
-            ref={fileRef} type="file" accept="image/*,application/pdf" capture="environment"
+            ref={fileRef} type="file" accept="image/*,application/pdf"
             className="hidden"
             onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])}
           />
@@ -142,55 +148,56 @@ export function ReceiptModal({ onClose, onSaved }: { onClose: () => void; onSave
               type="button" onClick={() => fileRef.current?.click()}
               className="w-full flex flex-col items-center justify-center gap-2 bg-dark border border-dashed border-white/15 rounded-xl py-8 text-white/40 hover:text-white hover:border-white/30 transition-all"
             >
-              <Camera size={22} />
-              <span className="text-sm font-bold">Foto / PDF hinzufügen</span>
-              <span className="text-xs text-white/25 flex items-center gap-1"><Sparkles size={11} />Betrag wird automatisch erkannt</span>
+              <Upload size={22} />
+              <span className="text-sm font-bold">Bestehende Rechnung hochladen</span>
+              <span className="text-xs text-white/25 flex items-center gap-1"><Sparkles size={11} />Daten werden automatisch erkannt</span>
             </button>
           )}
 
-          {/* Type */}
-          <div className="flex gap-2">
-            {(Object.keys(TYPE_LABELS) as Exclude<ReceiptType, 'income_other'>[]).map(t => (
-              <button
-                key={t} type="button" onClick={() => setReceiptType(t)}
-                className={`flex-1 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                  receiptType === t ? 'bg-accent text-white' : 'bg-panel-hover text-white/40 hover:text-white'
-                }`}
-              >
-                {TYPE_LABELS[t]}
-              </button>
-            ))}
+          <div>
+            <label className={labelCls}>Rechnungsnummer</label>
+            <input type="text" value={docNumber} onChange={e => setDocNumber(e.target.value)} className={inputCls} />
+            {detectedNumber && (
+              <p className="text-[11px] text-white/30 mt-1">Auf dem Dokument erkannt: {detectedNumber}</p>
+            )}
+          </div>
+
+          <div>
+            <label className={labelCls}>Kunde</label>
+            <input type="text" value={clientName} onChange={e => setClientName(e.target.value)} placeholder="Name des Kunden" className={inputCls} />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={labelCls}>Betrag (€)</label>
-              <input type="number" value={amount} onChange={e => setAmount(e.target.value)} step="any" placeholder="0.00" className={inputCls} />
+              <label className={labelCls}>Datum</label>
+              <DatePicker value={issueDate} onChange={setIssueDate} className={inputCls} />
             </div>
             <div>
-              <label className={labelCls}>Datum</label>
-              <DatePicker value={date} onChange={setDate} className={inputCls} />
+              <label className={labelCls}>Betrag (€, brutto)</label>
+              <input type="number" value={amount} onChange={e => setAmount(e.target.value)} step="any" placeholder="0.00" className={inputCls} />
             </div>
           </div>
 
-          <div>
-            <label className={labelCls}>Verkäufer / Firma</label>
-            <input type="text" value={vendor} onChange={e => setVendor(e.target.value)} placeholder="z. B. OMV, Hofer..." className={inputCls} />
-          </div>
-
-          <div>
-            <label className={labelCls}>Kategorie</label>
-            <input type="text" value={category} onChange={e => setCategory(e.target.value)} list="receipt-categories" placeholder="z. B. Tanken, Büromaterial..." className={inputCls} />
-            <datalist id="receipt-categories">
-              {['Büromaterial', 'Tanken', 'Bewirtung', 'Software', 'Reisekosten', 'Werbung', 'Telefon/Internet', 'Sonstiges'].map(c => (
-                <option key={c} value={c} />
-              ))}
-            </datalist>
-          </div>
-
-          <div>
-            <label className={labelCls}>Notizen</label>
-            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} className={`${inputCls} resize-none`} />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelCls}>USt-Satz (%)</label>
+              <input type="number" value={taxRate} onChange={e => setTaxRate(e.target.value)} step="any" className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Status</label>
+              <div className="flex gap-1.5">
+                {(['sent', 'paid'] as DocStatus[]).map(s => (
+                  <button
+                    key={s} type="button" onClick={() => setStatus(s)}
+                    className={`flex-1 px-2 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                      status === s ? 'bg-accent text-white' : 'bg-dark text-white/40 hover:text-white'
+                    }`}
+                  >
+                    {STATUS_LABELS[s]}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           {error && <p className="text-xs text-accent font-bold">{error}</p>}
@@ -200,7 +207,7 @@ export function ReceiptModal({ onClose, onSaved }: { onClose: () => void; onSave
             className="w-full flex items-center justify-center gap-2 bg-accent hover:opacity-90 disabled:opacity-50 text-white font-black text-sm py-3.5 rounded-xl transition-all active:scale-[0.98]"
           >
             <Save size={14} />
-            {saving ? 'Speichern…' : 'Beleg speichern'}
+            {saving ? 'Importieren…' : 'Rechnung importieren'}
           </button>
 
           <div style={{ height: 'max(1rem, env(safe-area-inset-bottom))' }} />

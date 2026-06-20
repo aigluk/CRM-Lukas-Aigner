@@ -3,8 +3,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import {
   Plus, FileText, TrendingUp, TrendingDown, Wallet,
-  Download, Trash2, ChevronDown, ChevronLeft, ChevronRight, Image as ImageIcon, Eye, EyeOff, Calculator,
-  AlertTriangle, ShieldCheck, Landmark, Loader2,
+  Download, Trash2, ChevronDown, ChevronLeft, ChevronRight, Image as ImageIcon, Eye, EyeOff,
+  Loader2, Search, Upload,
 } from 'lucide-react'
 import type { AccountingDocument, AccountingReceipt, DocType, DocStatus, ReceiptType } from '@/lib/types'
 import type { CompanyInfo } from '@/lib/pdf/DocumentPdf'
@@ -12,13 +12,14 @@ import type { ClosingPdfData } from '@/lib/pdf/ClosingPdf'
 import { DocumentModal } from './DocumentModal'
 import { ReceiptModal } from './ReceiptModal'
 import { PdfPreviewModal } from './PdfPreviewModal'
+import { InvoiceImportModal } from './InvoiceImportModal'
 import { useClickOutside } from '@/lib/useClickOutside'
 import { useRef } from 'react'
 
 type Tab = 'invoices' | 'quotes' | 'receipts' | 'closings' | 'overview'
 
 type MonthPeriod = { month: number; year: number }
-type ListPeriod = 'all' | 'heute' | MonthPeriod | number
+type ListPeriod = 'all' | MonthPeriod | number
 
 const MONTHS_SHORT = ['Jän','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez']
 
@@ -26,7 +27,6 @@ function inListPeriod(dateStr: string | undefined, period: ListPeriod): boolean 
   if (period === 'all') return true
   const d = new Date(dateStr || '')
   if (isNaN(d.getTime())) return false
-  if (period === 'heute') return d.toDateString() === new Date().toDateString()
   if (typeof period === 'object') return d.getMonth() === period.month && d.getFullYear() === period.year
   return d.getFullYear() === period
 }
@@ -121,12 +121,6 @@ function ListPeriodFilter({ period, onChange }: { period: ListPeriod; onChange: 
         className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${period === 'all' ? 'bg-accent text-white' : 'bg-dark text-white/40 hover:text-white/70'}`}
       >
         Alle
-      </button>
-      <button
-        onClick={() => onChange('heute')}
-        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${period === 'heute' ? 'bg-accent text-white' : 'bg-dark text-white/40 hover:text-white/70'}`}
-      >
-        Heute
       </button>
       <ListMonthDropdown period={period} onSelect={p => onChange(p)} />
       <ListYearDropdown
@@ -255,6 +249,8 @@ export function AccountingView() {
   const [company, setCompany] = useState<CompanyInfo>({})
   const [listPeriod, setListPeriod] = useState<ListPeriod>('all')
   const [exportingPdf, setExportingPdf] = useState(false)
+  const [search, setSearch] = useState('')
+  const [importModal, setImportModal] = useState(false)
 
   const [periodMode, setPeriodMode] = useState<PeriodMode>('month')
   const now = new Date()
@@ -284,9 +280,13 @@ export function AccountingView() {
   const invoices = useMemo(() => documents.filter(d => d.doc_type === 'invoice'), [documents])
   const quotes   = useMemo(() => documents.filter(d => d.doc_type === 'quote'), [documents])
 
-  const listInvoices = useMemo(() => invoices.filter(d => inListPeriod(d.issue_date, listPeriod)), [invoices, listPeriod])
-  const listQuotes   = useMemo(() => quotes.filter(d => inListPeriod(d.issue_date, listPeriod)), [quotes, listPeriod])
-  const listReceipts = useMemo(() => receipts.filter(r => inListPeriod(r.date, listPeriod)), [receipts, listPeriod])
+  const searchQ = search.trim().toLowerCase()
+  const matchesDoc = (d: AccountingDocument) => !searchQ || d.client_name.toLowerCase().includes(searchQ) || d.doc_number.toLowerCase().includes(searchQ)
+  const matchesReceipt = (r: AccountingReceipt) => !searchQ || (r.vendor ?? '').toLowerCase().includes(searchQ) || (r.category ?? '').toLowerCase().includes(searchQ)
+
+  const listInvoices = useMemo(() => invoices.filter(d => inListPeriod(d.issue_date, listPeriod) && matchesDoc(d)), [invoices, listPeriod, searchQ])
+  const listQuotes   = useMemo(() => quotes.filter(d => inListPeriod(d.issue_date, listPeriod) && matchesDoc(d)), [quotes, listPeriod, searchQ])
+  const listReceipts = useMemo(() => receipts.filter(r => inListPeriod(r.date, listPeriod) && matchesReceipt(r)), [receipts, listPeriod, searchQ])
 
   const totals = useMemo(() => {
     const year = new Date().getFullYear()
@@ -296,13 +296,6 @@ export function AccountingView() {
     const expenses = receipts.filter(r => r.receipt_type === 'expense' && inYear(r.date)).reduce((s, r) => s + r.amount, 0)
     return { incomePaid, incomeOpen, expenses, profit: incomePaid - expenses }
   }, [invoices, receipts])
-
-  const availableYears = useMemo(() => {
-    const years = new Set<number>([now.getFullYear()])
-    documents.forEach(d => years.add(new Date(d.issue_date).getFullYear()))
-    receipts.forEach(r => years.add(new Date(r.date).getFullYear()))
-    return Array.from(years).sort((a, b) => b - a)
-  }, [documents, receipts])
 
   const closing = useMemo(() => {
     let inPeriod: (isoDate: string) => boolean
@@ -351,6 +344,7 @@ export function AccountingView() {
       label, revenueGross, revenueNet, vatCollected,
       expensesGross, expensesNet, vorsteuer, vatPayable, profitBeforeTax,
       invoiceCount: periodInvoices.length, receiptCount: periodExpenses.length,
+      periodInvoices,
       smallBusinessActive, ytdRevenueGross,
       estimatedIncomeTax, estimatedAnnualIncomeTax, estimatedQuarterlyPrepayment,
       estimatedSvs, profitAfterTax,
@@ -489,9 +483,14 @@ export function AccountingView() {
           <p className="text-sm text-white/30 mt-2 font-medium">Rechnungen, Angebote & Belege</p>
         </div>
         {tab === 'invoices' && (
-          <button onClick={() => setDocModal({ type: 'invoice' })} className="flex items-center gap-2 bg-accent hover:bg-accent-hover text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95">
-            <Plus size={16} /><span className="hidden sm:inline">Neue Rechnung</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setImportModal(true)} className="flex items-center gap-2 bg-panel hover:bg-panel-hover text-white/60 hover:text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95">
+              <Upload size={16} /><span className="hidden sm:inline">Importieren</span>
+            </button>
+            <button onClick={() => setDocModal({ type: 'invoice' })} className="flex items-center gap-2 bg-accent hover:bg-accent-hover text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95">
+              <Plus size={16} /><span className="hidden sm:inline">Neue Rechnung</span>
+            </button>
+          </div>
         )}
         {tab === 'quotes' && (
           <button onClick={() => setDocModal({ type: 'quote' })} className="flex items-center gap-2 bg-accent hover:bg-accent-hover text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95">
@@ -520,7 +519,17 @@ export function AccountingView() {
       </div>
 
       {(tab === 'invoices' || tab === 'quotes' || tab === 'receipts') && (
-        <div className="mb-4">
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between mb-4">
+          <div className="relative flex-1 min-w-0 sm:max-w-xs">
+            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Suchen..."
+              className="w-full bg-panel rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-white/25 outline-none focus:ring-1 focus:ring-accent transition-all"
+            />
+          </div>
           <ListPeriodFilter period={listPeriod} onChange={setListPeriod} />
         </div>
       )}
@@ -583,11 +592,18 @@ export function AccountingView() {
       ) : tab === 'closings' ? (
         <div className="space-y-5">
           <div className="bg-panel rounded-2xl p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <Calculator size={14} className="text-white/30" />
+            <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-black text-white">Zeitraum</h2>
+              <button
+                onClick={exportClosingPdf}
+                disabled={exportingPdf}
+                className="flex items-center gap-1.5 bg-accent hover:bg-accent-hover text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 disabled:opacity-50"
+              >
+                {exportingPdf ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
+                PDF-Export
+              </button>
             </div>
-            <div className="flex gap-1.5 mb-4">
+            <div className="flex gap-1.5 mb-3">
               {([['month', 'Monat'], ['quarter', 'Quartal'], ['year', 'Jahr']] as [PeriodMode, string][]).map(([m, l]) => (
                 <button
                   key={m} onClick={() => setPeriodMode(m)}
@@ -599,7 +615,7 @@ export function AccountingView() {
                 </button>
               ))}
             </div>
-            <div className="flex gap-1.5 flex-wrap">
+            <div className="flex gap-1.5 flex-wrap items-center">
               {periodMode === 'month' && Array.from({ length: 12 }, (_, i) => i).map(m => (
                 <button
                   key={m} onClick={() => setPeriodMonth(m)}
@@ -620,151 +636,13 @@ export function AccountingView() {
                   Q{q + 1}
                 </button>
               ))}
-              {periodMode !== 'year' && (
-                <select
-                  value={periodYear}
-                  onChange={e => setPeriodYear(parseInt(e.target.value, 10))}
-                  className="bg-dark text-white text-xs font-bold rounded-xl px-3 py-1.5 outline-none"
-                >
-                  {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
-                </select>
-              )}
-              {periodMode === 'year' && availableYears.map(y => (
-                <button
-                  key={y} onClick={() => setPeriodYear(y)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                    periodYear === y ? 'bg-accent text-white' : 'bg-dark text-white/35 hover:text-white/70'
-                  }`}
-                >
-                  {y}
-                </button>
-              ))}
+              <ListYearDropdown year={periodYear} isActive onSelect={setPeriodYear} />
             </div>
           </div>
 
-          {/* Kleinunternehmer-Status */}
-          <div className={`rounded-2xl p-5 ${
-            closing.smallBusinessActive
-              ? closing.ytdRevenueGross > KU_TOLERANCE ? 'bg-accent/10 border border-accent/30'
-              : closing.ytdRevenueGross > KU_LIMIT ? 'bg-yellow-500/10 border border-yellow-500/25'
-              : 'bg-panel'
-              : 'bg-panel'
-          }`}>
-            <div className="flex items-center gap-2 mb-3">
-              {closing.smallBusinessActive && closing.ytdRevenueGross <= KU_LIMIT
-                ? <ShieldCheck size={14} className="text-accent-green" />
-                : <AlertTriangle size={14} className={closing.smallBusinessActive ? 'text-accent' : 'text-white/30'} />}
-              <h2 className="text-sm font-black text-white">Kleinunternehmer-Status (§ 6 Abs. 1 Z 27 UStG)</h2>
-            </div>
-            {closing.smallBusinessActive ? (
-              <>
-                <div className="flex items-center justify-between text-xs font-bold text-white/50 mb-1.5">
-                  <span>Jahresumsatz brutto {periodYear}</span>
-                  <span className="text-white">{fmtMoney(closing.ytdRevenueGross)} / {fmtMoney(KU_LIMIT)}</span>
-                </div>
-                <div className="h-2 bg-white/8 rounded-full overflow-hidden mb-3">
-                  <div
-                    className={`h-full rounded-full transition-all ${closing.ytdRevenueGross > KU_TOLERANCE ? 'bg-accent' : closing.ytdRevenueGross > KU_LIMIT ? 'bg-yellow-500' : 'bg-accent-green'}`}
-                    style={{ width: `${Math.min(100, (closing.ytdRevenueGross / KU_LIMIT) * 100)}%` }}
-                  />
-                </div>
-                <p className="text-xs text-white/50 leading-relaxed">
-                  {closing.ytdRevenueGross > KU_TOLERANCE
-                    ? `Toleranzgrenze (${fmtMoney(KU_TOLERANCE)}) um mehr als 10 % überschritten — die USt-Befreiung entfällt sofort, rückwirkend ab dem Umsatz, mit dem die Grenze überschritten wurde. Bitte umgehend mit dem Finanzamt bzw. Steuerberater abklären.`
-                    : closing.ytdRevenueGross > KU_LIMIT
-                    ? `Grenze von ${fmtMoney(KU_LIMIT)} überschritten, aber innerhalb der 10 % Toleranz — die Befreiung bleibt ${periodYear} noch erhalten, entfällt aber automatisch ab ${periodYear + 1}.`
-                    : `Aktiv — solange der Jahresumsatz unter ${fmtMoney(KU_LIMIT)} brutto bleibt, fällt keine Umsatzsteuer an. Rechnungen weisen daher keine USt aus.`}
-                </p>
-              </>
-            ) : (
-              <p className="text-xs text-white/50 leading-relaxed">
-                Nicht aktiv — Regelbesteuerung. Umsatzsteuer wird auf Rechnungen ausgewiesen und ist im Rahmen der UVA an das Finanzamt abzuführen (siehe USt-Zahllast unten).
-                Aktivierbar in den Einstellungen unter Firmeninformationen, sofern der Jahresumsatz unter {fmtMoney(KU_LIMIT)} brutto bleibt.
-              </p>
-            )}
-          </div>
-
-          <div className="bg-panel rounded-2xl p-6">
-            <div className="flex items-center justify-between mb-1">
-              <h2 className="text-sm font-black text-white">Abschluss · {closing.label}</h2>
-              <button
-                onClick={exportClosingPdf}
-                disabled={exportingPdf}
-                className="flex items-center gap-1.5 bg-accent hover:bg-accent-hover text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 disabled:opacity-50"
-              >
-                {exportingPdf ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
-                PDF-Export
-              </button>
-            </div>
-            <p className="text-xs text-white/30 mb-5">{closing.invoiceCount} bezahlte Rechnung(en) · {closing.receiptCount} Ausgabenbeleg(e)</p>
-
-            <div className="space-y-2.5">
-              {[
-                ['Umsatz netto', closing.revenueNet, false],
-                ['Umsatzsteuer (USt.)', closing.vatCollected, false],
-                ['Umsatz brutto', closing.revenueGross, true],
-                ['Ausgaben netto', -closing.expensesNet, false],
-                ['Vorsteuer', -closing.vorsteuer, false],
-                ['Ausgaben brutto', -closing.expensesGross, true],
-              ].map(([label, val, bold], i) => (
-                <div key={i} className={`flex items-center justify-between py-2 ${bold ? 'border-t border-panel-2 pt-2.5' : ''}`}>
-                  <span className={`text-sm ${bold ? 'font-bold text-white' : 'text-white/50'}`}>{label as string}</span>
-                  <span className={`text-sm font-bold ${(val as number) < 0 ? 'text-accent' : 'text-white'}`}>
-                    {(val as number) < 0 ? '−' : ''}{fmtMoney(Math.abs(val as number))}
-                  </span>
-                </div>
-              ))}
-
-              <div className="flex items-center justify-between py-2.5 border-t border-panel-2 pt-3">
-                <span className="text-sm font-bold text-white">USt-Zahllast</span>
-                <span className={`text-sm font-black ${closing.vatPayable > 0 ? 'text-accent' : 'text-accent-green'}`}>
-                  {fmtMoney(closing.vatPayable)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between py-2">
-                <span className="text-sm text-white/50">Geschätzte Einkommensteuer (hochgerechnet)</span>
-                <span className="text-sm font-bold text-accent">−{fmtMoney(closing.estimatedIncomeTax)}</span>
-              </div>
-              <div className="flex items-center justify-between py-2">
-                <span className="text-sm text-white/50">Geschätzte SVS-Beiträge (ca. 26,83 % v. Gewinn)</span>
-                <span className="text-sm font-bold text-accent">−{fmtMoney(closing.estimatedSvs)}</span>
-              </div>
-              <div className="flex items-center justify-between py-2.5 border-t border-panel-2 pt-3">
-                <span className="text-base font-black text-white">Gewinn vor Steuern</span>
-                <span className={`text-base font-black ${closing.profitBeforeTax >= 0 ? 'text-accent-green' : 'text-accent'}`}>
-                  {fmtMoney(closing.profitBeforeTax)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between py-2.5">
-                <span className="text-base font-black text-white">Gewinn nach geschätzter Steuer & SVS</span>
-                <span className={`text-base font-black ${closing.profitAfterTax >= 0 ? 'text-accent-green' : 'text-accent'}`}>
-                  {fmtMoney(closing.profitAfterTax)}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* An das Finanzamt zu zahlen */}
-          <div className="bg-panel rounded-2xl p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Landmark size={14} className="text-white/30" />
-              <h2 className="text-sm font-black text-white">Zahlungen ans Finanzamt</h2>
-            </div>
-            <div className="space-y-2.5 mb-4">
-              <div className="flex items-center justify-between py-1.5">
-                <span className="text-sm text-white/50">USt-Zahllast {closing.label}</span>
-                <span className="text-sm font-bold text-white">{fmtMoney(Math.max(0, closing.vatPayable))}</span>
-              </div>
-              <div className="flex items-center justify-between py-1.5">
-                <span className="text-sm text-white/50">ESt-Vorauszahlung pro Quartal (hochgerechnet)</span>
-                <span className="text-sm font-bold text-white">{fmtMoney(closing.estimatedQuarterlyPrepayment)}</span>
-              </div>
-            </div>
-            <p className="text-xs text-white/35 leading-relaxed">
-              Fälligkeitstermine der quartalsweisen Einkommensteuer-Vorauszahlung: 15. Februar, 15. Mai, 15. August, 15. November.
-              Die tatsächliche Höhe legt das Finanzamt per Vorauszahlungsbescheid auf Basis des Vorjahresergebnisses (zzgl. 4–9 %) fest — die hier gezeigte Zahl ist eine Hochrechnung auf Basis
-              des aktuell erfassten Gewinns und kann abweichen. Da du als Einzelunternehmer auftrittst, fällt keine Körperschaftsteuer (KÖSt) an — diese wäre nur bei einer GmbH relevant.
-            </p>
+          <div>
+            <p className="text-xs text-white/30 mb-2 px-1">Abschluss · {closing.label} — {closing.invoiceCount} bezahlte Rechnung(en)</p>
+            <DocList docs={closing.periodInvoices} type="invoice" />
           </div>
         </div>
       ) : tab === 'invoices' ? (
@@ -820,6 +698,13 @@ export function AccountingView() {
         <ReceiptModal
           onClose={() => setReceiptModal(false)}
           onSaved={() => { setReceiptModal(false); loadAll() }}
+        />
+      )}
+      {importModal && (
+        <InvoiceImportModal
+          nextNumberHint={nextNumberHint('invoice')}
+          onClose={() => setImportModal(false)}
+          onSaved={() => { setImportModal(false); loadAll() }}
         />
       )}
       {previewDoc && (
