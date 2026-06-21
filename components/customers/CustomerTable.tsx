@@ -47,7 +47,7 @@ export function CustomerTableHeader({
   allSelected, someSelected, onToggleAll,
 }: { allSelected: boolean; someSelected: boolean; onToggleAll: () => void }) {
   return (
-    <div className={`${ROW_GRID} bg-accent rounded-t-2xl`}>
+    <div className={`${ROW_GRID} bg-accent rounded-t-2xl shrink-0`}>
       <Circle selected={allSelected} partial={someSelected} onAccent onClick={e => { e.stopPropagation(); onToggleAll() }} />
       <span className="text-sm font-bold text-white">Kundenstamm &amp; Stammdaten</span>
       <span /><span /><span />
@@ -70,14 +70,14 @@ export function CustomerTable({
 }) {
   if (customers.length === 0) {
     return (
-      <div className="bg-panel rounded-b-2xl py-16 text-center">
+      <div className="bg-panel rounded-b-2xl py-16 text-center flex-1 min-h-0">
         <p className="text-white/40 text-sm font-medium">Noch keine Kunden angelegt.</p>
       </div>
     )
   }
 
   return (
-    <div className="bg-panel rounded-b-2xl overflow-hidden">
+    <div className="bg-panel rounded-b-2xl overflow-y-auto flex-1 min-h-0">
       <ul>
         {customers.map((c, i) => {
           const selected = selectedIds.has(c.id)

@@ -91,8 +91,8 @@ export function CustomersView() {
   }
 
   return (
-    <div>
-      <div className="sticky top-0 z-20 bg-dark pb-4 -mx-5 px-5 lg:-mx-10 lg:px-10 -mt-5 pt-5 lg:-mt-10 lg:pt-10">
+    <div className="h-full flex flex-col">
+      <div className="shrink-0">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-black text-white tracking-tight leading-none">Kunden</h1>
@@ -143,9 +143,6 @@ export function CustomersView() {
           )}
         </div>
 
-        {!loading && customers.length > 0 && (
-          <CustomerTableHeader allSelected={allSelected} someSelected={someSelected} onToggleAll={toggleAll} />
-        )}
       </div>
 
       {loading ? (
@@ -155,12 +152,15 @@ export function CustomersView() {
           <p className="text-white/40 text-sm font-medium">Noch keine Kunden angelegt.</p>
         </div>
       ) : (
-        <CustomerTable
-          customers={filtered}
-          onCustomerClick={c => setModal({ customer: c })}
-          selectedIds={selectedIds}
-          onToggleSelect={toggleSelect}
-        />
+        <div className="mt-5 flex-1 min-h-0 flex flex-col">
+          <CustomerTableHeader allSelected={allSelected} someSelected={someSelected} onToggleAll={toggleAll} />
+          <CustomerTable
+            customers={filtered}
+            onCustomerClick={c => setModal({ customer: c })}
+            selectedIds={selectedIds}
+            onToggleSelect={toggleSelect}
+          />
+        </div>
       )}
 
       {modal && (

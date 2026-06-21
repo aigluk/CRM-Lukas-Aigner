@@ -23,7 +23,7 @@ export function PipelineTabs({
   onStatusChange: (s: LeadStatus) => void
 }) {
   return (
-    <div className="bg-panel rounded-2xl p-1.5 flex gap-1.5 overflow-x-auto scrollbar-none">
+    <div className="flex gap-1.5 overflow-x-auto scrollbar-none">
       {STATUSES.map(status => {
         const active = status === activeStatus
         const count  = counts[status] ?? 0

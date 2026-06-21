@@ -85,7 +85,7 @@ export function LeadTableHeader({
   allSelected, someSelected, onToggleAll,
 }: { allSelected: boolean; someSelected: boolean; onToggleAll: () => void }) {
   return (
-    <div className={`${ROW_GRID} bg-accent rounded-t-2xl`}>
+    <div className={`${ROW_GRID} bg-accent rounded-t-2xl shrink-0`}>
       <Circle selected={allSelected} partial={someSelected} onAccent onClick={e => { e.stopPropagation(); onToggleAll() }} />
       <span className="text-sm font-bold text-white">Unternehmen</span>
       <span className="hidden sm:block text-xs font-bold text-white/70">Status / Bearbeiter</span>
@@ -128,7 +128,7 @@ export function LeadTable({
 
   if (leads.length === 0) {
     return (
-      <div className="bg-panel rounded-b-2xl py-16 text-center">
+      <div className="bg-panel rounded-b-2xl py-16 text-center flex-1 min-h-0">
         <p className="text-white/40 text-sm font-medium">Keine Leads in dieser Kategorie.</p>
       </div>
     )
@@ -137,7 +137,7 @@ export function LeadTable({
   const rowGrid = ROW_GRID
 
   return (
-    <div className="bg-panel rounded-b-2xl overflow-hidden">
+    <div className="bg-panel rounded-b-2xl overflow-y-auto flex-1 min-h-0">
       <ul>
         {leads.map((lead, i) => {
           const selected = selectedIds.has(lead.id)

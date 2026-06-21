@@ -296,9 +296,9 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
   const someSelected = filtered.some(l => selectedIds.has(l.id)) && !allSelected
 
   return (
-    <div>
-      {/* Fixed header: title, actions, tabs, search — stays pinned while the list below scrolls */}
-      <div className="sticky top-0 z-20 bg-dark pb-4 -mx-5 px-5 lg:-mx-10 lg:px-10 -mt-5 pt-5 lg:-mt-10 lg:pt-10">
+    <div className="h-full flex flex-col">
+      {/* Header: title, actions, tabs, search — normal flow, stays put while only the list card scrolls */}
+      <div className="shrink-0">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-black text-white tracking-tight leading-none">Leads</h1>
@@ -330,7 +330,7 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
         />
 
         {/* Search + bulk action bar */}
-        <div className="mt-4 flex gap-2 items-center">
+        <div className="mt-5 flex gap-2 items-center">
         <div className="relative flex-1 min-w-0">
           <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none" />
           <input
@@ -404,9 +404,22 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
           </div>
         )}
         </div>
+      </div>
 
-        {/* Table header — pinned together with the rest, only rows below scroll */}
+      {/* List card: red header bar flush with the scrollable rows below it */}
+      <div className="mt-5 flex-1 min-h-0 flex flex-col">
         <LeadTableHeader allSelected={allSelected} someSelected={someSelected} onToggleAll={toggleAll} />
+        <LeadTable
+          leads={filtered}
+          onLeadClick={setSelectedLead}
+          selectedIds={selectedIds}
+          onToggleSelect={toggleSelect}
+          currentUsername={currentUsername}
+          users={teamUsers}
+          onQuickNote={setQuickNoteLead}
+          onSetHandler={handleSetHandler}
+          onSelectRange={handleRangeSelect}
+        />
       </div>
 
       {/* Patch error toast */}
@@ -422,19 +435,6 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
           {customerToast}
         </div>
       )}
-
-      {/* Table body */}
-      <LeadTable
-        leads={filtered}
-        onLeadClick={setSelectedLead}
-        selectedIds={selectedIds}
-        onToggleSelect={toggleSelect}
-        currentUsername={currentUsername}
-        users={teamUsers}
-        onQuickNote={setQuickNoteLead}
-        onSetHandler={handleSetHandler}
-        onSelectRange={handleRangeSelect}
-      />
 
       {/* Detail modal */}
       {selectedLead && (

@@ -16,10 +16,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         className="flex-1 overflow-y-auto min-w-0 overscroll-none"
         style={{ scrollbarGutter: 'stable' }}
       >
-        <div className="p-5 pb-8 lg:p-10 lg:pb-10">
+        <div className="h-full flex flex-col p-5 pb-8 lg:p-10 lg:pb-10">
           {children}
           {/* Mobile-only spacer so content clears the nav + safe area */}
-          <div className="lg:hidden" style={{ height: 'calc(5rem + env(safe-area-inset-bottom))' }} />
+          <div className="lg:hidden shrink-0" style={{ height: 'calc(5rem + env(safe-area-inset-bottom))' }} />
         </div>
       </main>
 
