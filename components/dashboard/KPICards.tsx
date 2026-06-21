@@ -10,14 +10,14 @@ type Period = 'heute' | MonthPeriod | number
 
 const MONTHS = ['Jän','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez']
 
-const STAGE_RING_COLOR: Record<string, string> = {
-  'NEU':             'rgba(26,26,26,0.35)',
-  'VERKAUFSGESPRÄCH':'#FF5252',
-  'FOLLOW UP':       'rgba(26,26,26,0.55)',
-  'CLOSING CALL':    '#FF5252',
-  'ABSCHLUSS':       '#5CB85C',
-  'KEIN INTERESSE':  'rgba(26,26,26,0.2)',
-  'NO GO':           'rgba(26,26,26,0.12)',
+const STAGE_COLORS: Record<string, string> = {
+  'NEU':             'bg-white/30',
+  'VERKAUFSGESPRÄCH':'bg-accent',
+  'FOLLOW UP':       'bg-white/60',
+  'CLOSING CALL':    'bg-accent',
+  'ABSCHLUSS':       'bg-accent-green',
+  'KEIN INTERESSE':  'bg-white/20',
+  'NO GO':           'bg-white/10',
 }
 
 function inPeriod(dateStr: string | undefined, period: Period): boolean {
@@ -57,7 +57,7 @@ function MonthDropdown({ period, onSelect }: {
           setOpen(o => !o)
         }}
         className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1 ${
-          isActive ? 'bg-accent text-white' : 'bg-dark/10 text-dark/55 hover:text-dark/80'
+          isActive ? 'bg-accent text-white' : 'bg-dark text-white/40 hover:text-white/70'
         }`}
       >
         {isActive ? `${MONTHS[activeMonth]} ${(period as MonthPeriod).year}` : 'Monat'}
@@ -120,7 +120,7 @@ function YearDropdown({ year, isActive, onSelect }: { year: number; isActive: bo
       <button
         onClick={() => { onSelect(year); setOpen(o => !o) }}
         className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1 ${
-          isActive ? 'bg-accent text-white' : 'bg-dark/10 text-dark/55 hover:text-dark/80'
+          isActive ? 'bg-accent text-white' : 'bg-dark text-white/40 hover:text-white/70'
         }`}
       >
         {year} <ChevronDown size={11} />
@@ -144,30 +144,6 @@ function YearDropdown({ year, isActive, onSelect }: { year: number; isActive: bo
   )
 }
 
-function Donut({ percent, color, value }: { percent: number; color: string; value: number }) {
-  const size = 72
-  const stroke = 7
-  const r = (size - stroke) / 2
-  const c = 2 * Math.PI * r
-  const offset = c - (Math.min(percent, 100) / 100) * c
-
-  return (
-    <div className="relative w-18 h-18 shrink-0">
-      <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(26,26,26,0.08)" strokeWidth={stroke} />
-        <circle
-          cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={stroke}
-          strokeDasharray={c} strokeDashoffset={offset} strokeLinecap="round"
-          style={{ transition: 'stroke-dashoffset 0.5s ease' }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-base font-black text-dark leading-none">{value}</span>
-      </div>
-    </div>
-  )
-}
-
 export function KPICards({ leads }: { leads: Lead[] }) {
   const now = new Date()
   const [period, setPeriod] = useState<Period>({ month: now.getMonth(), year: now.getFullYear() })
@@ -175,7 +151,7 @@ export function KPICards({ leads }: { leads: Lead[] }) {
 
   const filtered = leads.filter(l => inPeriod(l.status_date || l.updated_at, period))
   const counts = STATUSES.map(s => filtered.filter(l => l.status === s).length)
-  const total = filtered.length || 1
+  const max = Math.max(...counts, 1)
 
   function handleYearSelect(y: number) {
     setSelectedYear(y)
@@ -183,14 +159,14 @@ export function KPICards({ leads }: { leads: Lead[] }) {
   }
 
   return (
-    <div className="bg-[#C7C7C7] rounded-2xl p-5">
+    <div className="bg-panel rounded-2xl p-5">
       <div className="flex items-center justify-between mb-5">
-        <h2 className="text-sm font-bold text-dark">Pipeline Übersicht</h2>
+        <h2 className="text-sm font-bold text-white">Pipeline Übersicht</h2>
         <div className="hidden sm:flex items-center gap-1.5">
           <button
             onClick={() => setPeriod('heute')}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-              period === 'heute' ? 'bg-accent text-white' : 'bg-dark/10 text-dark/55 hover:text-dark/80'
+              period === 'heute' ? 'bg-accent text-white' : 'bg-dark text-white/40 hover:text-white/70'
             }`}
           >
             Heute
@@ -203,13 +179,19 @@ export function KPICards({ leads }: { leads: Lead[] }) {
           />
         </div>
       </div>
-      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+      <div className="space-y-3.5">
         {STATUSES.map((s, i) => (
-          <div key={s} className="flex flex-col items-center gap-2">
-            <span className="text-[11px] font-bold text-dark/50 text-center leading-tight">
+          <div key={s} className="flex items-center gap-3">
+            <span className="text-xs font-medium text-white/50 w-36 shrink-0 truncate">
               {STATUS_LABELS[s]}
             </span>
-            <Donut percent={(counts[i] / total) * 100} color={STAGE_RING_COLOR[s]} value={counts[i]} />
+            <div className="flex-1 h-5 bg-white/8 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${STAGE_COLORS[s]}`}
+                style={{ width: `${(counts[i] / max) * 100}%` }}
+              />
+            </div>
+            <span className="text-sm font-bold text-white w-6 text-right shrink-0">{counts[i]}</span>
           </div>
         ))}
       </div>
