@@ -46,7 +46,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const user = await getAuthUser()
-    if (!user) return NextResponse.json({ error: 'Nicht angemeldet – bitte neu einloggen.' }, { status: 401 })
+    if (!user) return NextResponse.json({ error: 'Nicht angemeldet - bitte neu einloggen.' }, { status: 401 })
     const ownerId = await getWorkspaceOwnerId(user.id)
 
     const body = await req.json()

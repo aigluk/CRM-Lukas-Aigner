@@ -44,17 +44,19 @@ export function CustomersView() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-black text-white tracking-tight leading-none">Kunden</h1>
-          <p className="text-sm text-white/30 mt-2 font-medium">Kundenstamm & Stammdaten</p>
+      <div className="sticky top-0 z-20 bg-dark pb-4 -mx-5 px-5 lg:-mx-10 lg:px-10 -mt-5 pt-5 lg:-mt-10 lg:pt-10">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-black text-white tracking-tight leading-none">Kunden</h1>
+            <p className="text-sm text-white/30 mt-2 font-medium">Kundenstamm & Stammdaten</p>
+          </div>
+          <button
+            onClick={() => setModal({})}
+            className="flex items-center gap-2 bg-accent hover:bg-accent-hover text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95"
+          >
+            <Plus size={16} /><span className="hidden sm:inline">Neuer Kunde</span>
+          </button>
         </div>
-        <button
-          onClick={() => setModal({})}
-          className="flex items-center gap-2 bg-accent hover:bg-accent-hover text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95"
-        >
-          <Plus size={16} /><span className="hidden sm:inline">Neuer Kunde</span>
-        </button>
       </div>
 
       {loading ? (
@@ -71,7 +73,7 @@ export function CustomersView() {
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-white truncate">{c.name}</p>
                   <p className="text-xs text-white/35 mt-0.5 truncate">
-                    {[c.address?.split('\n')[0], c.country, c.email].filter(Boolean).join(' · ') || '—'}
+                    {[c.address?.split('\n')[0], c.country, c.email].filter(Boolean).join(' · ') || '-'}
                   </p>
                 </div>
                 <button

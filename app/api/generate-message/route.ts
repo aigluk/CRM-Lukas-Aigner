@@ -19,7 +19,7 @@ Lead-Daten:
 - Branche: ${lead.branche || lead.industry || 'unbekannt'}
 - Ansprechpartner: ${lead.ceos || 'unbekannt'}
 - Region: ${lead.city || lead.region || 'Österreich'}
-- Beschreibung: ${lead.description || '—'}
+- Beschreibung: ${lead.description || '-'}
 
 Regeln:
 - Maximal 3 kurze Absätze
@@ -27,7 +27,7 @@ Regeln:
 - Konkreter Nutzen für das Unternehmen
 - Klarer Call-to-Action (kurzes Gespräch)
 - Auf Deutsch
-- Kein "Sehr geehrte/r" — du/Sie je nach Tonalität
+- Kein "Sehr geehrte/r" - du/Sie je nach Tonalität
 - NUR die Nachricht, kein Betreff, kein "Hier ist die Nachricht:"`
 
   try {

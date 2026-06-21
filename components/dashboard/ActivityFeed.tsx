@@ -65,7 +65,7 @@ export function ActivityFeed({ leads, compact }: { leads: Lead[]; compact?: bool
                 <p className="text-sm font-semibold text-white truncate">{lead.name}</p>
 
                 <p className="hidden md:block text-xs text-white/30 truncate">
-                  {[lead.branche || lead.industry, lead.city || lead.region].filter(Boolean).join(' · ') || '—'}
+                  {[lead.branche || lead.industry, lead.city || lead.region].filter(Boolean).join(' · ') || '-'}
                 </p>
 
                 <span className={`hidden md:inline-flex text-[10px] font-bold px-2.5 py-1 rounded-lg w-fit ${sc.bg} ${sc.text}`}>

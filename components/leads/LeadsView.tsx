@@ -281,39 +281,40 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
 
   return (
     <div>
-      {/* Page header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-black text-white tracking-tight leading-none">Leads</h1>
-          <p className="text-sm text-white/30 mt-2 font-medium">{leads.length} Einträge gesamt</p>
+      {/* Fixed header: title, actions, tabs, search — stays pinned while the list below scrolls */}
+      <div className="sticky top-0 z-20 bg-dark pb-4 -mx-5 px-5 lg:-mx-10 lg:px-10 -mt-5 pt-5 lg:-mt-10 lg:pt-10">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-black text-white tracking-tight leading-none">Leads</h1>
+            <p className="text-sm text-white/30 mt-2 font-medium">{leads.length} Einträge gesamt</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowImport(true)}
+              className="flex items-center gap-2 bg-panel hover:bg-panel-hover text-white/60 hover:text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95"
+            >
+              <Upload size={16} />
+              <span className="hidden sm:inline">Importieren</span>
+            </button>
+            <button
+              onClick={() => setShowNew(true)}
+              className="flex items-center gap-2 bg-accent hover:bg-accent-hover text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95"
+            >
+              <Plus size={16} />
+              <span className="hidden sm:inline">Neuer Lead</span>
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowImport(true)}
-            className="flex items-center gap-2 bg-panel hover:bg-panel-hover text-white/60 hover:text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95"
-          >
-            <Upload size={16} />
-            <span className="hidden sm:inline">Importieren</span>
-          </button>
-          <button
-            onClick={() => setShowNew(true)}
-            className="flex items-center gap-2 bg-accent hover:bg-accent-hover text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95"
-          >
-            <Plus size={16} />
-            <span className="hidden sm:inline">Neuer Lead</span>
-          </button>
-        </div>
-      </div>
 
-      {/* Pipeline tabs */}
-      <PipelineTabs
-        activeStatus={activeStatus}
-        counts={counts}
-        onStatusChange={handleStatusChange}
-      />
+        {/* Pipeline tabs */}
+        <PipelineTabs
+          activeStatus={activeStatus}
+          counts={counts}
+          onStatusChange={handleStatusChange}
+        />
 
-      {/* Search + bulk action bar */}
-      <div className="mt-4 mb-4 flex gap-2 items-center">
+        {/* Search + bulk action bar */}
+        <div className="mt-4 flex gap-2 items-center">
         <div className="relative flex-1 min-w-0">
           <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none" />
           <input
@@ -386,6 +387,7 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
             {filtered.length} {filtered.length === 1 ? 'Lead' : 'Leads'}
           </div>
         )}
+        </div>
       </div>
 
       {/* Patch error toast */}

@@ -174,7 +174,7 @@ export function LeadTable({
               <div className="min-w-0" onClick={() => onLeadClick(lead)}>
                 <p className="text-sm font-semibold text-white truncate leading-snug">{lead.name}</p>
                 <p className="text-xs text-white/35 truncate mt-0.5 leading-snug">
-                  {[lead.ceos || lead.owner, lead.city || lead.region].filter(Boolean).join(' · ') || '—'}
+                  {[lead.ceos || lead.owner, lead.city || lead.region].filter(Boolean).join(' · ') || '-'}
                 </p>
               </div>
 
@@ -202,7 +202,7 @@ export function LeadTable({
                     }`}
                   >
                     <User size={10} className="shrink-0" />
-                    <span className="truncate">{lead.handler || '—'}</span>
+                    <span className="truncate">{lead.handler || '-'}</span>
                   </button>
 
                   {openHandlerFor === lead.id && (

@@ -23,7 +23,7 @@ export function PipelineTabs({
   onStatusChange: (s: LeadStatus) => void
 }) {
   return (
-    <div className="flex gap-1.5 overflow-x-auto scrollbar-none pb-1">
+    <div className="bg-panel rounded-2xl p-1.5 flex gap-1.5 overflow-x-auto scrollbar-none">
       {STATUSES.map(status => {
         const active = status === activeStatus
         const count  = counts[status] ?? 0
@@ -34,13 +34,13 @@ export function PipelineTabs({
             className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all shrink-0 ${
               active
                 ? ACTIVE_STYLE[status]
-                : 'bg-panel text-white/25 hover:text-white/50 hover:bg-panel-hover'
+                : 'text-white/35 hover:text-white/60 hover:bg-panel-hover'
             }`}
           >
             {STATUS_LABELS[status]}
             {count > 0 && (
               <span className={`text-[10px] min-w-4.5 h-4.5 inline-flex items-center justify-center rounded-md font-black px-1 ${
-                active ? 'bg-black/15' : 'bg-panel-hover text-white/15'
+                active ? 'bg-black/15' : 'bg-white/8 text-white/25'
               }`}>
                 {count}
               </span>

@@ -308,7 +308,7 @@ export function SettingsView() {
               <Mail size={14} className="text-accent" />
               <h2 className="text-sm font-black text-white">E-Mail ändern</h2>
             </div>
-            <p className="text-xs text-white/25">Aktuell: {currentEmail || '—'}</p>
+            <p className="text-xs text-white/25">Aktuell: {currentEmail || '-'}</p>
             <form onSubmit={saveEmail} className="space-y-3">
               <div>
                 <Label text="Neue E-Mail" />

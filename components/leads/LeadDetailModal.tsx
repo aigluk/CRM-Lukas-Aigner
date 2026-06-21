@@ -145,7 +145,7 @@ function Field({
           )}
         </a>
       ) : (
-        <p className="text-sm text-white/50">{value || '—'}</p>
+        <p className="text-sm text-white/50">{value || '-'}</p>
       )}
     </div>
   )
@@ -257,7 +257,7 @@ export function LeadDetailModal({
             <div className="min-w-0 flex-1">
               <h2 className="text-base font-black text-white truncate">{lead.name}</h2>
               <p className="text-xs text-white/35 mt-0.5 truncate">
-                {[lead.branche || lead.industry, lead.city || lead.region].filter(Boolean).join(' · ') || '—'}
+                {[lead.branche || lead.industry, lead.city || lead.region].filter(Boolean).join(' · ') || '-'}
               </p>
             </div>
             <button onClick={onClose} className="p-1.5 rounded-xl bg-panel-hover text-white/30 hover:text-white transition-all shrink-0">
@@ -477,7 +477,7 @@ export function LeadDetailModal({
                   </datalist>
                 </>
               ) : (
-                <p className="text-sm text-white/50">{lead.branche || '—'}</p>
+                <p className="text-sm text-white/50">{lead.branche || '-'}</p>
               )}
             </div>
           </div>
@@ -506,7 +506,7 @@ export function LeadDetailModal({
               <p className="text-sm font-bold text-white">{formatDate(lead.appointment_date)}</p>
               {lead.appointment_from && (
                 <p className="text-xs text-white/40 mt-1">
-                  {lead.appointment_from}{lead.appointment_to ? ` – ${lead.appointment_to}` : ''} Uhr
+                  {lead.appointment_from}{lead.appointment_to ? ` - ${lead.appointment_to}` : ''} Uhr
                 </p>
               )}
             </div>
@@ -557,7 +557,7 @@ export function LeadDetailModal({
                 className="w-full bg-dark rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all resize-none"
                 placeholder="Gesprächsverlauf, Beobachtungen..." />
             ) : (
-              <p className="text-sm text-white/50 whitespace-pre-wrap leading-relaxed min-h-5">{form.notes || lead.notes || '—'}</p>
+              <p className="text-sm text-white/50 whitespace-pre-wrap leading-relaxed min-h-5">{form.notes || lead.notes || '-'}</p>
             )}
           </div>
 
@@ -571,7 +571,7 @@ export function LeadDetailModal({
                 className="w-full bg-dark rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all resize-none"
                 placeholder="Angebotsbetrag, Deal-Details..." />
             ) : (
-              <p className="text-sm text-white/50 min-h-5">{lead.note || '—'}</p>
+              <p className="text-sm text-white/50 min-h-5">{lead.note || '-'}</p>
             )}
           </div>
 

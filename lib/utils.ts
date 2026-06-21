@@ -12,7 +12,7 @@ export function normalizeStatus(status?: string | null): LeadStatus {
 }
 
 export function formatRelativeDateTime(date?: string | null): string {
-  if (!date) return '—'
+  if (!date) return '-'
   const d = new Date(date)
   const now = new Date()
   const isToday = d.toDateString() === now.toDateString()
@@ -26,7 +26,7 @@ export function formatRelativeDateTime(date?: string | null): string {
 }
 
 export function formatDate(date?: string | null): string {
-  if (!date) return '—'
+  if (!date) return '-'
   return new Date(date).toLocaleDateString('de-AT', {
     day: '2-digit',
     month: '2-digit',
@@ -35,7 +35,7 @@ export function formatDate(date?: string | null): string {
 }
 
 export function formatDateLong(date?: string | null): string {
-  if (!date) return '—'
+  if (!date) return '-'
   return new Date(date).toLocaleDateString('de-AT', {
     weekday: 'long',
     day: 'numeric',

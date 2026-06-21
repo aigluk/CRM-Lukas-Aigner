@@ -2,7 +2,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
-const MIGRATION_SQL = `-- LA CRM — Datenbank einrichten (einmalig ausführen)
+const MIGRATION_SQL = `-- LA CRM - Datenbank einrichten (einmalig ausführen)
 create table if not exists public.leads (
   id               uuid primary key default gen_random_uuid(),
   user_id          uuid references auth.users(id) on delete cascade not null,

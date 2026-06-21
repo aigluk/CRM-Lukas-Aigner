@@ -234,16 +234,22 @@ function StatusPicker({ status, onChange }: { status: DocStatus; onChange: (s: D
   )
 }
 
-function KpiCard({ icon, label, value, tone = 'default' }: { icon: React.ReactNode; label: string; value: string; tone?: 'default' | 'green' | 'accent' }) {
+const KPI_TONE_STYLES = {
+  default: { cardBg: 'bg-white',         textColor: 'text-dark',  labelColor: 'text-dark/45',  iconBg: 'bg-dark/8',  iconColor: 'text-dark' },
+  gray:    { cardBg: 'bg-[#C7C7C7]',      textColor: 'text-dark',  labelColor: 'text-dark/45',  iconBg: 'bg-dark/10', iconColor: 'text-dark' },
+  accent:  { cardBg: 'bg-accent',         textColor: 'text-white', labelColor: 'text-white/60', iconBg: 'bg-white/15', iconColor: 'text-white' },
+  green:   { cardBg: 'bg-accent-green',   textColor: 'text-dark',  labelColor: 'text-dark/45',  iconBg: 'bg-dark/8',  iconColor: 'text-dark' },
+} as const
+
+function KpiCard({ icon, label, value, tone = 'default' }: { icon: React.ReactNode; label: string; value: string; tone?: keyof typeof KPI_TONE_STYLES }) {
+  const s = KPI_TONE_STYLES[tone]
   return (
-    <div className="bg-[#C7C7C7] rounded-2xl p-5">
-      <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 ${
-        tone === 'green' ? 'bg-accent-green text-dark' : tone === 'accent' ? 'bg-accent text-white' : 'bg-dark/10 text-dark'
-      }`}>
+    <div className={`${s.cardBg} flex-1 min-w-0 p-3.5 sm:p-5`}>
+      <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 sm:mb-4 ${s.iconBg} ${s.iconColor}`}>
         {icon}
       </div>
-      <p className="text-2xl font-black text-dark tracking-tight">{value}</p>
-      <p className="text-xs text-dark/50 mt-1 font-medium">{label}</p>
+      <p className={`text-xl sm:text-2xl font-black leading-none ${s.textColor}`}>{value}</p>
+      <p className={`text-[11px] sm:text-xs font-medium mt-2 leading-tight ${s.labelColor}`}>{label}</p>
     </div>
   )
 }
@@ -316,6 +322,25 @@ export function AccountingView() {
   const listInvoices = useMemo(() => invoices.filter(d => inListPeriod(d.issue_date, listPeriod) && matchesDoc(d)), [invoices, listPeriod, searchQ])
   const listQuotes   = useMemo(() => quotes.filter(d => inListPeriod(d.issue_date, listPeriod) && matchesDoc(d)), [quotes, listPeriod, searchQ])
   const listReceipts = useMemo(() => receipts.filter(r => inListPeriod(r.date, listPeriod) && matchesReceipt(r)), [receipts, listPeriod, searchQ])
+
+  const overviewItems = useMemo(() => {
+    const merged: any[] = [
+      ...documents.map(d => ({ ...d, _isReceipt: false as const })),
+      ...receipts.map(r => ({ ...r, _isReceipt: true as const })),
+    ]
+    return merged
+      .filter(item => inListPeriod(item._isReceipt ? item.date : item.issue_date, listPeriod))
+      .filter(item => item._isReceipt ? matchesReceipt(item) : matchesDoc(item))
+      .sort((a, b) => new Date(b.created_at ?? b.issue_date).getTime() - new Date(a.created_at ?? a.issue_date).getTime())
+  }, [documents, receipts, listPeriod, searchQ])
+
+  function openOverviewItem(item: any) {
+    if (item._isReceipt) {
+      if (item.file_path) window.open(`/api/accounting/receipts/${item.id}/file`, '_blank')
+    } else {
+      setPreviewDoc(item)
+    }
+  }
 
   const totals = useMemo(() => {
     const year = new Date().getFullYear()
@@ -561,7 +586,7 @@ export function AccountingView() {
         ))}
       </div>
 
-      {(tab === 'invoices' || tab === 'quotes' || tab === 'receipts') && (
+      {(tab === 'overview' || tab === 'invoices' || tab === 'quotes' || tab === 'receipts') && (
         <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between mb-4">
           <div className="relative flex-1 min-w-0 sm:max-w-xs">
             <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none" />
@@ -582,7 +607,7 @@ export function AccountingView() {
       ) : tab === 'overview' ? (
         <div className="space-y-5">
           <div className="flex items-center justify-between">
-            <h2 className="text-xs font-black text-white/30 uppercase tracking-wide">Kennzahlen</h2>
+            <h2 className="text-xs font-black text-white/30 tracking-wide">Kennzahlen</h2>
             {kpiVisible && (
               <button
                 onClick={() => setKpiVisible(false)}
@@ -595,9 +620,9 @@ export function AccountingView() {
           </div>
 
           {kpiVisible ? (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <KpiCard icon={<TrendingUp size={16} />} label="Einnahmen (bezahlt)" value={fmtMoney(totals.incomePaid)} tone="green" />
-              <KpiCard icon={<Wallet size={16} />} label="Offene Rechnungen" value={fmtMoney(totals.incomeOpen)} />
+            <div className="flex rounded-2xl overflow-hidden">
+              <KpiCard icon={<TrendingUp size={16} />} label="Einnahmen (bezahlt)" value={fmtMoney(totals.incomePaid)} tone="default" />
+              <KpiCard icon={<Wallet size={16} />} label="Offene Rechnungen" value={fmtMoney(totals.incomeOpen)} tone="gray" />
               <KpiCard icon={<TrendingDown size={16} />} label="Ausgaben" value={fmtMoney(totals.expenses)} tone="accent" />
               <KpiCard icon={<TrendingUp size={16} />} label="Gewinn (dieses Jahr)" value={fmtMoney(totals.profit)} tone={totals.profit >= 0 ? 'green' : 'accent'} />
             </div>
@@ -613,23 +638,24 @@ export function AccountingView() {
 
           <div className="bg-panel rounded-2xl p-6">
             <h2 className="text-sm font-black text-white mb-4">Letzte Belege & Rechnungen</h2>
-            {[...documents, ...receipts.map(r => ({ ...r, _isReceipt: true }))]
-              .sort((a: any, b: any) => new Date(b.created_at ?? b.issue_date).getTime() - new Date(a.created_at ?? a.issue_date).getTime())
-              .slice(0, 8)
-              .map((item: any, i) => (
-                <div key={item.id} className={`flex items-center justify-between py-2.5 ${i > 0 ? 'border-t border-panel-2' : ''}`}>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-white truncate">
-                      {item._isReceipt ? (item.vendor || RECEIPT_TYPE_LABELS[item.receipt_type as ReceiptType]) : item.client_name}
-                    </p>
-                    <p className="text-xs text-white/30 mt-0.5">{fmtDate(item._isReceipt ? item.date : item.issue_date)}</p>
-                  </div>
-                  <p className={`text-sm font-bold shrink-0 ${item._isReceipt ? 'text-accent' : 'text-accent-green'}`}>
-                    {item._isReceipt ? '−' : '+'}{fmtMoney(item._isReceipt ? item.amount : docTotal(item))}
+            {overviewItems.slice(0, 20).map((item: any, i) => (
+              <button
+                key={item.id}
+                onClick={() => openOverviewItem(item)}
+                className={`flex items-center justify-between gap-3 py-2.5 w-full text-left rounded-xl px-2 -mx-2 hover:bg-panel-hover transition-colors ${i > 0 ? 'border-t border-panel-2' : ''}`}
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-white truncate">
+                    {item._isReceipt ? (item.vendor || RECEIPT_TYPE_LABELS[item.receipt_type as ReceiptType]) : item.client_name}
                   </p>
+                  <p className="text-xs text-white/30 mt-0.5">{fmtDate(item._isReceipt ? item.date : item.issue_date)}</p>
                 </div>
-              ))}
-            {documents.length === 0 && receipts.length === 0 && (
+                <p className={`text-sm font-bold shrink-0 ${item._isReceipt ? 'text-accent' : 'text-accent-green'}`}>
+                  {item._isReceipt ? '−' : '+'}{fmtMoney(item._isReceipt ? item.amount : docTotal(item))}
+                </p>
+              </button>
+            ))}
+            {overviewItems.length === 0 && (
               <p className="text-sm text-white/35 text-center py-6 font-medium">Noch keine Einträge.</p>
             )}
           </div>

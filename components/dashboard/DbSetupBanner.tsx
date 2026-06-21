@@ -43,7 +43,7 @@ export function DbSetupBanner() {
           <p className="text-sm font-bold text-white mb-1">Datenbank einrichten (einmalig)</p>
           <p className="text-xs text-white/50 mb-4">
             Die Datenbanktabellen wurden noch nicht erstellt. Führe den SQL-Code einmalig in deinem
-            Supabase Dashboard aus — das dauert 10 Sekunden.
+            Supabase Dashboard aus - das dauert 10 Sekunden.
           </p>
 
           <div className="space-y-2 mb-4">

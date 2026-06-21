@@ -1,15 +1,72 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Lead } from '@/lib/types'
+import { Lead, LeadStatus } from '@/lib/types'
 import { isSameDay, toDateInput } from '@/lib/utils'
-import { ChevronLeft, ChevronRight, Phone, Plus, X, Loader2 } from 'lucide-react'
+import { STATUSES, STATUS_LABELS } from '@/lib/constants'
+import { ChevronLeft, ChevronRight, ChevronDown, Phone, Plus, X, Loader2 } from 'lucide-react'
 import { DatePicker, TimePicker } from '@/components/ui/DateTimePicker'
 import { AppointmentEditModal } from '@/components/ui/AppointmentEditModal'
 import { TodayPanel } from '@/components/dashboard/TodayPanel'
 import { ReminderWidget } from '@/components/dashboard/ReminderWidget'
 
 type View = 'month' | 'week' | 'day'
+
+const NON_PIPELINE_TYPES = ['KUNDENTERMIN', 'KUNDENCALL'] as const
+type AppointmentKind = LeadStatus | typeof NON_PIPELINE_TYPES[number]
+const APPOINTMENT_KIND_LABELS: Record<AppointmentKind, string> = {
+  ...STATUS_LABELS,
+  KUNDENTERMIN: 'Kundentermin',
+  KUNDENCALL: 'Kundencall',
+}
+
+function AppointmentKindPicker({ value, onChange }: { value: AppointmentKind; onChange: (v: AppointmentKind) => void }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onClick)
+    return () => document.removeEventListener('mousedown', onClick)
+  }, [])
+
+  return (
+    <div ref={ref} className="relative">
+      <label className="block text-[11px] font-medium text-white/35 mb-1.5">Status / Termin-Art</label>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between gap-2 bg-dark rounded-xl px-3.5 py-3 text-sm text-white outline-none focus:ring-1 focus:ring-accent transition-all"
+      >
+        {APPOINTMENT_KIND_LABELS[value]}
+        <ChevronDown size={14} className={`text-white/30 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="absolute left-0 right-0 top-full mt-1.5 z-20 bg-panel-hover rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.6)] border border-white/10 p-1 max-h-64 overflow-y-auto">
+          {STATUSES.map(s => (
+            <button
+              key={s} type="button" onClick={() => { onChange(s); setOpen(false) }}
+              className={`w-full text-left px-3.5 py-2.5 text-sm rounded-lg hover:bg-white/8 transition-colors ${s === value ? 'text-accent font-bold' : 'text-white/70'}`}
+            >
+              {STATUS_LABELS[s]}
+            </button>
+          ))}
+          <div className="border-t border-white/8 my-1" />
+          {NON_PIPELINE_TYPES.map(t => (
+            <button
+              key={t} type="button" onClick={() => { onChange(t); setOpen(false) }}
+              className={`w-full text-left px-3.5 py-2.5 text-sm rounded-lg hover:bg-white/8 transition-colors ${t === value ? 'text-accent font-bold' : 'text-white/70'}`}
+            >
+              {APPOINTMENT_KIND_LABELS[t]}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function getAppointments(leads: Lead[]) {
   return leads
@@ -29,9 +86,11 @@ function NewAppointmentModal({
   const [from, setFrom]   = useState(initialFrom || '10:00')
   const [to, setTo]       = useState(initialTo || '11:00')
   const [notes, setNotes] = useState('')
+  const [kind, setKind]   = useState<AppointmentKind>('VERKAUFSGESPRÄCH')
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState('')
 
+  const [existingLeads, setExistingLeads] = useState<Lead[]>([])
   const [suggestionPool, setSuggestionPool] = useState<string[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const firmaWrapRef = useRef<HTMLDivElement>(null)
@@ -41,12 +100,20 @@ function NewAppointmentModal({
       fetch('/api/leads').then(r => r.json()).catch(() => ({})),
       fetch('/api/accounting/customers').then(r => r.json()).catch(() => ({})),
     ]).then(([leadsRes, customersRes]) => {
+      const leadsList: Lead[] = leadsRes.leads ?? []
+      setExistingLeads(leadsList)
       const names = new Set<string>()
-      ;(leadsRes.leads ?? []).forEach((l: Lead) => { if (l.name?.trim()) names.add(l.name.trim()) })
+      leadsList.forEach(l => { if (l.name?.trim()) names.add(l.name.trim()) })
       ;(customersRes.customers ?? []).forEach((c: { name: string }) => { if (c.name?.trim()) names.add(c.name.trim()) })
       setSuggestionPool(Array.from(names))
     })
   }, [])
+
+  const matchedLead = useMemo(
+    () => existingLeads.find(l => l.name.trim().toLowerCase() === firma.trim().toLowerCase()),
+    [existingLeads, firma]
+  )
+  const isPipelineKind = (STATUSES as readonly string[]).includes(kind)
 
   useEffect(() => {
     function close(e: MouseEvent) {
@@ -67,18 +134,37 @@ function NewAppointmentModal({
     setSaving(true)
     setError('')
     try {
-      const res = await fetch('/api/leads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: firma,
-          status: 'VERKAUFSGESPRÄCH',
-          appointment_date: date,
-          appointment_from: from,
-          appointment_to: to,
-          notes: notes || undefined,
-        }),
-      })
+      const appointmentFields = {
+        appointment_date: date,
+        appointment_from: from,
+        appointment_to: to,
+        appointment_type: isPipelineKind ? null : kind,
+        ...(isPipelineKind ? { status: kind } : {}),
+      }
+
+      let res: Response
+      if (matchedLead) {
+        res = await fetch('/api/leads', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: matchedLead.id,
+            ...appointmentFields,
+            notes: notes ? [matchedLead.notes, notes].filter(Boolean).join('\n') : undefined,
+          }),
+        })
+      } else {
+        res = await fetch('/api/leads', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: firma,
+            status: isPipelineKind ? kind : 'NEU',
+            ...appointmentFields,
+            notes: notes || undefined,
+          }),
+        })
+      }
       const text = await res.text()
       let data: any = {}
       try { data = JSON.parse(text) } catch {}
@@ -129,7 +215,12 @@ function NewAppointmentModal({
                 ))}
               </div>
             )}
+            {matchedLead && (
+              <p className="text-[11px] text-accent-green font-semibold mt-1.5">Bestehender Lead wird verwendet</p>
+            )}
           </div>
+
+          <AppointmentKindPicker value={kind} onChange={setKind} />
 
           <DatePicker label="Datum *" value={date} onChange={setDate} />
 
@@ -206,7 +297,7 @@ export function CalendarView({ leads: initialLeads }: { leads: Lead[] }) {
     const s = new Date(current)
     s.setDate(current.getDate() - ((current.getDay() + 6) % 7))
     const e = new Date(s); e.setDate(s.getDate() + 6)
-    return `${s.toLocaleDateString('de-AT', { day: 'numeric', month: 'short' })} – ${e.toLocaleDateString('de-AT', { day: 'numeric', month: 'short', year: 'numeric' })}`
+    return `${s.toLocaleDateString('de-AT', { day: 'numeric', month: 'short' })} - ${e.toLocaleDateString('de-AT', { day: 'numeric', month: 'short', year: 'numeric' })}`
   })()
 
   return (
@@ -286,9 +377,9 @@ export function CalendarView({ leads: initialLeads }: { leads: Lead[] }) {
             />
           )}
         </div>
-        <div className="lg:col-span-1 flex flex-col gap-5">
-          <div className="h-60"><TodayPanel leads={leads} onEdit={setEditLead} /></div>
-          <div className="h-80"><ReminderWidget /></div>
+        <div className="lg:col-span-1 flex flex-col gap-5 lg:h-full">
+          <div className="flex-1 min-h-60"><TodayPanel leads={leads} onEdit={setEditLead} /></div>
+          <div className="flex-1 min-h-60"><ReminderWidget /></div>
         </div>
       </div>
     </div>

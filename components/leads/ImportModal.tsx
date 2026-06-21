@@ -334,7 +334,7 @@ export function ImportModal({ onClose, onImported }: Props) {
                       {rows.slice(0, 3).map((row, i) => (
                         <tr key={i} className="border-b border-white/4">
                           {LEAD_FIELDS.filter(f => mapping[f.key]).map(f => (
-                            <td key={f.key} className="px-3 py-2 text-white/60 truncate max-w-32">{row[mapping[f.key]] ?? '—'}</td>
+                            <td key={f.key} className="px-3 py-2 text-white/60 truncate max-w-32">{row[mapping[f.key]] ?? '-'}</td>
                           ))}
                           {globalBranche && <td className="px-3 py-2 text-accent/80 truncate max-w-32">{globalBranche}</td>}
                         </tr>
