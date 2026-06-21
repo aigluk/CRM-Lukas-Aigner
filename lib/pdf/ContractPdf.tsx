@@ -73,11 +73,11 @@ function fmtDate(d?: string, lang: DocLanguage = 'de'): string {
   return new Date(d).toLocaleDateString(lang === 'en' ? 'en-GB' : 'de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
+/** Wie bei Rechnung/Angebot: USt-ID, wenn umsatzsteuerpflichtig — sonst GISA-Zahl (Kleinunternehmer/Einzelunternehmer). */
 function partyIdentityLine(contract: AccountingContract): string {
-  const parts: string[] = []
-  if (contract.party_vat_number) parts.push(`UID ${contract.party_vat_number}`)
-  if (contract.party_gisa_number) parts.push(`GISA ${contract.party_gisa_number}`)
-  return parts.join(' · ')
+  if (contract.party_vat_number) return `UID ${contract.party_vat_number}`
+  if (contract.party_gisa_number) return `GISA ${contract.party_gisa_number}`
+  return ''
 }
 
 /** Formatiert einen rein numerisch eingegebenen Preis (z. B. "4500") als "€ 4.500,-"; bereits formatierte Eingaben (mit Text/Symbolen) bleiben unverändert. */
@@ -90,12 +90,12 @@ function fmtPrice(raw?: string | null): string | undefined {
   return `€ ${formatted},-`
 }
 
-/** §-Schlussklauseln, die in allen drei Vertragstypen identisch sind (außer Gerichtsstand, der bereits auf Linz lautet). */
+/** Wie bei Rechnung/Angebot: USt-ID, wenn umsatzsteuerpflichtig — sonst GISA-Zahl (Kleinunternehmer/Einzelunternehmer). */
 function legalIdentityLine(company: CompanyInfo): string {
   const parts: string[] = []
   if (company.legal_form === 'gmbh' && company.fn) parts.push(company.fn)
   if (company.uid) parts.push(`UID ${company.uid}`)
-  if (company.gisa) parts.push(`GISA ${company.gisa}`)
+  else if (company.gisa) parts.push(`GISA ${company.gisa}`)
   return parts.join(' · ')
 }
 
