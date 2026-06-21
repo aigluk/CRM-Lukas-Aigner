@@ -81,6 +81,8 @@ export interface AccountingCustomer {
   updated_at: string
 }
 
+export type PartnerEntityType = 'unternehmen' | 'kleinunternehmer' | 'freelancer'
+
 export interface AccountingPartner {
   id: string
   user_id: string
@@ -90,6 +92,8 @@ export interface AccountingPartner {
   country?: string
   vat_number?: string
   vat_liable?: boolean
+  gisa_number?: string
+  entity_type?: PartnerEntityType
   email?: string
   phone?: string
   website?: string
@@ -107,6 +111,8 @@ export interface AccountingSalesPartner {
   country?: string
   vat_number?: string
   vat_liable?: boolean
+  gisa_number?: string
+  entity_type?: PartnerEntityType
   email?: string
   phone?: string
   website?: string

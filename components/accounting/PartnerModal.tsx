@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { X, Save, BellRing, Trash2 } from 'lucide-react'
-import type { AccountingPartner } from '@/lib/types'
+import type { AccountingPartner, PartnerEntityType } from '@/lib/types'
 import { addReminder } from '@/lib/useReminders'
 import { DatePicker, TimePicker } from '@/components/ui/DateTimePicker'
 
@@ -23,6 +23,8 @@ export function PartnerModal({
   const [country, setCountry] = useState(partner?.country ?? '')
   const [vatNumber, setVatNumber] = useState(partner?.vat_number ?? '')
   const [vatLiable, setVatLiable] = useState(partner?.vat_liable ?? true)
+  const [gisaNumber, setGisaNumber] = useState(partner?.gisa_number ?? '')
+  const [entityType, setEntityType] = useState<PartnerEntityType>(partner?.entity_type ?? 'unternehmen')
   const [email, setEmail] = useState(partner?.email ?? '')
   const [phone, setPhone] = useState(partner?.phone ?? '')
   const [website, setWebsite] = useState(partner?.website ?? '')
@@ -77,6 +79,8 @@ export function PartnerModal({
       country: country || null,
       vat_number: vatNumber || null,
       vat_liable: vatLiable,
+      gisa_number: gisaNumber || null,
+      entity_type: entityType,
       email: email || null,
       phone: phone || null,
       website: website || null,
@@ -209,6 +213,28 @@ export function PartnerModal({
                   type="button" onClick={() => setVatLiable(false)}
                   className={`flex-1 py-1.5 rounded-lg text-sm font-bold transition-all ${!vatLiable ? 'bg-accent text-white' : 'text-white/40 hover:text-white'}`}
                 >Nein</button>
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className={labelCls}>GISA-Zahl</label>
+              <input type="text" value={gisaNumber} onChange={e => setGisaNumber(e.target.value)} placeholder="falls keine UID vorhanden" className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Unternehmensart</label>
+              <div className="flex bg-dark rounded-xl p-1">
+                {([
+                  ['unternehmen', 'Unternehmen'],
+                  ['kleinunternehmer', 'Kleinunt.'],
+                  ['freelancer', 'Freelancer'],
+                ] as [PartnerEntityType, string][]).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button" onClick={() => setEntityType(value)}
+                    className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all px-1 ${entityType === value ? 'bg-accent text-white' : 'text-white/40 hover:text-white'}`}
+                  >{label}</button>
+                ))}
               </div>
             </div>
           </div>

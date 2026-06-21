@@ -61,6 +61,8 @@ export async function POST(req: NextRequest) {
       country:        body.country || null,
       vat_number:     body.vat_number || null,
       vat_liable:     body.vat_liable ?? true,
+      gisa_number:    body.gisa_number || null,
+      entity_type:    body.entity_type || 'unternehmen',
       email:          body.email || null,
       phone:          body.phone || null,
       website:        body.website || null,

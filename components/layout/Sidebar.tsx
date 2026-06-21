@@ -55,7 +55,7 @@ export function Sidebar() {
               className={`${linkBase} ${
                 active
                   ? 'bg-dark text-white'
-                  : 'text-white/70 hover:text-white hover:bg-white/10'
+                  : 'text-white hover:bg-white/10'
               }`}
             >
               <Icon
@@ -82,7 +82,7 @@ export function Sidebar() {
           className={`${linkBase} ${
             isActive('/settings')
               ? 'bg-dark text-white'
-              : 'text-white/70 hover:text-white hover:bg-white/10'
+              : 'text-white hover:bg-white/10'
           }`}
         >
           <Settings size={16} strokeWidth={isActive('/settings') ? 2.75 : 2.4} className={isActive('/settings') ? 'text-accent' : 'text-white'} />
@@ -90,7 +90,7 @@ export function Sidebar() {
         </Link>
         <button
           onClick={logout}
-          className={`${linkBase} text-white/70 hover:text-white hover:bg-white/10 w-full`}
+          className={`${linkBase} text-white hover:bg-white/10 w-full`}
         >
           <LogOut size={16} strokeWidth={2.4} className="text-white" />
           Abmelden
