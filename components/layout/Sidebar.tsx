@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
-  LayoutDashboard, Users, Calendar, Search, LogOut, Settings, Calculator, Contact, Handshake, TrendingUp,
+  LayoutDashboard, Users, Calendar, Search, LogOut, Settings, Calculator, Contact, Briefcase, BarChart3,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import Logo from '@/components/Logo'
@@ -14,8 +14,8 @@ const NAV = [
   { href: '/',           label: 'Dashboard',   icon: LayoutDashboard, solid: true },
   { href: '/leads',      label: 'Leads',       icon: Users,      solid: false },
   { href: '/customers',  label: 'Kunden',      icon: Contact,    solid: false },
-  { href: '/partners',   label: 'Partner',     icon: Handshake,  solid: false },
-  { href: '/sales',      label: 'Vertrieb',    icon: TrendingUp, solid: false },
+  { href: '/partners',   label: 'Partner',     icon: Briefcase,  solid: true },
+  { href: '/sales',      label: 'Vertrieb',    icon: BarChart3,  solid: true },
   { href: '/generator',  label: 'Generator',   icon: Search,     solid: false },
   { href: '/calendar',   label: 'Kalender',    icon: Calendar,   solid: false },
   { href: '/accounting', label: 'Buchhaltung', icon: Calculator, solid: false },
@@ -60,9 +60,9 @@ export function Sidebar() {
             >
               <Icon
                 size={16}
-                strokeWidth={solid ? 1.5 : (active ? 2.75 : 2.4)}
+                strokeWidth={solid ? 0 : (active ? 2.75 : 2.4)}
                 fill={solid ? 'currentColor' : 'none'}
-                className={active ? 'text-accent' : 'text-white/55'}
+                className={active ? 'text-accent' : 'text-slate-400'}
               />
               {label}
             </Link>
@@ -85,14 +85,14 @@ export function Sidebar() {
               : 'text-white/70 hover:text-white hover:bg-white/10'
           }`}
         >
-          <Settings size={16} strokeWidth={isActive('/settings') ? 2.75 : 2.4} className={isActive('/settings') ? 'text-accent' : 'text-white/55'} />
+          <Settings size={16} strokeWidth={isActive('/settings') ? 2.75 : 2.4} className={isActive('/settings') ? 'text-accent' : 'text-slate-400'} />
           Einstellungen
         </Link>
         <button
           onClick={logout}
           className={`${linkBase} text-white/70 hover:text-white hover:bg-white/10 w-full`}
         >
-          <LogOut size={16} strokeWidth={2.4} className="text-white/55" />
+          <LogOut size={16} strokeWidth={2.4} className="text-slate-400" />
           Abmelden
         </button>
       </div>

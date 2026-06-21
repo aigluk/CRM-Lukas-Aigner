@@ -31,10 +31,10 @@ export function PipelineTabs({
           <button
             key={status}
             onClick={() => onStatusChange(status)}
-            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all shrink-0 ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all shrink-0 ${
               active
                 ? ACTIVE_STYLE[status]
-                : 'text-white/35 hover:text-white/60 hover:bg-panel-hover'
+                : 'bg-panel text-white/40 hover:text-white'
             }`}
           >
             {STATUS_LABELS[status]}
