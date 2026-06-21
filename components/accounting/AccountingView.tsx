@@ -6,7 +6,7 @@ import {
   Download, Trash2, ChevronDown, ChevronLeft, ChevronRight, Image as ImageIcon, Eye, EyeOff,
   Loader2, Search, Upload, RefreshCw, Pencil,
 } from 'lucide-react'
-import type { AccountingDocument, AccountingReceipt, AccountingSubscription, DocType, DocStatus, ReceiptType, SubscriptionInterval } from '@/lib/types'
+import type { AccountingDocument, AccountingReceipt, AccountingSubscription, AccountingContract, ContractType, DocType, DocStatus, ReceiptType, SubscriptionInterval } from '@/lib/types'
 import type { CompanyInfo } from '@/lib/pdf/DocumentPdf'
 import type { ClosingPdfData } from '@/lib/pdf/ClosingPdf'
 import { DocumentModal } from './DocumentModal'
@@ -14,10 +14,18 @@ import { ReceiptModal } from './ReceiptModal'
 import { PdfPreviewModal } from './PdfPreviewModal'
 import { InvoiceImportModal } from './InvoiceImportModal'
 import { SubscriptionModal } from './SubscriptionModal'
+import { ContractModal } from './ContractModal'
+import { ContractPreviewModal } from './ContractPreviewModal'
 import { useClickOutside } from '@/lib/useClickOutside'
 import { useRef } from 'react'
 
-type Tab = 'overview' | 'invoices' | 'quotes' | 'receipts' | 'subscriptions' | 'closings'
+type Tab = 'overview' | 'invoices' | 'quotes' | 'receipts' | 'subscriptions' | 'closings' | 'service_contracts' | 'fulfillment' | 'sales_partners'
+
+const TAB_CONTRACT_TYPE: Record<'service_contracts' | 'fulfillment' | 'sales_partners', ContractType> = {
+  service_contracts: 'service',
+  fulfillment: 'fulfillment',
+  sales_partners: 'agent',
+}
 
 type MonthPeriod = { month: number; year: number }
 type ListPeriod = 'all' | MonthPeriod | number
@@ -157,13 +165,20 @@ function estimateIncomeTaxAT(taxable: number): number {
 }
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'overview',      label: 'Übersicht' },
-  { id: 'invoices',      label: 'Rechnungen' },
-  { id: 'quotes',        label: 'Angebote' },
-  { id: 'receipts',      label: 'Belege' },
-  { id: 'subscriptions', label: 'Abos' },
-  { id: 'closings',      label: 'Abschlüsse' },
+  { id: 'overview',           label: 'Übersicht' },
+  { id: 'invoices',           label: 'Rechnungen' },
+  { id: 'quotes',             label: 'Angebote' },
+  { id: 'service_contracts',  label: 'Dienstleistungsverträge' },
+  { id: 'fulfillment',        label: 'Fulfillment' },
+  { id: 'sales_partners',     label: 'Vertriebspartner' },
+  { id: 'receipts',           label: 'Belege' },
+  { id: 'subscriptions',      label: 'Abos' },
+  { id: 'closings',           label: 'Abschlüsse' },
 ]
+
+const CONTRACT_TYPE_LABELS: Record<ContractType, string> = {
+  service: 'Dienstleistungsvertrag', fulfillment: 'Fulfillment-Vertrag', agent: 'Handelsagentenvertrag',
+}
 
 const SUBSCRIPTION_INTERVAL_LABELS: Record<SubscriptionInterval, string> = {
   monthly: 'Monatlich', quarterly: 'Quartal', yearly: 'Jährlich',
@@ -259,11 +274,14 @@ export function AccountingView() {
   const [documents, setDocuments] = useState<AccountingDocument[]>([])
   const [receipts, setReceipts]   = useState<AccountingReceipt[]>([])
   const [subscriptions, setSubscriptions] = useState<AccountingSubscription[]>([])
+  const [contracts, setContracts] = useState<AccountingContract[]>([])
   const [loading, setLoading]     = useState(true)
   const [docModal, setDocModal]   = useState<{ type: DocType; doc?: AccountingDocument } | null>(null)
   const [receiptModal, setReceiptModal] = useState(false)
   const [subscriptionModal, setSubscriptionModal] = useState<{ sub?: AccountingSubscription } | null>(null)
+  const [contractModal, setContractModal] = useState<{ type: ContractType; contract?: AccountingContract } | null>(null)
   const [previewDoc, setPreviewDoc] = useState<AccountingDocument | null>(null)
+  const [previewContract, setPreviewContract] = useState<AccountingContract | null>(null)
   const [kpiVisible, setKpiVisible] = useState(false)
   const [company, setCompany] = useState<CompanyInfo>({})
   const [listPeriod, setListPeriod] = useState<ListPeriod>('all')
@@ -280,17 +298,36 @@ export function AccountingView() {
   async function loadAll() {
     setLoading(true)
     try {
-      const [docsRes, receiptsRes, subsRes] = await Promise.all([
+      const [docsRes, receiptsRes, subsRes, contractsRes] = await Promise.all([
         fetch('/api/accounting/documents').then(r => r.json()),
         fetch('/api/accounting/receipts').then(r => r.json()),
         fetch('/api/accounting/subscriptions').then(r => r.json()),
+        fetch('/api/accounting/contracts').then(r => r.json()),
       ])
       setDocuments(docsRes.documents ?? [])
       setReceipts(receiptsRes.receipts ?? [])
       setSubscriptions(subsRes.subscriptions ?? [])
+      setContracts(contractsRes.contracts ?? [])
     } finally {
       setLoading(false)
     }
+  }
+
+  async function deleteContract(id: string) {
+    if (!confirm('Vertrag wirklich löschen?')) return
+    setContracts(prev => prev.filter(c => c.id !== id))
+    await fetch(`/api/accounting/contracts?id=${id}`, { method: 'DELETE' })
+  }
+
+  function nextContractNumberHint(type: ContractType): string {
+    const year = new Date().getFullYear()
+    const prefix = type === 'service' ? 'DV' : type === 'fulfillment' ? 'FF' : 'HA'
+    const existing = contracts.filter(c => c.contract_type === type && c.contract_number.startsWith(`${prefix}-${year}-`))
+    const max = existing.reduce((m, c) => {
+      const n = parseInt(c.contract_number.split('-').pop() || '0', 10)
+      return Math.max(m, n)
+    }, 0)
+    return `${prefix}-${year}-${String(max + 1).padStart(3, '0')}`
   }
 
   async function toggleSubscriptionActive(sub: AccountingSubscription) {
@@ -553,6 +590,62 @@ export function AccountingView() {
     )
   }
 
+  function ContractList({ items, type }: { items: AccountingContract[]; type: ContractType }) {
+    if (items.length === 0) {
+      return (
+        <div className="bg-panel rounded-2xl py-16 text-center">
+          <p className="text-white/40 text-sm font-medium">Noch keine {CONTRACT_TYPE_LABELS[type]}e.</p>
+        </div>
+      )
+    }
+    return (
+      <div className="bg-panel rounded-2xl overflow-visible">
+        <ul className="overflow-visible">
+          {items.map((c, i) => (
+            <li key={c.id} className={`flex items-center gap-3 px-4 sm:px-5 py-3.5 ${i < items.length - 1 ? 'border-b border-panel-2' : ''}`}>
+              <button
+                onClick={() => setPreviewContract(c)}
+                className="min-w-0 flex-1 text-left"
+                title="Vorschau anzeigen"
+              >
+                <p className="text-sm font-semibold text-white truncate">{c.party_name}</p>
+                <p className="text-xs text-white/35 mt-0.5">{c.contract_number} · {fmtDate(c.start_date)}</p>
+              </button>
+              <button
+                onClick={() => setPreviewContract(c)}
+                title="Vorschau"
+                className="w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 flex items-center justify-center text-white/40 hover:text-white transition-all shrink-0"
+              >
+                <Eye size={13} />
+              </button>
+              <a
+                href={`/api/accounting/contracts/${c.id}/pdf?dl=1`}
+                title="PDF herunterladen"
+                className="w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 flex items-center justify-center text-white/40 hover:text-white transition-all shrink-0"
+              >
+                <Download size={13} />
+              </a>
+              <button
+                onClick={() => setContractModal({ type, contract: c })}
+                title="Bearbeiten"
+                className="w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 flex items-center justify-center text-white/40 hover:text-white transition-all shrink-0"
+              >
+                <FileText size={13} />
+              </button>
+              <button
+                onClick={() => deleteContract(c.id)}
+                title="Löschen"
+                className="w-8 h-8 rounded-full bg-white/6 hover:bg-accent/20 flex items-center justify-center text-white/30 hover:text-accent transition-all shrink-0"
+              >
+                <Trash2 size={13} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    )
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -583,6 +676,14 @@ export function AccountingView() {
         {tab === 'subscriptions' && (
           <button onClick={() => setSubscriptionModal({})} className="flex items-center gap-2 bg-accent hover:bg-accent-hover text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95">
             <Plus size={16} /><span className="hidden sm:inline">Neues Abo</span>
+          </button>
+        )}
+        {(tab === 'service_contracts' || tab === 'fulfillment' || tab === 'sales_partners') && (
+          <button
+            onClick={() => setContractModal({ type: TAB_CONTRACT_TYPE[tab] })}
+            className="flex items-center gap-2 bg-accent hover:bg-accent-hover text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95"
+          >
+            <Plus size={16} /><span className="hidden sm:inline">Neuer Vertrag</span>
           </button>
         )}
       </div>
@@ -780,6 +881,12 @@ export function AccountingView() {
         <DocList docs={listInvoices} type="invoice" />
       ) : tab === 'quotes' ? (
         <DocList docs={listQuotes} type="quote" />
+      ) : tab === 'service_contracts' ? (
+        <ContractList items={contracts.filter(c => c.contract_type === 'service')} type="service" />
+      ) : tab === 'fulfillment' ? (
+        <ContractList items={contracts.filter(c => c.contract_type === 'fulfillment')} type="fulfillment" />
+      ) : tab === 'sales_partners' ? (
+        <ContractList items={contracts.filter(c => c.contract_type === 'agent')} type="agent" />
       ) : (
         <div className="bg-panel rounded-2xl overflow-hidden">
           {listReceipts.length === 0 ? (
@@ -847,6 +954,18 @@ export function AccountingView() {
       )}
       {previewDoc && (
         <PdfPreviewModal doc={previewDoc} onClose={() => setPreviewDoc(null)} />
+      )}
+      {contractModal && (
+        <ContractModal
+          contractType={contractModal.type}
+          contract={contractModal.contract}
+          nextNumberHint={contractModal.contract ? undefined : nextContractNumberHint(contractModal.type)}
+          onClose={() => setContractModal(null)}
+          onSaved={() => { setContractModal(null); loadAll() }}
+        />
+      )}
+      {previewContract && (
+        <ContractPreviewModal contract={previewContract} onClose={() => setPreviewContract(null)} />
       )}
     </div>
   )

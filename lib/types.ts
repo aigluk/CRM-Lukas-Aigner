@@ -134,3 +134,32 @@ export interface AccountingSubscription {
   notes?: string
   created_at: string
 }
+
+/* ── Verträge ─────────────────────────────────────────────── */
+
+export type ContractType = 'service' | 'fulfillment' | 'agent'
+export type ContractStatus = 'draft' | 'active' | 'terminated'
+
+export interface AccountingContract {
+  id: string
+  user_id: string
+  contract_type: ContractType
+  contract_number: string
+  status: ContractStatus
+  language: DocLanguage
+  customer_id?: string | null
+  party_name: string
+  party_address?: string
+  party_email?: string
+  party_phone?: string
+  party_birthdate?: string
+  package_name?: string
+  package_price?: string
+  payment_mode?: string
+  term_months?: number
+  start_date?: string
+  notes?: string
+  pdf_path?: string
+  created_at: string
+  updated_at: string
+}

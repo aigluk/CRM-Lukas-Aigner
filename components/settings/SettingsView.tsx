@@ -44,7 +44,8 @@ export function SettingsView() {
   const [pwMsg, setPwMsg]               = useState('')
 
   const [company, setCompany]           = useState({
-    name: '', address: '', email: '', phone: '', iban: '', uid: '',
+    name: '', legal_form: 'einzelunternehmer' as 'einzelunternehmer' | 'gmbh', fn: '',
+    address: '', email: '', phone: '', iban: '', uid: '',
     bank_name: '', bic: '', gisa: '', small_business: false,
   })
   const [companySaving, setCompanySaving] = useState(false)
@@ -67,7 +68,8 @@ export function SettingsView() {
       setDisplayName(data.user?.user_metadata?.display_name ?? '')
       setJoinedAt(data.user?.created_at ?? '')
       setCompany({
-        name: '', address: '', email: '', phone: '', iban: '', uid: '',
+        name: '', legal_form: 'einzelunternehmer', fn: '',
+        address: '', email: '', phone: '', iban: '', uid: '',
         bank_name: '', bic: '', gisa: '', small_business: false,
         ...(data.user?.user_metadata?.company ?? {}),
       })
@@ -241,6 +243,24 @@ export function SettingsView() {
                 <input type="text" value={company.name} onChange={e => setCompany(c => ({ ...c, name: e.target.value }))}
                   placeholder="z. B. Lukas Aigner e.U." className={inputCls} />
               </div>
+              <div>
+                <Label text="Rechtsform" />
+                <div className="flex bg-dark rounded-xl p-1">
+                  <button type="button" onClick={() => setCompany(c => ({ ...c, legal_form: 'einzelunternehmer' }))}
+                    className={`flex-1 py-1.5 rounded-lg text-sm font-bold transition-all ${company.legal_form !== 'gmbh' ? 'bg-accent text-white' : 'text-white/40 hover:text-white'}`}
+                  >Einzelunternehmer</button>
+                  <button type="button" onClick={() => setCompany(c => ({ ...c, legal_form: 'gmbh' }))}
+                    className={`flex-1 py-1.5 rounded-lg text-sm font-bold transition-all ${company.legal_form === 'gmbh' ? 'bg-accent text-white' : 'text-white/40 hover:text-white'}`}
+                  >GmbH</button>
+                </div>
+              </div>
+              {company.legal_form === 'gmbh' && (
+                <div>
+                  <Label text="Firmenbuchnummer (FN)" />
+                  <input type="text" value={company.fn} onChange={e => setCompany(c => ({ ...c, fn: e.target.value }))}
+                    placeholder="FN 000000a" className={inputCls} />
+                </div>
+              )}
               <div>
                 <Label text="Adresse (mehrzeilig: Straße / PLZ Ort / Land)" />
                 <textarea value={company.address} onChange={e => setCompany(c => ({ ...c, address: e.target.value }))}

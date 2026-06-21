@@ -3,6 +3,8 @@ import type { AccountingDocument, DocLanguage } from '@/lib/types'
 
 export interface CompanyInfo {
   name?: string
+  legal_form?: 'einzelunternehmer' | 'gmbh'
+  fn?: string
   address?: string
   email?: string
   phone?: string
