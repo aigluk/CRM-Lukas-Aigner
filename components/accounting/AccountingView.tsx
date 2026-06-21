@@ -236,14 +236,14 @@ function StatusPicker({ status, onChange }: { status: DocStatus; onChange: (s: D
 
 function KpiCard({ icon, label, value, tone = 'default' }: { icon: React.ReactNode; label: string; value: string; tone?: 'default' | 'green' | 'accent' }) {
   return (
-    <div className="bg-panel rounded-2xl p-5">
+    <div className="bg-[#C7C7C7] rounded-2xl p-5">
       <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 ${
-        tone === 'green' ? 'bg-accent-green/15 text-accent-green' : tone === 'accent' ? 'bg-accent/15 text-accent' : 'bg-white/8 text-white/50'
+        tone === 'green' ? 'bg-accent-green text-dark' : tone === 'accent' ? 'bg-accent text-white' : 'bg-dark/10 text-dark'
       }`}>
         {icon}
       </div>
-      <p className="text-2xl font-black text-white tracking-tight">{value}</p>
-      <p className="text-xs text-white/35 mt-1 font-medium">{label}</p>
+      <p className="text-2xl font-black text-dark tracking-tight">{value}</p>
+      <p className="text-xs text-dark/50 mt-1 font-medium">{label}</p>
     </div>
   )
 }

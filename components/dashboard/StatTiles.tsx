@@ -153,10 +153,22 @@ export function StatTiles({ leads }: { leads: Lead[] }) {
   }
 
   const tiles = [
-    { label: 'Gesamt Leads',    value: total,      icon: Users,        iconBg: 'bg-white/12',     iconColor: 'text-white', href: '/leads' },
-    { label: 'Aktive Pipeline', value: active,     icon: Flame,        iconBg: 'bg-accent',       iconColor: 'text-white', href: '/leads' },
-    { label: 'Abschlüsse',      value: won,        icon: CheckCircle2, iconBg: 'bg-accent-green', iconColor: 'text-dark',  href: '/leads' },
-    { label: 'Abschlussquote',  value: `${rate}%`, icon: Percent,      iconBg: 'bg-accent-green', iconColor: 'text-dark',  href: '/leads' },
+    {
+      label: 'Gesamt Leads', value: total, icon: Users, href: '/leads',
+      cardBg: 'bg-white', textColor: 'text-dark', labelColor: 'text-dark/45', iconBg: 'bg-dark/8', iconColor: 'text-dark',
+    },
+    {
+      label: 'Aktive Pipeline', value: active, icon: Flame, href: '/leads',
+      cardBg: 'bg-[#C7C7C7]', textColor: 'text-dark', labelColor: 'text-dark/45', iconBg: 'bg-dark/10', iconColor: 'text-dark',
+    },
+    {
+      label: 'Abschlüsse', value: won, icon: CheckCircle2, href: '/leads',
+      cardBg: 'bg-accent', textColor: 'text-white', labelColor: 'text-white/60', iconBg: 'bg-white/15', iconColor: 'text-white',
+    },
+    {
+      label: 'Abschlussquote', value: `${rate}%`, icon: Percent, href: '/leads',
+      cardBg: 'bg-accent-green', textColor: 'text-dark', labelColor: 'text-dark/45', iconBg: 'bg-dark/8', iconColor: 'text-dark',
+    },
   ]
 
   return (
@@ -184,7 +196,7 @@ export function StatTiles({ leads }: { leads: Lead[] }) {
             <Link
               key={t.label}
               href={t.href}
-              className="bg-panel rounded-2xl p-5 hover:bg-panel-hover transition-colors block"
+              className={`${t.cardBg} rounded-2xl p-5 hover:opacity-90 transition-opacity block`}
             >
               <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-4 ${t.iconBg}`}>
                 <Icon
@@ -194,8 +206,8 @@ export function StatTiles({ leads }: { leads: Lead[] }) {
                   className={t.iconColor}
                 />
               </div>
-              <p className="text-2xl font-black text-white leading-none">{t.value}</p>
-              <p className="text-xs font-medium text-white/35 mt-2 leading-tight">{t.label}</p>
+              <p className={`text-2xl font-black leading-none ${t.textColor}`}>{t.value}</p>
+              <p className={`text-xs font-medium mt-2 leading-tight ${t.labelColor}`}>{t.label}</p>
             </Link>
           )
         })}
