@@ -47,7 +47,7 @@ export function EditUserModal({
   }
 
   return (
-    <div className="fixed inset-0 z-60 flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-60 flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm">
       <div className="bg-panel rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-rim-subtle" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-base font-black text-white">Benutzer bearbeiten</h2>

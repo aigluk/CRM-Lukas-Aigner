@@ -4,19 +4,20 @@ import { useState, useEffect, useMemo } from 'react'
 import {
   Plus, FileText, TrendingUp, TrendingDown, Wallet,
   Download, Trash2, ChevronDown, ChevronLeft, ChevronRight, Image as ImageIcon, Eye, EyeOff,
-  Loader2, Search, Upload,
+  Loader2, Search, Upload, RefreshCw, Pencil,
 } from 'lucide-react'
-import type { AccountingDocument, AccountingReceipt, DocType, DocStatus, ReceiptType } from '@/lib/types'
+import type { AccountingDocument, AccountingReceipt, AccountingSubscription, DocType, DocStatus, ReceiptType, SubscriptionInterval } from '@/lib/types'
 import type { CompanyInfo } from '@/lib/pdf/DocumentPdf'
 import type { ClosingPdfData } from '@/lib/pdf/ClosingPdf'
 import { DocumentModal } from './DocumentModal'
 import { ReceiptModal } from './ReceiptModal'
 import { PdfPreviewModal } from './PdfPreviewModal'
 import { InvoiceImportModal } from './InvoiceImportModal'
+import { SubscriptionModal } from './SubscriptionModal'
 import { useClickOutside } from '@/lib/useClickOutside'
 import { useRef } from 'react'
 
-type Tab = 'invoices' | 'quotes' | 'receipts' | 'closings' | 'overview'
+type Tab = 'overview' | 'invoices' | 'quotes' | 'receipts' | 'subscriptions' | 'closings'
 
 type MonthPeriod = { month: number; year: number }
 type ListPeriod = 'all' | MonthPeriod | number
@@ -156,12 +157,23 @@ function estimateIncomeTaxAT(taxable: number): number {
 }
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'invoices',  label: 'Rechnungen' },
-  { id: 'quotes',    label: 'Angebote' },
-  { id: 'receipts',  label: 'Belege' },
-  { id: 'closings',  label: 'Abschlüsse' },
-  { id: 'overview',  label: 'Übersicht' },
+  { id: 'overview',      label: 'Übersicht' },
+  { id: 'invoices',      label: 'Rechnungen' },
+  { id: 'quotes',        label: 'Angebote' },
+  { id: 'receipts',      label: 'Belege' },
+  { id: 'subscriptions', label: 'Abos' },
+  { id: 'closings',      label: 'Abschlüsse' },
 ]
+
+const SUBSCRIPTION_INTERVAL_LABELS: Record<SubscriptionInterval, string> = {
+  monthly: 'Monatlich', quarterly: 'Quartal', yearly: 'Jährlich',
+}
+
+function monthlyEquivalent(sub: AccountingSubscription): number {
+  if (sub.interval === 'monthly') return sub.amount
+  if (sub.interval === 'quarterly') return sub.amount / 3
+  return sub.amount / 12
+}
 
 const ASSUMED_EXPENSE_VAT_RATE = 20
 
@@ -240,9 +252,11 @@ export function AccountingView() {
   const [tab, setTab] = useState<Tab>('invoices')
   const [documents, setDocuments] = useState<AccountingDocument[]>([])
   const [receipts, setReceipts]   = useState<AccountingReceipt[]>([])
+  const [subscriptions, setSubscriptions] = useState<AccountingSubscription[]>([])
   const [loading, setLoading]     = useState(true)
   const [docModal, setDocModal]   = useState<{ type: DocType; doc?: AccountingDocument } | null>(null)
   const [receiptModal, setReceiptModal] = useState(false)
+  const [subscriptionModal, setSubscriptionModal] = useState<{ sub?: AccountingSubscription } | null>(null)
   const [previewDoc, setPreviewDoc] = useState<AccountingDocument | null>(null)
   const [kpiVisible, setKpiVisible] = useState(false)
   const [company, setCompany] = useState<CompanyInfo>({})
@@ -260,15 +274,31 @@ export function AccountingView() {
   async function loadAll() {
     setLoading(true)
     try {
-      const [docsRes, receiptsRes] = await Promise.all([
+      const [docsRes, receiptsRes, subsRes] = await Promise.all([
         fetch('/api/accounting/documents').then(r => r.json()),
         fetch('/api/accounting/receipts').then(r => r.json()),
+        fetch('/api/accounting/subscriptions').then(r => r.json()),
       ])
       setDocuments(docsRes.documents ?? [])
       setReceipts(receiptsRes.receipts ?? [])
+      setSubscriptions(subsRes.subscriptions ?? [])
     } finally {
       setLoading(false)
     }
+  }
+
+  async function toggleSubscriptionActive(sub: AccountingSubscription) {
+    setSubscriptions(prev => prev.map(s => s.id === sub.id ? { ...s, active: !s.active } : s))
+    await fetch('/api/accounting/subscriptions', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: sub.id, active: !sub.active }),
+    })
+  }
+
+  async function deleteSubscription(id: string) {
+    if (!confirm('Abo wirklich löschen?')) return
+    setSubscriptions(prev => prev.filter(s => s.id !== id))
+    await fetch(`/api/accounting/subscriptions?id=${id}`, { method: 'DELETE' })
   }
 
   useEffect(() => {
@@ -292,9 +322,13 @@ export function AccountingView() {
     const inYear = (d: string) => new Date(d).getFullYear() === year
     const incomePaid = invoices.filter(d => d.status === 'paid' && inYear(d.issue_date)).reduce((s, d) => s + docTotal(d), 0)
     const incomeOpen = invoices.filter(d => d.status !== 'paid' && inYear(d.issue_date)).reduce((s, d) => s + docTotal(d), 0)
-    const expenses = receipts.filter(r => r.receipt_type === 'expense' && inYear(r.date)).reduce((s, r) => s + r.amount, 0)
+    const expensesReceipts = receipts.filter(r => r.receipt_type === 'expense' && inYear(r.date)).reduce((s, r) => s + r.amount, 0)
+    const expensesSubs = subscriptions
+      .filter(s => s.active && new Date(s.start_date).getFullYear() <= year)
+      .reduce((s, sub) => s + monthlyEquivalent(sub) * 12, 0)
+    const expenses = expensesReceipts + expensesSubs
     return { incomePaid, incomeOpen, expenses, profit: incomePaid - expenses }
-  }, [invoices, receipts])
+  }, [invoices, receipts, subscriptions])
 
   const closing = useMemo(() => {
     let inPeriod: (isoDate: string) => boolean
@@ -317,7 +351,14 @@ export function AccountingView() {
     const vatCollected = revenueGross - revenueNet
 
     const periodExpenses = receipts.filter(r => r.receipt_type === 'expense' && inPeriod(r.date))
-    const expensesGross = periodExpenses.reduce((s, r) => s + r.amount, 0)
+    const monthsInPeriod = periodMode === 'month' ? 1 : periodMode === 'quarter' ? 3 : 12
+    const periodEnd = periodMode === 'month' ? new Date(periodYear, periodMonth + 1, 0)
+      : periodMode === 'quarter' ? new Date(periodYear, periodQuarter * 3 + 3, 0)
+      : new Date(periodYear, 11, 31)
+    const subsExpenses = subscriptions
+      .filter(s => s.active && new Date(s.start_date) <= periodEnd)
+      .reduce((s, sub) => s + monthlyEquivalent(sub) * monthsInPeriod, 0)
+    const expensesGross = periodExpenses.reduce((s, r) => s + r.amount, 0) + subsExpenses
     const vorsteuer = expensesGross * (ASSUMED_EXPENSE_VAT_RATE / (100 + ASSUMED_EXPENSE_VAT_RATE))
     const expensesNet = expensesGross - vorsteuer
 
@@ -347,7 +388,7 @@ export function AccountingView() {
       estimatedIncomeTax, estimatedAnnualIncomeTax, estimatedQuarterlyPrepayment,
       profitAfterTax,
     }
-  }, [invoices, receipts, periodMode, periodYear, periodMonth, periodQuarter, company])
+  }, [invoices, receipts, subscriptions, periodMode, periodYear, periodMonth, periodQuarter, company])
 
   async function exportClosingPdf() {
     setExportingPdf(true)
@@ -499,6 +540,11 @@ export function AccountingView() {
             <Plus size={16} /><span className="hidden sm:inline">Beleg hinzufügen</span>
           </button>
         )}
+        {tab === 'subscriptions' && (
+          <button onClick={() => setSubscriptionModal({})} className="flex items-center gap-2 bg-accent hover:bg-accent-hover text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95">
+            <Plus size={16} /><span className="hidden sm:inline">Neues Abo</span>
+          </button>
+        )}
       </div>
 
       {/* Tabs */}
@@ -537,13 +583,15 @@ export function AccountingView() {
         <div className="space-y-5">
           <div className="flex items-center justify-between">
             <h2 className="text-xs font-black text-white/30 uppercase tracking-wide">Kennzahlen</h2>
-            <button
-              onClick={() => setKpiVisible(v => !v)}
-              className="flex items-center gap-1.5 text-xs font-bold text-white/35 hover:text-white transition-colors"
-            >
-              {kpiVisible ? <EyeOff size={13} /> : <Eye size={13} />}
-              {kpiVisible ? 'Verbergen' : 'Anzeigen'}
-            </button>
+            {kpiVisible && (
+              <button
+                onClick={() => setKpiVisible(false)}
+                title="Verbergen"
+                className="w-7 h-7 rounded-full bg-white/6 hover:bg-white/12 flex items-center justify-center text-white/40 hover:text-white transition-all"
+              >
+                <EyeOff size={13} />
+              </button>
+            )}
           </div>
 
           {kpiVisible ? (
@@ -555,11 +603,11 @@ export function AccountingView() {
             </div>
           ) : (
             <button
+              title="Anzeigen"
               onClick={() => setKpiVisible(true)}
-              className="w-full bg-panel rounded-2xl py-8 flex flex-col items-center justify-center gap-2 text-white/20 hover:text-white/40 transition-colors"
+              className="w-full h-24 bg-accent rounded-2xl flex items-center justify-center hover:opacity-90 transition-all active:scale-[0.99]"
             >
-              <Eye size={20} />
-              <span className="text-xs font-bold">Kennzahlen ausgeblendet - klicken zum Anzeigen</span>
+              <Eye size={20} className="text-white" />
             </button>
           )}
 
@@ -586,6 +634,52 @@ export function AccountingView() {
             )}
           </div>
         </div>
+      ) : tab === 'subscriptions' ? (
+        subscriptions.length === 0 ? (
+          <div className="bg-panel rounded-2xl py-16 text-center">
+            <p className="text-white/40 text-sm font-medium">Noch keine Abos.</p>
+          </div>
+        ) : (
+          <div className="bg-panel rounded-2xl overflow-hidden">
+            <ul>
+              {subscriptions.map((s, i) => (
+                <li key={s.id} className={`flex items-center gap-3 px-4 sm:px-5 py-3.5 ${i < subscriptions.length - 1 ? 'border-b border-panel-2' : ''} ${s.active ? '' : 'opacity-40'}`}>
+                  <div className="w-9 h-9 rounded-xl bg-white/8 text-white/50 flex items-center justify-center shrink-0">
+                    <RefreshCw size={14} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-white truncate">{s.name}</p>
+                    <p className="text-xs text-white/35 mt-0.5">{SUBSCRIPTION_INTERVAL_LABELS[s.interval]} · seit {fmtDate(s.start_date)}</p>
+                  </div>
+                  <p className="text-sm font-bold text-accent shrink-0">{fmtMoney(s.amount)}</p>
+                  <button
+                    onClick={() => toggleSubscriptionActive(s)}
+                    title={s.active ? 'Pausieren' : 'Aktivieren'}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shrink-0 ${
+                      s.active ? 'bg-accent-green/15 text-accent-green hover:bg-accent-green/25' : 'bg-white/6 text-white/30 hover:bg-white/12'
+                    }`}
+                  >
+                    {s.active ? <Eye size={13} /> : <EyeOff size={13} />}
+                  </button>
+                  <button
+                    onClick={() => setSubscriptionModal({ sub: s })}
+                    title="Bearbeiten"
+                    className="w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 flex items-center justify-center text-white/40 hover:text-white transition-all shrink-0"
+                  >
+                    <Pencil size={13} />
+                  </button>
+                  <button
+                    onClick={() => deleteSubscription(s.id)}
+                    title="Löschen"
+                    className="w-8 h-8 rounded-full bg-white/6 hover:bg-accent/20 flex items-center justify-center text-white/30 hover:text-accent transition-all shrink-0"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )
       ) : tab === 'closings' ? (
         <div className="space-y-5">
           <div className="bg-panel rounded-2xl p-5">
@@ -702,6 +796,13 @@ export function AccountingView() {
           nextNumberHint={nextNumberHint('invoice')}
           onClose={() => setImportModal(false)}
           onSaved={() => { setImportModal(false); loadAll() }}
+        />
+      )}
+      {subscriptionModal && (
+        <SubscriptionModal
+          subscription={subscriptionModal.sub}
+          onClose={() => setSubscriptionModal(null)}
+          onSaved={() => { setSubscriptionModal(null); loadAll() }}
         />
       )}
       {previewDoc && (

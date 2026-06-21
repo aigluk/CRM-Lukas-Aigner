@@ -11,7 +11,6 @@ export function PdfPreviewModal({ doc, onClose }: { doc: AccountingDocument; onC
     <div
       className="fixed inset-0 bg-black/75 backdrop-blur-sm z-60 flex items-end sm:items-center justify-center px-3 sm:p-4"
       style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
-      onClick={e => e.target === e.currentTarget && onClose()}
     >
       <div
         className="bg-panel w-full sm:max-w-3xl rounded-2xl overflow-hidden shadow-2xl flex flex-col"

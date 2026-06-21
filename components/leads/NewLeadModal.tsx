@@ -68,7 +68,6 @@ export function NewLeadModal({ onClose, onCreate }: Props) {
   return (
     <div
       className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
-      onClick={e => e.target === e.currentTarget && onClose()}
     >
       <div className="bg-panel w-full sm:max-w-xl rounded-t-2xl sm:rounded-2xl max-h-[94vh] overflow-y-auto shadow-2xl">
 

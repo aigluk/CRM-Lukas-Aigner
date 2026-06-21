@@ -119,3 +119,17 @@ export interface AccountingReceipt {
   ocr_raw?: string
   created_at: string
 }
+
+export type SubscriptionInterval = 'monthly' | 'quarterly' | 'yearly'
+
+export interface AccountingSubscription {
+  id: string
+  user_id: string
+  name: string
+  amount: number
+  interval: SubscriptionInterval
+  start_date: string
+  active: boolean
+  notes?: string
+  created_at: string
+}

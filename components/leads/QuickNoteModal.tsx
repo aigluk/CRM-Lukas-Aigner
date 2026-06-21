@@ -24,7 +24,6 @@ export function QuickNoteModal({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
-      onClick={e => e.target === e.currentTarget && onClose()}
     >
       <div className="bg-panel rounded-2xl w-full max-w-sm shadow-2xl">
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
