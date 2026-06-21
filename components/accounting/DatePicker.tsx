@@ -32,12 +32,23 @@ export function DatePicker({
   const [open, setOpen] = useState(false)
   const selected = parseDateInput(value)
   const [viewMonth, setViewMonth] = useState(() => selected ?? new Date())
+  const [popStyle, setPopStyle] = useState<React.CSSProperties>({})
   const ref = useRef<HTMLDivElement>(null)
+  const btnRef = useRef<HTMLButtonElement>(null)
 
   useClickOutside(ref, () => setOpen(false))
 
   function openPicker() {
     setViewMonth(selected ?? new Date())
+    const rect = btnRef.current?.getBoundingClientRect()
+    if (rect) {
+      const panelHeight = 360
+      const openUp = window.innerHeight - rect.bottom < panelHeight && rect.top > panelHeight
+      setPopStyle(openUp
+        ? { position: 'fixed', bottom: window.innerHeight - rect.top + 8, left: rect.left, width: 256 }
+        : { position: 'fixed', top: rect.bottom + 8, left: rect.left, width: 256 }
+      )
+    }
     setOpen(true)
   }
 
@@ -60,6 +71,7 @@ export function DatePicker({
   return (
     <div className="relative" ref={ref}>
       <button
+        ref={btnRef}
         type="button"
         onClick={openPicker}
         className={`w-full flex items-center justify-between gap-2 ${className}`}
@@ -71,7 +83,10 @@ export function DatePicker({
       </button>
 
       {open && (
-        <div className="absolute z-50 top-full left-0 mt-2 w-64 bg-panel-2 border border-white/10 rounded-2xl shadow-2xl p-3 animate-in fade-in slide-in-from-top-1 duration-150">
+        <div
+          className="z-100 bg-panel-2 border border-white/10 rounded-2xl shadow-2xl p-3 animate-in fade-in slide-in-from-top-1 duration-150"
+          style={popStyle}
+        >
           <div className="flex items-center justify-between mb-2.5">
             <button
               type="button"

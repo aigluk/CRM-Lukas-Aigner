@@ -25,7 +25,7 @@ export function SubscriptionModal({
   const [error, setError] = useState('')
 
   async function save() {
-    const amt = parseFloat(amount)
+    const amt = parseFloat(amount.replace(',', '.'))
     if (!name.trim()) { setError('Name fehlt.'); return }
     if (!amt || amt <= 0) { setError('Betrag fehlt.'); return }
     setSaving(true)
@@ -78,7 +78,11 @@ export function SubscriptionModal({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={labelCls}>Betrag (€)</label>
-              <input type="number" value={amount} onChange={e => setAmount(e.target.value)} step="any" placeholder="0.00" className={inputCls} />
+              <input
+                type="text" inputMode="decimal" value={amount}
+                onChange={e => { if (/^[0-9]*[.,]?[0-9]*$/.test(e.target.value)) setAmount(e.target.value) }}
+                placeholder="0.00" className={inputCls}
+              />
             </div>
             <div>
               <label className={labelCls}>Start</label>

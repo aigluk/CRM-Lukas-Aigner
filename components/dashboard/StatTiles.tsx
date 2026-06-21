@@ -189,16 +189,16 @@ export function StatTiles({ leads }: { leads: Lead[] }) {
           onSelect={handleYearSelect}
         />
       </div>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {tiles.map(t => {
+      <div className="flex rounded-2xl overflow-hidden">
+        {tiles.map((t, i) => {
           const Icon = t.icon
           return (
             <Link
               key={t.label}
               href={t.href}
-              className={`${t.cardBg} rounded-2xl p-5 hover:opacity-90 transition-opacity block`}
+              className={`${t.cardBg} flex-1 min-w-0 p-3.5 sm:p-5 hover:opacity-90 transition-opacity block`}
             >
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-4 ${t.iconBg}`}>
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 sm:mb-4 ${t.iconBg}`}>
                 <Icon
                   size={17}
                   strokeWidth={t.label === 'Aktive Pipeline' ? 0 : 2.75}
@@ -206,8 +206,8 @@ export function StatTiles({ leads }: { leads: Lead[] }) {
                   className={t.iconColor}
                 />
               </div>
-              <p className={`text-2xl font-black leading-none ${t.textColor}`}>{t.value}</p>
-              <p className={`text-xs font-medium mt-2 leading-tight ${t.labelColor}`}>{t.label}</p>
+              <p className={`text-xl sm:text-2xl font-black leading-none ${t.textColor}`}>{t.value}</p>
+              <p className={`text-[11px] sm:text-xs font-medium mt-2 leading-tight ${t.labelColor}`}>{t.label}</p>
             </Link>
           )
         })}
