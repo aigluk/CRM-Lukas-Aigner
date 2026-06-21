@@ -38,6 +38,8 @@ export function ContractModal({
   const [partyEmail, setPartyEmail] = useState(contract?.party_email ?? '')
   const [partyPhone, setPartyPhone] = useState(contract?.party_phone ?? '')
   const [partyBirthdate, setPartyBirthdate] = useState(contract?.party_birthdate ?? '')
+  const [partyVatNumber, setPartyVatNumber] = useState(contract?.party_vat_number ?? '')
+  const [partyGisaNumber, setPartyGisaNumber] = useState(contract?.party_gisa_number ?? '')
   const [packageName, setPackageName] = useState(contract?.package_name ?? '')
   const [packagePrice, setPackagePrice] = useState(contract?.package_price ?? '')
   const [paymentMode, setPaymentMode] = useState(contract?.payment_mode ?? 'einmalzahlung')
@@ -60,6 +62,8 @@ export function ContractModal({
       setPartyAddress(c.address || '')
       setPartyEmail(c.email || '')
       setPartyPhone(c.phone || '')
+      setPartyVatNumber(c.vat_number || '')
+      setPartyGisaNumber(c.gisa_number || '')
     }
   }
 
@@ -79,6 +83,8 @@ export function ContractModal({
       party_email: partyEmail || null,
       party_phone: partyPhone || null,
       party_birthdate: partyBirthdate || null,
+      party_vat_number: partyVatNumber || null,
+      party_gisa_number: partyGisaNumber || null,
       package_name: contractType === 'service' ? (packageName || null) : null,
       package_price: contractType !== 'agent' ? (packagePrice || null) : null,
       payment_mode: contractType === 'service' ? paymentMode : null,
@@ -190,6 +196,16 @@ export function ContractModal({
                 <DatePicker value={partyBirthdate} onChange={setPartyBirthdate} className={inputCls} />
               </div>
             )}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className={labelCls}>UID / Umsatzsteuernummer</label>
+              <input type="text" value={partyVatNumber} onChange={e => setPartyVatNumber(e.target.value)} placeholder="ATU12345678" className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>GISA-Zahl</label>
+              <input type="text" value={partyGisaNumber} onChange={e => setPartyGisaNumber(e.target.value)} placeholder="z. B. 12345678" className={inputCls} />
+            </div>
           </div>
 
           {contractType === 'service' && (

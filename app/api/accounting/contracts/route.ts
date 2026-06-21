@@ -121,6 +121,8 @@ export async function POST(req: NextRequest) {
       party_email:      body.party_email || null,
       party_phone:      body.party_phone || null,
       party_birthdate:  body.party_birthdate || null,
+      party_vat_number: body.party_vat_number || null,
+      party_gisa_number: body.party_gisa_number || null,
       package_name:     body.package_name || null,
       package_price:    body.package_price || null,
       payment_mode:     body.payment_mode || null,
@@ -169,6 +171,7 @@ export async function PATCH(req: NextRequest) {
 
     const contentChanged = [
       'party_name', 'party_address', 'party_email', 'party_phone', 'party_birthdate',
+      'party_vat_number', 'party_gisa_number',
       'package_name', 'package_price', 'payment_mode', 'term_months', 'start_date', 'notes', 'language',
     ].some(k => k in updates)
     if (contentChanged) {

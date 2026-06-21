@@ -73,6 +73,13 @@ function fmtDate(d?: string, lang: DocLanguage = 'de'): string {
   return new Date(d).toLocaleDateString(lang === 'en' ? 'en-GB' : 'de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
+function partyIdentityLine(contract: AccountingContract): string {
+  const parts: string[] = []
+  if (contract.party_vat_number) parts.push(`UID ${contract.party_vat_number}`)
+  if (contract.party_gisa_number) parts.push(`GISA ${contract.party_gisa_number}`)
+  return parts.join(' · ')
+}
+
 /** Formatiert einen rein numerisch eingegebenen Preis (z. B. "4500") als "€ 4.500,-"; bereits formatierte Eingaben (mit Text/Symbolen) bleiben unverändert. */
 function fmtPrice(raw?: string | null): string | undefined {
   if (!raw) return undefined
@@ -135,7 +142,7 @@ function Parties({
           <Text style={styles.partyNameRight}>{contract.party_name}</Text>
           {partyAddressLines.map((l, i) => <Text key={i} style={styles.partyLineRight}>{l}</Text>)}
           {contract.party_birthdate && <Text style={styles.partyLineRight}>geb. {fmtDate(contract.party_birthdate)}</Text>}
-          {contract.party_email && <Text style={styles.partyLineRight}>{contract.party_email}</Text>}
+          {partyIdentityLine(contract) && <Text style={styles.partyLineRight}>{partyIdentityLine(contract)}</Text>}
         </View>
       </View>
     </View>

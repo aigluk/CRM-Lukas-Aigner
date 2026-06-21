@@ -197,6 +197,8 @@ export interface AccountingContract {
   party_email?: string
   party_phone?: string
   party_birthdate?: string
+  party_vat_number?: string
+  party_gisa_number?: string
   package_name?: string
   package_price?: string
   payment_mode?: string
