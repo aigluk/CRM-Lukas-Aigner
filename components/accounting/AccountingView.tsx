@@ -357,10 +357,14 @@ export function AccountingView() {
   const searchQ = search.trim().toLowerCase()
   const matchesDoc = (d: AccountingDocument) => !searchQ || d.client_name.toLowerCase().includes(searchQ) || d.doc_number.toLowerCase().includes(searchQ)
   const matchesReceipt = (r: AccountingReceipt) => !searchQ || (r.vendor ?? '').toLowerCase().includes(searchQ) || (r.category ?? '').toLowerCase().includes(searchQ)
+  const matchesContract = (c: AccountingContract) => !searchQ || c.party_name.toLowerCase().includes(searchQ) || c.contract_number.toLowerCase().includes(searchQ)
 
   const listInvoices = useMemo(() => invoices.filter(d => inListPeriod(d.issue_date, listPeriod) && matchesDoc(d)), [invoices, listPeriod, searchQ])
   const listQuotes   = useMemo(() => quotes.filter(d => inListPeriod(d.issue_date, listPeriod) && matchesDoc(d)), [quotes, listPeriod, searchQ])
   const listReceipts = useMemo(() => receipts.filter(r => inListPeriod(r.date, listPeriod) && matchesReceipt(r)), [receipts, listPeriod, searchQ])
+  const listServiceContracts = useMemo(() => contracts.filter(c => c.contract_type === 'service' && inListPeriod(c.start_date, listPeriod) && matchesContract(c)), [contracts, listPeriod, searchQ])
+  const listFulfillmentContracts = useMemo(() => contracts.filter(c => c.contract_type === 'fulfillment' && inListPeriod(c.start_date, listPeriod) && matchesContract(c)), [contracts, listPeriod, searchQ])
+  const listAgentContracts = useMemo(() => contracts.filter(c => c.contract_type === 'agent' && inListPeriod(c.start_date, listPeriod) && matchesContract(c)), [contracts, listPeriod, searchQ])
 
   const overviewItems = useMemo(() => {
     const merged: any[] = [
@@ -704,7 +708,7 @@ export function AccountingView() {
         ))}
       </div>
 
-      {(tab === 'overview' || tab === 'invoices' || tab === 'quotes' || tab === 'receipts') && (
+      {(tab === 'overview' || tab === 'invoices' || tab === 'quotes' || tab === 'receipts' || tab === 'service_contracts' || tab === 'fulfillment' || tab === 'sales_partners') && (
         <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between mb-4">
           <div className="relative flex-1 min-w-0 sm:max-w-xs">
             <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none" />
@@ -884,11 +888,11 @@ export function AccountingView() {
       ) : tab === 'quotes' ? (
         <DocList docs={listQuotes} type="quote" />
       ) : tab === 'service_contracts' ? (
-        <ContractList items={contracts.filter(c => c.contract_type === 'service')} type="service" />
+        <ContractList items={listServiceContracts} type="service" />
       ) : tab === 'fulfillment' ? (
-        <ContractList items={contracts.filter(c => c.contract_type === 'fulfillment')} type="fulfillment" />
+        <ContractList items={listFulfillmentContracts} type="fulfillment" />
       ) : tab === 'sales_partners' ? (
-        <ContractList items={contracts.filter(c => c.contract_type === 'agent')} type="agent" />
+        <ContractList items={listAgentContracts} type="agent" />
       ) : (
         <div className="bg-panel rounded-2xl overflow-hidden">
           {listReceipts.length === 0 ? (
