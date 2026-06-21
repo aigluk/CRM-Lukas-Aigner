@@ -11,7 +11,10 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'Lukas Aigner CRM',
   description: 'Lead Management System',
-  icons: { icon: '/logo.svg' },
+  icons: {
+    icon: '/logo.svg',
+    apple: '/apple-touch-icon.png',
+  },
 }
 
 export const viewport: Viewport = {
