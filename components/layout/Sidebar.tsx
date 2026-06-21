@@ -42,7 +42,7 @@ export function Sidebar() {
   const linkBase = 'flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-bold transition-all'
 
   return (
-    <aside className="w-52 bg-accent h-screen flex flex-col shrink-0 rounded-r-[36px] overflow-hidden">
+    <aside className="w-52 bg-accent h-full flex flex-col shrink-0 rounded-r-[36px] overflow-hidden">
 
       {/* Top navigation — start well down, generous spacing */}
       <nav className="pt-14 px-4 flex flex-col gap-2">
