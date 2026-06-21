@@ -9,7 +9,7 @@ const RULE_LIGHT = '#BFBFBF'
 const GERICHTSSTAND = '4020 Linz, Österreich'
 
 const styles = StyleSheet.create({
-  page: { padding: 44, fontSize: 9, fontFamily: 'Helvetica', color: INK },
+  page: { paddingTop: 44, paddingHorizontal: 44, paddingBottom: 92, fontSize: 9, fontFamily: 'Helvetica', color: INK },
 
   brandRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 18 },
   logo: { width: 22, height: 22, marginRight: 10 },
@@ -21,12 +21,12 @@ const styles = StyleSheet.create({
   subTitleText: { fontSize: 8.5, color: MUTED, marginTop: 3 },
 
   partiesBlock: { marginTop: 18, marginBottom: 18 },
-  partyRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
-  partyCol: { width: '48%' },
+  partiesLabel: { fontSize: 8, fontWeight: 700, color: MUTED, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
+  partyRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  partyCol: { width: '48%', padding: 10, borderWidth: 0.5, borderColor: RULE_LIGHT },
   partyRole: { fontSize: 8, fontWeight: 700, color: MUTED, marginBottom: 3, textTransform: 'uppercase' },
   partyName: { fontSize: 9.5, fontWeight: 700, color: INK, marginBottom: 2 },
   partyLine: { fontSize: 8.5, color: INK, marginBottom: 1.5 },
-  partiesAnd: { fontSize: 8.5, color: MUTED, marginVertical: 4, textAlign: 'center' },
 
   preamble: { fontSize: 8.5, lineHeight: 1.5, marginBottom: 14, color: INK },
 
@@ -41,8 +41,8 @@ const styles = StyleSheet.create({
   signLine: { borderTopWidth: 0.5, borderTopColor: INK, marginTop: 30, paddingTop: 4 },
   signLabel: { fontSize: 8, color: MUTED },
 
-  footerNotes: { marginTop: 'auto', paddingTop: 10 },
-  bottomRule: { borderTopWidth: 0.5, borderTopColor: RULE_LIGHT, marginTop: 6, marginBottom: 10 },
+  pageFooter: { position: 'absolute', bottom: 36, left: 44, right: 44 },
+  bottomRule: { borderTopWidth: 0.5, borderTopColor: RULE_LIGHT, marginBottom: 10 },
   bottomRow: { flexDirection: 'row', justifyContent: 'space-between' },
   bottomCol: { flexDirection: 'column', width: '48%' },
   bottomLine: { fontSize: 8, color: INK, marginBottom: 2, fontWeight: 700 },
@@ -67,10 +67,6 @@ function BrandLogo() {
 function fmtDate(d?: string, lang: DocLanguage = 'de'): string {
   if (!d) return '-'
   return new Date(d).toLocaleDateString(lang === 'en' ? 'en-GB' : 'de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' })
-}
-
-function legalFormLabel(company: CompanyInfo): string {
-  return company.legal_form === 'gmbh' ? 'Gesellschaft mit beschränkter Haftung (GmbH)' : 'Einzelunternehmer (e.U.)'
 }
 
 /** §-Schlussklauseln, die in allen drei Vertragstypen identisch sind (außer Gerichtsstand, der bereits auf Linz lautet). */
@@ -111,13 +107,13 @@ function Parties({
   const addressLines = (company.address || '').split('\n').filter(Boolean)
   const partyAddressLines = (contract.party_address || '').split('\n').filter(Boolean)
   return (
-    <View style={styles.partiesBlock}>
+    <View style={styles.partiesBlock} wrap={false}>
+      <Text style={styles.partiesLabel}>Vertragsparteien</Text>
       <View style={styles.partyRow}>
         <View style={styles.partyCol}>
           <Text style={styles.partyRole}>{roleA}</Text>
           <Text style={styles.partyName}>{company.name || '-'}</Text>
           {addressLines.map((l, i) => <Text key={i} style={styles.partyLine}>{l}</Text>)}
-          <Text style={styles.partyLine}>{legalFormLabel(company)}</Text>
           {legalIdentityLine(company) && <Text style={styles.partyLine}>{legalIdentityLine(company)}</Text>}
         </View>
         <View style={styles.partyCol}>
@@ -128,7 +124,6 @@ function Parties({
           {contract.party_email && <Text style={styles.partyLine}>{contract.party_email}</Text>}
         </View>
       </View>
-      <Text style={styles.partiesAnd}>— im Folgenden gemeinsam die „Vertragsparteien" —</Text>
     </View>
   )
 }
@@ -137,7 +132,7 @@ function Sections({ sections }: { sections: Section[] }) {
   return (
     <>
       {sections.map((s, i) => (
-        <View key={i} style={styles.section}>
+        <View key={i} style={styles.section} wrap={false}>
           <Text style={styles.sectionTitle}>{s.title}</Text>
           {s.paragraphs.map((p, j) => <Text key={j} style={styles.paragraph}>{p}</Text>)}
         </View>
@@ -148,7 +143,7 @@ function Sections({ sections }: { sections: Section[] }) {
 
 function SignatureBlock({ roleA, roleB }: { roleA: string; roleB: string }) {
   return (
-    <View style={styles.signBlock}>
+    <View style={styles.signBlock} wrap={false}>
       <View style={styles.signRule} />
       <Text style={styles.paragraph}>Ort, Datum: ____________________________</Text>
       <View style={styles.signRow}>
@@ -166,17 +161,18 @@ function SignatureBlock({ roleA, roleB }: { roleA: string; roleB: string }) {
 function Footer({ company }: { company: CompanyInfo }) {
   const addressLines = (company.address || '').split('\n').filter(Boolean)
   return (
-    <View style={styles.footerNotes}>
+    <View style={styles.pageFooter} fixed>
       <View style={styles.bottomRule} />
       <View style={styles.bottomRow}>
         <View style={styles.bottomCol}>
           <Text style={styles.bottomLine}>{company.name || ''}</Text>
           {addressLines.map((l, i) => <Text key={i} style={styles.bottomLineMuted}>{l}</Text>)}
+          {company.gisa && <Text style={styles.bottomLineMuted}>GISA-Zahl: {company.gisa}</Text>}
         </View>
         <View style={[styles.bottomCol, { alignItems: 'flex-end' }]}>
-          {company.email && <Text style={styles.bottomLineMuted}>{company.email}</Text>}
-          {company.phone && <Text style={styles.bottomLineMuted}>{company.phone}</Text>}
-          {company.uid && <Text style={styles.bottomLineMuted}>UID {company.uid}</Text>}
+          {company.bank_name && <Text style={styles.bottomLineMuted}>{company.bank_name}</Text>}
+          {company.iban && <Text style={styles.bottomLineMuted}>IBAN: {company.iban}</Text>}
+          {company.bic && <Text style={styles.bottomLineMuted}>BIC: {company.bic}</Text>}
         </View>
       </View>
     </View>
@@ -466,7 +462,7 @@ export function ContractPdf({ contract, company }: { contract: AccountingContrac
         </Text>
         <Sections sections={sections} />
         {contract.notes && (
-          <View style={styles.section}>
+          <View style={styles.section} wrap={false}>
             <Text style={styles.sectionTitle}>Ergänzende Vereinbarungen</Text>
             <Text style={styles.paragraph}>{contract.notes}</Text>
           </View>
