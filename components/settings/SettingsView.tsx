@@ -57,7 +57,7 @@ export function SettingsView() {
   const [newUserEmail, setNewUserEmail] = useState('')
   const [newUserPw, setNewUserPw]       = useState('')
   const [newUserName, setNewUserName]   = useState('')
-  const [newUserPerms, setNewUserPerms] = useState<string[]>(PERMISSION_ITEMS.map(i => i.href))
+  const [newUserPerms, setNewUserPerms] = useState<string[]>(PERMISSION_ITEMS.filter(i => i.default === true).map(i => i.href))
   const [addingUser, setAddingUser]     = useState(false)
   const [userError, setUserError]       = useState('')
   const [editingUser, setEditingUser]   = useState<AdminUser | null>(null)

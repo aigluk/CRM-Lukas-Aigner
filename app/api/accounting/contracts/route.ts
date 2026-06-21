@@ -114,6 +114,8 @@ export async function POST(req: NextRequest) {
       status:           body.status || 'draft',
       language:         body.language === 'en' ? 'en' : 'de',
       customer_id:      body.customer_id || null,
+      partner_id:       body.partner_id || null,
+      sales_partner_id: body.sales_partner_id || null,
       party_name:       body.party_name.trim(),
       party_address:    body.party_address || null,
       party_email:      body.party_email || null,

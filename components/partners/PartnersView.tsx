@@ -1,0 +1,175 @@
+'use client'
+
+import { useState, useEffect, useMemo } from 'react'
+import { Plus, Search, Trash2, X } from 'lucide-react'
+import type { AccountingPartner } from '@/lib/types'
+import { PartnerModal } from '@/components/accounting/PartnerModal'
+import { PartnerTable, PartnerTableHeader } from './PartnerTable'
+
+export function PartnersView() {
+  const [partners, setPartners] = useState<AccountingPartner[]>([])
+  const [loading, setLoading] = useState(true)
+  const [modal, setModal] = useState<{ partner?: AccountingPartner } | null>(null)
+  const [search, setSearch] = useState('')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [deleting, setDeleting] = useState(false)
+
+  async function load() {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/accounting/partners').then(r => r.json())
+      setPartners(res.partners ?? [])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { load() }, [])
+
+  // Deep link from dashboard reminders: ?openPartner=<id>
+  useEffect(() => {
+    if (loading) return
+    const params = new URLSearchParams(window.location.search)
+    const openId = params.get('openPartner')
+    if (openId) {
+      const partner = partners.find(p => p.id === openId)
+      if (partner) setModal({ partner })
+      const url = new URL(window.location.href)
+      url.searchParams.delete('openPartner')
+      window.history.replaceState({}, '', url.toString())
+    }
+  }, [loading, partners])
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return partners
+    return partners.filter(p =>
+      p.name?.toLowerCase().includes(q) ||
+      p.contact_person?.toLowerCase().includes(q) ||
+      p.email?.toLowerCase().includes(q) ||
+      p.country?.toLowerCase().includes(q) ||
+      p.address?.toLowerCase().includes(q)
+    )
+  }, [partners, search])
+
+  const allSelected  = filtered.length > 0 && filtered.every(p => selectedIds.has(p.id))
+  const someSelected = filtered.some(p => selectedIds.has(p.id)) && !allSelected
+  const selectionCount = filtered.filter(p => selectedIds.has(p.id)).length
+
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => {
+      const n = new Set(prev)
+      if (n.has(id)) n.delete(id); else n.add(id)
+      return n
+    })
+  }
+
+  function toggleAll() {
+    const allFilteredIds = filtered.map(p => p.id)
+    const allSel = allFilteredIds.every(id => selectedIds.has(id))
+    setSelectedIds(prev => {
+      const n = new Set(prev)
+      if (allSel) allFilteredIds.forEach(id => n.delete(id))
+      else allFilteredIds.forEach(id => n.add(id))
+      return n
+    })
+  }
+
+  async function handleBulkDelete() {
+    if (!selectedIds.size || deleting) return
+    if (!confirm(`${selectedIds.size} Partner wirklich löschen?`)) return
+    setDeleting(true)
+    try {
+      await Promise.all(Array.from(selectedIds).map(id =>
+        fetch(`/api/accounting/partners?id=${id}`, { method: 'DELETE' })
+      ))
+      setPartners(prev => prev.filter(p => !selectedIds.has(p.id)))
+      setSelectedIds(new Set())
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  return (
+    <div className="h-full flex flex-col">
+      <div className="shrink-0">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-black text-white tracking-tight leading-none">Partner</h1>
+            <p className="text-sm text-white/30 mt-2 font-medium">{partners.length} Einträge gesamt</p>
+          </div>
+          <button
+            onClick={() => setModal({})}
+            className="flex items-center gap-2 bg-accent hover:bg-accent-hover text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95"
+          >
+            <Plus size={16} /><span className="hidden sm:inline">Neuer Partner</span>
+          </button>
+        </div>
+
+        <div className="flex gap-2 items-center">
+          <div className="relative flex-1 min-w-0">
+            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Suchen..."
+              className="w-full bg-panel rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-white/25 outline-none focus:ring-1 focus:ring-accent transition-all"
+            />
+          </div>
+
+          {selectionCount > 0 ? (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-white/50 font-medium">{selectionCount} ausgewählt</span>
+              <button
+                onClick={handleBulkDelete}
+                disabled={deleting}
+                className="flex items-center gap-1.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold px-3 py-2 rounded-xl transition-all disabled:opacity-50"
+              >
+                <Trash2 size={13} />
+                {deleting ? 'Löschen…' : `${selectionCount} löschen`}
+              </button>
+              <button
+                onClick={() => setSelectedIds(new Set())}
+                className="p-1.5 text-white/30 hover:text-white rounded-lg transition-colors"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center text-xs text-white/35 font-medium shrink-0">
+              {filtered.length} {filtered.length === 1 ? 'Partner' : 'Partner'}
+            </div>
+          )}
+        </div>
+
+      </div>
+
+      {loading ? (
+        <p className="text-sm text-white/30 text-center py-16 font-medium">Lädt…</p>
+      ) : partners.length === 0 ? (
+        <div className="bg-panel rounded-2xl py-16 text-center">
+          <p className="text-white/40 text-sm font-medium">Noch keine Partner angelegt.</p>
+        </div>
+      ) : (
+        <div className="mt-5 flex-1 min-h-0 flex flex-col">
+          <PartnerTableHeader allSelected={allSelected} someSelected={someSelected} onToggleAll={toggleAll} />
+          <PartnerTable
+            partners={filtered}
+            onPartnerClick={p => setModal({ partner: p })}
+            selectedIds={selectedIds}
+            onToggleSelect={toggleSelect}
+          />
+        </div>
+      )}
+
+      {modal && (
+        <PartnerModal
+          partner={modal.partner}
+          onClose={() => setModal(null)}
+          onSaved={() => { setModal(null); load() }}
+        />
+      )}
+    </div>
+  )
+}

@@ -1,10 +1,12 @@
 export const PERMISSION_ITEMS = [
-  { href: '/',           label: 'Dashboard' },
-  { href: '/leads',      label: 'Leads' },
-  { href: '/customers',  label: 'Kunden' },
-  { href: '/generator',  label: 'Generator' },
-  { href: '/calendar',   label: 'Kalender' },
-  { href: '/accounting', label: 'Buchhaltung' },
+  { href: '/',           label: 'Dashboard',   default: true },
+  { href: '/leads',      label: 'Leads',       default: true },
+  { href: '/customers',  label: 'Kunden',      default: true },
+  { href: '/partners',   label: 'Partner',     default: false },
+  { href: '/sales',      label: 'Vertrieb',    default: false },
+  { href: '/generator',  label: 'Generator',   default: true },
+  { href: '/calendar',   label: 'Kalender',    default: true },
+  { href: '/accounting', label: 'Buchhaltung', default: true },
 ] as const
 
 export type PermissionHref = typeof PERMISSION_ITEMS[number]['href']

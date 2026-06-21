@@ -19,11 +19,14 @@ async function getAuthUser(): Promise<{ id: string } | null> {
   }
 }
 
-export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const user = await getAuthUser()
   if (!user) return NextResponse.json({ error: 'Nicht angemeldet' }, { status: 401 })
   const ownerId = await getWorkspaceOwnerId(user.id)
+
+  const forceDownload = req.nextUrl.searchParams.get('dl') === '1'
+  const disposition = forceDownload ? 'attachment' : 'inline'
 
   const admin = createAdminClient()
   const { data: receipt, error } = await admin
@@ -38,8 +41,12 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const { data: file, error: dlError } = await admin.storage.from('accounting').download(receipt.file_path)
   if (dlError || !file) return NextResponse.json({ error: 'Datei nicht gefunden' }, { status: 404 })
 
+  const filename = receipt.file_path.split('/').pop() || 'beleg'
   const buffer = new Uint8Array(await file.arrayBuffer())
   return new NextResponse(buffer, {
-    headers: { 'Content-Type': file.type || 'application/octet-stream' },
+    headers: {
+      'Content-Type': file.type || 'application/octet-stream',
+      'Content-Disposition': `${disposition}; filename="${filename}"`,
+    },
   })
 }

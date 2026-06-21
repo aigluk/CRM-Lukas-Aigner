@@ -23,6 +23,11 @@ export async function POST(req: NextRequest) {
   "category": "kurze Kategorie auf Deutsch (z. B. Büromaterial, Tanken, Bewirtung, Software, Reisekosten) oder null"
 }`
 
+  const isPdf = mediaType === 'application/pdf'
+  const fileBlock = isPdf
+    ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: imageBase64 } }
+    : { type: 'image', source: { type: 'base64', media_type: mediaType || 'image/jpeg', data: imageBase64 } }
+
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -37,7 +42,7 @@ export async function POST(req: NextRequest) {
         messages: [{
           role: 'user',
           content: [
-            { type: 'image', source: { type: 'base64', media_type: mediaType || 'image/jpeg', data: imageBase64 } },
+            fileBlock,
             { type: 'text', text: prompt },
           ],
         }],

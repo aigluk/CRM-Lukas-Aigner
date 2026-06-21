@@ -6,9 +6,10 @@ import { useReminders, Reminder } from '@/lib/useReminders'
 import { formatRelativeDateTime } from '@/lib/utils'
 
 function targetUrl(r: Reminder): string {
-  return r.refType === 'lead'
-    ? `/leads?openLead=${r.refId}`
-    : `/customers?openCustomer=${r.refId}`
+  if (r.refType === 'lead') return `/leads?openLead=${r.refId}`
+  if (r.refType === 'partner') return `/partners?openPartner=${r.refId}`
+  if (r.refType === 'sales_partner') return `/sales?openSalesPartner=${r.refId}`
+  return `/customers?openCustomer=${r.refId}`
 }
 
 export function ReminderWidget() {

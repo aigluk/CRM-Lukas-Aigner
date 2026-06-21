@@ -11,6 +11,7 @@ import type { CompanyInfo } from '@/lib/pdf/DocumentPdf'
 import type { ClosingPdfData } from '@/lib/pdf/ClosingPdf'
 import { DocumentModal } from './DocumentModal'
 import { ReceiptModal } from './ReceiptModal'
+import { ReceiptPreviewModal } from './ReceiptPreviewModal'
 import { PdfPreviewModal } from './PdfPreviewModal'
 import { InvoiceImportModal } from './InvoiceImportModal'
 import { SubscriptionModal } from './SubscriptionModal'
@@ -281,6 +282,7 @@ export function AccountingView() {
   const [subscriptionModal, setSubscriptionModal] = useState<{ sub?: AccountingSubscription } | null>(null)
   const [contractModal, setContractModal] = useState<{ type: ContractType; contract?: AccountingContract } | null>(null)
   const [previewDoc, setPreviewDoc] = useState<AccountingDocument | null>(null)
+  const [previewReceipt, setPreviewReceipt] = useState<AccountingReceipt | null>(null)
   const [previewContract, setPreviewContract] = useState<AccountingContract | null>(null)
   const [kpiVisible, setKpiVisible] = useState(false)
   const [company, setCompany] = useState<CompanyInfo>({})
@@ -373,7 +375,7 @@ export function AccountingView() {
 
   function openOverviewItem(item: any) {
     if (item._isReceipt) {
-      if (item.file_path) window.open(`/api/accounting/receipts/${item.id}/file`, '_blank')
+      if (item.file_path) setPreviewReceipt(item)
     } else {
       setPreviewDoc(item)
     }
@@ -901,13 +903,13 @@ export function AccountingView() {
                   </div>
                   <p className="text-sm font-bold text-accent shrink-0">{fmtMoney(r.amount)}</p>
                   {r.file_path && (
-                    <a
-                      href={`/api/accounting/receipts/${r.id}/file`} target="_blank" rel="noopener noreferrer"
+                    <button
+                      onClick={() => setPreviewReceipt(r)}
                       title="Beleg ansehen"
                       className="w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 flex items-center justify-center text-white/40 hover:text-white transition-all shrink-0"
                     >
                       <ImageIcon size={13} />
-                    </a>
+                    </button>
                   )}
                   <button
                     onClick={() => deleteReceipt(r.id)}
@@ -954,6 +956,9 @@ export function AccountingView() {
       )}
       {previewDoc && (
         <PdfPreviewModal doc={previewDoc} onClose={() => setPreviewDoc(null)} />
+      )}
+      {previewReceipt && (
+        <ReceiptPreviewModal receipt={previewReceipt} onClose={() => setPreviewReceipt(null)} />
       )}
       {contractModal && (
         <ContractModal

@@ -40,7 +40,7 @@ export function ReceiptModal({ onClose, onSaved }: { onClose: () => void; onSave
   async function handleFile(f: File) {
     setFile(f)
     setPreview(URL.createObjectURL(f))
-    if (!f.type.startsWith('image/')) return
+    if (!f.type.startsWith('image/') && f.type !== 'application/pdf') return
 
     setOcrLoading(true)
     try {
@@ -164,7 +164,10 @@ export function ReceiptModal({ onClose, onSaved }: { onClose: () => void; onSave
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={labelCls}>Betrag (€)</label>
-              <input type="number" value={amount} onChange={e => setAmount(e.target.value)} step="any" placeholder="0.00" className={inputCls} />
+              <input
+                type="number" value={amount} onChange={e => setAmount(e.target.value)} step="any" placeholder="0.00"
+                className={`${inputCls} [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+              />
             </div>
             <div>
               <label className={labelCls}>Datum</label>

@@ -2,16 +2,16 @@
 
 import { useState, useEffect } from 'react'
 import { X, Save, ChevronDown } from 'lucide-react'
-import type { AccountingContract, AccountingCustomer, ContractType, DocLanguage } from '@/lib/types'
+import type { AccountingContract, AccountingCustomer, AccountingPartner, AccountingSalesPartner, ContractType, DocLanguage } from '@/lib/types'
 import { DatePicker } from '@/components/accounting/DatePicker'
 
 const inputCls = 'w-full bg-dark rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all'
 const labelCls = 'block text-xs font-bold text-white/30 mb-1.5'
 
-const TYPE_META: Record<ContractType, { title: string; partyLabel: string; partyPlaceholder: string; newLabel: string }> = {
-  service:     { title: 'Dienstleistungsvertrag', partyLabel: 'Kunde / Auftraggeber', partyPlaceholder: 'Firma oder Name', newLabel: 'Neuer Dienstleistungsvertrag' },
-  fulfillment: { title: 'Fulfillment-Vertrag', partyLabel: 'Partneragentur', partyPlaceholder: 'Name der Partneragentur', newLabel: 'Neuer Fulfillment-Vertrag' },
-  agent:       { title: 'Handelsagentenvertrag', partyLabel: 'Handelsagent', partyPlaceholder: 'Vor- und Nachname', newLabel: 'Neuer Handelsagentenvertrag' },
+const TYPE_META: Record<ContractType, { title: string; partyLabel: string; partyPlaceholder: string; newLabel: string; pickerLabel: string; endpoint: string; listKey: string }> = {
+  service:     { title: 'Dienstleistungsvertrag', partyLabel: 'Kunde / Auftraggeber', partyPlaceholder: 'Firma oder Name', newLabel: 'Neuer Dienstleistungsvertrag', pickerLabel: 'Gespeicherten Kunden übernehmen', endpoint: '/api/accounting/customers', listKey: 'customers' },
+  fulfillment: { title: 'Fulfillment-Vertrag', partyLabel: 'Partneragentur', partyPlaceholder: 'Name der Partneragentur', newLabel: 'Neuer Fulfillment-Vertrag', pickerLabel: 'Gespeicherten Partner übernehmen', endpoint: '/api/accounting/partners', listKey: 'partners' },
+  agent:       { title: 'Handelsagentenvertrag', partyLabel: 'Handelsagent', partyPlaceholder: 'Vor- und Nachname', newLabel: 'Neuer Handelsagentenvertrag', pickerLabel: 'Gespeicherten Vertriebspartner übernehmen', endpoint: '/api/accounting/sales-partners', listKey: 'salesPartners' },
 }
 
 export function ContractModal({
@@ -26,8 +26,12 @@ export function ContractModal({
   const isEdit = !!contract
   const meta = TYPE_META[contractType]
 
-  const [customers, setCustomers] = useState<AccountingCustomer[]>([])
-  const [customerId, setCustomerId] = useState(contract?.customer_id ?? '')
+  const [contacts, setContacts] = useState<(AccountingCustomer | AccountingPartner | AccountingSalesPartner)[]>([])
+  const [contactId, setContactId] = useState(
+    contractType === 'fulfillment' ? contract?.partner_id ?? ''
+    : contractType === 'agent' ? contract?.sales_partner_id ?? ''
+    : contract?.customer_id ?? ''
+  )
   const [contractNumber, setContractNumber] = useState(contract?.contract_number ?? nextNumberHint ?? '')
   const [partyName, setPartyName] = useState(contract?.party_name ?? '')
   const [partyAddress, setPartyAddress] = useState(contract?.party_address ?? '')
@@ -45,12 +49,12 @@ export function ContractModal({
   const [error, setError] = useState('')
 
   useEffect(() => {
-    fetch('/api/accounting/customers').then(r => r.json()).then(d => setCustomers(d.customers ?? [])).catch(() => {})
-  }, [])
+    fetch(meta.endpoint).then(r => r.json()).then(d => setContacts(d[meta.listKey] ?? [])).catch(() => {})
+  }, [meta.endpoint, meta.listKey])
 
-  function applyCustomer(id: string) {
-    setCustomerId(id)
-    const c = customers.find(x => x.id === id)
+  function applyContact(id: string) {
+    setContactId(id)
+    const c = contacts.find(x => x.id === id)
     if (c) {
       setPartyName(c.name)
       setPartyAddress(c.address || '')
@@ -67,7 +71,9 @@ export function ContractModal({
     const payload = {
       contract_type: contractType,
       contract_number: contractNumber,
-      customer_id: customerId || null,
+      customer_id: contractType === 'service' ? (contactId || null) : null,
+      partner_id: contractType === 'fulfillment' ? (contactId || null) : null,
+      sales_partner_id: contractType === 'agent' ? (contactId || null) : null,
       party_name: partyName.trim(),
       party_address: partyAddress || null,
       party_email: partyEmail || null,
@@ -141,17 +147,17 @@ export function ContractModal({
             </div>
           </div>
 
-          {customers.length > 0 && (
+          {contacts.length > 0 && (
             <div>
-              <label className={labelCls}>Gespeicherten Kontakt übernehmen</label>
+              <label className={labelCls}>{meta.pickerLabel}</label>
               <div className="relative">
                 <select
-                  value={customerId}
-                  onChange={e => applyCustomer(e.target.value)}
+                  value={contactId}
+                  onChange={e => applyContact(e.target.value)}
                   className={`${inputCls} appearance-none pr-9`}
                 >
                   <option value="">- Manuell eingeben -</option>
-                  {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  {contacts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
                 <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
               </div>

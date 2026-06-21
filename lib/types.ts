@@ -81,6 +81,40 @@ export interface AccountingCustomer {
   updated_at: string
 }
 
+export interface AccountingPartner {
+  id: string
+  user_id: string
+  name: string
+  contact_person?: string
+  address?: string
+  country?: string
+  vat_number?: string
+  vat_liable?: boolean
+  email?: string
+  phone?: string
+  website?: string
+  notes?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface AccountingSalesPartner {
+  id: string
+  user_id: string
+  name: string
+  contact_person?: string
+  address?: string
+  country?: string
+  vat_number?: string
+  vat_liable?: boolean
+  email?: string
+  phone?: string
+  website?: string
+  notes?: string
+  created_at: string
+  updated_at: string
+}
+
 export interface AccountingDocument {
   id: string
   user_id: string
@@ -148,6 +182,8 @@ export interface AccountingContract {
   status: ContractStatus
   language: DocLanguage
   customer_id?: string | null
+  partner_id?: string | null
+  sales_partner_id?: string | null
   party_name: string
   party_address?: string
   party_email?: string

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 
-export type ReminderRefType = 'lead' | 'customer'
+export type ReminderRefType = 'lead' | 'customer' | 'partner' | 'sales_partner'
 
 export interface Reminder {
   id: string
