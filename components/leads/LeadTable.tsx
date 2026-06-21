@@ -138,7 +138,7 @@ export function LeadTable({
 
   return (
     <div className="bg-panel rounded-b-2xl overflow-y-auto flex-1 min-h-0">
-      <ul>
+      <ul className="pt-1.5">
         {leads.map((lead, i) => {
           const selected = selectedIds.has(lead.id)
           const sc = STATUS_COLORS[lead.status]

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Save, BellRing } from 'lucide-react'
+import { X, Save, BellRing, Trash2 } from 'lucide-react'
 import type { AccountingCustomer } from '@/lib/types'
 import { addReminder } from '@/lib/useReminders'
 import { DatePicker, TimePicker } from '@/components/ui/DateTimePicker'
@@ -28,6 +28,7 @@ export function CustomerModal({
   const [website, setWebsite] = useState(customer?.website ?? '')
   const [notes, setNotes] = useState(customer?.notes ?? '')
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
   const [showReminder, setShowReminder] = useState(false)
   const [reminderText, setReminderText] = useState('')
@@ -48,6 +49,20 @@ export function CustomerModal({
     setReminderDate('')
     setReminderTime('09:00')
     setShowReminder(false)
+  }
+
+  async function handleDelete() {
+    if (!customer?.id || deleting) return
+    if (!confirm(`"${customer.name}" wirklich löschen?`)) return
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/accounting/customers?id=${customer.id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Löschen fehlgeschlagen.')
+      onSaved()
+    } catch (err: any) {
+      setError(err.message)
+      setDeleting(false)
+    }
   }
 
   async function save() {
@@ -109,6 +124,16 @@ export function CustomerModal({
               }`}
             >
               <BellRing size={12} />Erinnerung hinzufügen
+            </button>
+          )}
+          {isEdit && (
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              title="Kunde löschen"
+              className="p-1.5 rounded-xl bg-panel-hover text-white/30 hover:text-accent transition-all shrink-0 disabled:opacity-50"
+            >
+              <Trash2 size={16} />
             </button>
           )}
           <button onClick={onClose} className="p-1.5 rounded-xl bg-panel-hover text-white/30 hover:text-white transition-all shrink-0">

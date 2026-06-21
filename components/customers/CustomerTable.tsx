@@ -78,7 +78,7 @@ export function CustomerTable({
 
   return (
     <div className="bg-panel rounded-b-2xl overflow-y-auto flex-1 min-h-0">
-      <ul>
+      <ul className="pt-1.5">
         {customers.map((c, i) => {
           const selected = selectedIds.has(c.id)
           const phone = c.phone?.trim()
