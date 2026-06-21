@@ -227,7 +227,7 @@ export function PartnerModal({
                 {([
                   ['unternehmen', 'Unternehmen'],
                   ['kleinunternehmer', 'Kleinunt.'],
-                  ['freelancer', 'Freelancer'],
+                  ['einzelunternehmer', 'Einzelunt.'],
                 ] as [PartnerEntityType, string][]).map(([value, label]) => (
                   <button
                     key={value}

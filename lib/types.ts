@@ -81,7 +81,7 @@ export interface AccountingCustomer {
   updated_at: string
 }
 
-export type PartnerEntityType = 'unternehmen' | 'kleinunternehmer' | 'freelancer'
+export type PartnerEntityType = 'unternehmen' | 'kleinunternehmer' | 'einzelunternehmer'
 
 export interface AccountingPartner {
   id: string
