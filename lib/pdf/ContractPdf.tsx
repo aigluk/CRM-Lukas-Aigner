@@ -23,10 +23,14 @@ const styles = StyleSheet.create({
   partiesBlock: { marginTop: 18, marginBottom: 18 },
   partiesLabel: { fontSize: 8, fontWeight: 700, color: MUTED, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
   partyRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  partyCol: { width: '48%', padding: 10, borderWidth: 0.5, borderColor: RULE_LIGHT },
+  partyCol: { width: '48%' },
+  partyColRight: { width: '48%', alignItems: 'flex-end' },
   partyRole: { fontSize: 8, fontWeight: 700, color: MUTED, marginBottom: 3, textTransform: 'uppercase' },
+  partyRoleRight: { fontSize: 8, fontWeight: 700, color: MUTED, marginBottom: 3, textTransform: 'uppercase', textAlign: 'right' },
   partyName: { fontSize: 9.5, fontWeight: 700, color: INK, marginBottom: 2 },
+  partyNameRight: { fontSize: 9.5, fontWeight: 700, color: INK, marginBottom: 2, textAlign: 'right' },
   partyLine: { fontSize: 8.5, color: INK, marginBottom: 1.5 },
+  partyLineRight: { fontSize: 8.5, color: INK, marginBottom: 1.5, textAlign: 'right' },
 
   preamble: { fontSize: 8.5, lineHeight: 1.5, marginBottom: 14, color: INK },
 
@@ -67,6 +71,16 @@ function BrandLogo() {
 function fmtDate(d?: string, lang: DocLanguage = 'de'): string {
   if (!d) return '-'
   return new Date(d).toLocaleDateString(lang === 'en' ? 'en-GB' : 'de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+/** Formatiert einen rein numerisch eingegebenen Preis (z. B. "4500") als "€ 4.500,-"; bereits formatierte Eingaben (mit Text/Symbolen) bleiben unverändert. */
+function fmtPrice(raw?: string | null): string | undefined {
+  if (!raw) return undefined
+  const trimmed = raw.trim()
+  if (!/^\d+([.,]\d+)?$/.test(trimmed)) return trimmed
+  const num = parseFloat(trimmed.replace(',', '.'))
+  const formatted = num.toLocaleString('de-AT', { maximumFractionDigits: 2 })
+  return `€ ${formatted},-`
 }
 
 /** §-Schlussklauseln, die in allen drei Vertragstypen identisch sind (außer Gerichtsstand, der bereits auf Linz lautet). */
@@ -116,12 +130,12 @@ function Parties({
           {addressLines.map((l, i) => <Text key={i} style={styles.partyLine}>{l}</Text>)}
           {legalIdentityLine(company) && <Text style={styles.partyLine}>{legalIdentityLine(company)}</Text>}
         </View>
-        <View style={styles.partyCol}>
-          <Text style={styles.partyRole}>{roleB}</Text>
-          <Text style={styles.partyName}>{contract.party_name}</Text>
-          {partyAddressLines.map((l, i) => <Text key={i} style={styles.partyLine}>{l}</Text>)}
-          {contract.party_birthdate && <Text style={styles.partyLine}>geb. {fmtDate(contract.party_birthdate)}</Text>}
-          {contract.party_email && <Text style={styles.partyLine}>{contract.party_email}</Text>}
+        <View style={styles.partyColRight}>
+          <Text style={styles.partyRoleRight}>{roleB}</Text>
+          <Text style={styles.partyNameRight}>{contract.party_name}</Text>
+          {partyAddressLines.map((l, i) => <Text key={i} style={styles.partyLineRight}>{l}</Text>)}
+          {contract.party_birthdate && <Text style={styles.partyLineRight}>geb. {fmtDate(contract.party_birthdate)}</Text>}
+          {contract.party_email && <Text style={styles.partyLineRight}>{contract.party_email}</Text>}
         </View>
       </View>
     </View>
@@ -186,7 +200,7 @@ function Footer({ company }: { company: CompanyInfo }) {
 function serviceContractSections(company: CompanyInfo, contract: AccountingContract): Section[] {
   const provider = company.name || 'der Auftragnehmer'
   const pkg = contract.package_name || 'individuell vereinbartes Leistungspaket'
-  const price = contract.package_price || 'laut Angebot'
+  const price = fmtPrice(contract.package_price) || 'laut Angebot'
   const payment = contract.payment_mode === 'raten'
     ? `Ratenzahlung über ${contract.term_months || 36} Monate`
     : 'Einmalzahlung'
@@ -267,7 +281,7 @@ function serviceContractSections(company: CompanyInfo, contract: AccountingContr
 function fulfillmentContractSections(company: CompanyInfo, contract: AccountingContract): Section[] {
   const client = company.name || 'der Auftraggeber'
   const partner = contract.party_name
-  const fee = contract.package_price || 'laut Anlage 1 (Leistungs- und Vergütungsvereinbarung)'
+  const fee = fmtPrice(contract.package_price) || 'laut Anlage 1 (Leistungs- und Vergütungsvereinbarung)'
 
   return [
     {

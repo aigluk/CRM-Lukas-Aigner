@@ -202,7 +202,7 @@ export function ContractModal({
                 </div>
                 <div>
                   <label className={labelCls}>Preis</label>
-                  <input type="text" value={packagePrice} onChange={e => setPackagePrice(e.target.value)} placeholder="z. B. 499 €/Monat" className={inputCls} />
+                  <input type="text" value={packagePrice} onChange={e => setPackagePrice(e.target.value)} placeholder="z. B. 499" className={inputCls} />
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -228,7 +228,7 @@ export function ContractModal({
           {contractType === 'fulfillment' && (
             <div>
               <label className={labelCls}>Pauschalvergütung</label>
-              <input type="text" value={packagePrice} onChange={e => setPackagePrice(e.target.value)} placeholder="z. B. 1.200 € pro Projekt" className={inputCls} />
+              <input type="text" value={packagePrice} onChange={e => setPackagePrice(e.target.value)} placeholder="z. B. 1200" className={inputCls} />
             </div>
           )}
 
