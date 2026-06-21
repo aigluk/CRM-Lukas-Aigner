@@ -7,7 +7,7 @@ import { formatDate, formatRelativeDateTime } from '@/lib/utils'
 import {
   X, Edit3, Save, Trash2, Phone, Mail, Globe,
   MapPin, User, Building2, FileText, Calendar,
-  ExternalLink, CheckSquare, Square, Zap, Plus, Tag, ChevronDown, BellRing,
+  ExternalLink, CheckSquare, Square, Zap, Plus, Tag, ChevronDown, BellRing, UserPlus,
 } from 'lucide-react'
 import { DatePicker, TimePicker } from '@/components/ui/DateTimePicker'
 import { useClickOutside } from '@/lib/useClickOutside'
@@ -152,7 +152,7 @@ function Field({
 }
 
 export function LeadDetailModal({
-  lead, onClose, onUpdate, onDelete, branches = [], users = [], currentUsername, onSetHandler,
+  lead, onClose, onUpdate, onDelete, branches = [], users = [], currentUsername, onSetHandler, onConvertToCustomer,
 }: {
   lead: Lead
   onClose: () => void
@@ -162,8 +162,10 @@ export function LeadDetailModal({
   users?: TeamUser[]
   currentUsername?: string
   onSetHandler?: (id: string, newHandler: string | null) => void
+  onConvertToCustomer?: (lead: Lead) => Promise<void>
 }) {
   const [editing, setEditing]     = useState(false)
+  const [convertingCustomer, setConvertingCustomer] = useState(false)
   const [form, setForm]           = useState<Partial<Lead>>({ ...lead })
   const [saving, setSaving]       = useState(false)
   const [callMode, setCallMode]   = useState(false)
@@ -406,6 +408,19 @@ export function LeadDetailModal({
                 >
                   <BellRing size={12} />Erinnerung hinzufügen
                 </button>
+                {lead.status === 'ABSCHLUSS' && (
+                  <button
+                    onClick={async () => {
+                      if (convertingCustomer) return
+                      setConvertingCustomer(true)
+                      try { await onConvertToCustomer?.(lead) } finally { setConvertingCustomer(false) }
+                    }}
+                    disabled={convertingCustomer}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all bg-accent-green/15 text-accent-green hover:bg-accent-green/25 disabled:opacity-50"
+                  >
+                    <UserPlus size={12} />{convertingCustomer ? 'Wird übernommen…' : 'Kunde übernehmen'}
+                  </button>
+                )}
                 {lead.status_date && (
                   <span className="text-xs text-white/25">seit {formatDate(lead.status_date)}</span>
                 )}

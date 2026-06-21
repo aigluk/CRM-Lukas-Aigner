@@ -4,10 +4,11 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import { Lead, LeadStatus } from '@/lib/types'
 import { STATUSES } from '@/lib/constants'
 import { PipelineTabs } from './PipelineTabs'
-import { LeadTable } from './LeadTable'
+import { LeadTable, LeadTableHeader } from './LeadTable'
 import { LeadDetailModal } from './LeadDetailModal'
 import { NewLeadModal } from './NewLeadModal'
 import { QuickNoteModal } from './QuickNoteModal'
+import { CustomerConfirmModal } from './CustomerConfirmModal'
 import { Search, Plus, Upload, Trash2, X, ChevronDown } from 'lucide-react'
 import { ImportModal } from './ImportModal'
 import { createClient } from '@/lib/supabase/client'
@@ -28,6 +29,8 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
   const [teamUsers, setTeamUsers]     = useState<TeamUser[]>([])
   const [brancheFilter, setBrancheFilter] = useState('')
   const [brancheOpen, setBrancheOpen]     = useState(false)
+  const [pendingCustomerLead, setPendingCustomerLead] = useState<Lead | null>(null)
+  const [customerToast, setCustomerToast] = useState('')
   const brancheRef = useRef<HTMLDivElement>(null)
   const channelRef = useRef<ReturnType<ReturnType<typeof createClient>['channel']> | null>(null)
 
@@ -156,7 +159,7 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
       setLeads(prev => prev.map(l => l.id === id ? { ...l, ...lead } : l))
       if (selectedLead?.id === id) setSelectedLead(prev => prev ? { ...prev, ...lead } : prev)
       if (updates.status === 'ABSCHLUSS' && prevLead?.status !== 'ABSCHLUSS') {
-        ensureCustomerForLead({ ...prevLead, ...lead } as Lead)
+        setPendingCustomerLead({ ...prevLead, ...lead } as Lead)
       }
     } else {
       const data = await res.json().catch(() => ({}))
@@ -170,14 +173,14 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
     }
   }
 
-  async function ensureCustomerForLead(lead: Lead) {
+  async function convertLeadToCustomer(lead: Lead): Promise<'created' | 'exists' | 'error'> {
     try {
       const existing = await fetch('/api/accounting/customers').then(r => r.json())
       const already = (existing.customers ?? []).some(
         (c: { name: string }) => c.name.trim().toLowerCase() === lead.name.trim().toLowerCase()
       )
-      if (already) return
-      await fetch('/api/accounting/customers', {
+      if (already) return 'exists'
+      const res = await fetch('/api/accounting/customers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -190,9 +193,20 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
           website: lead.website || undefined,
         }),
       })
+      return res.ok ? 'created' : 'error'
     } catch {
-      // Best-effort — Lead bleibt trotzdem auf "Abschluss"
+      return 'error'
     }
+  }
+
+  async function handleConvertToCustomer(lead: Lead) {
+    const result = await convertLeadToCustomer(lead)
+    setCustomerToast(
+      result === 'created' ? `"${lead.name}" wurde als Kunde angelegt.` :
+      result === 'exists'  ? `"${lead.name}" ist bereits als Kunde vorhanden.` :
+      'Kunde konnte nicht angelegt werden.'
+    )
+    setTimeout(() => setCustomerToast(''), 4000)
   }
 
   async function handleQuickNote(id: string, notes: string) {
@@ -278,6 +292,8 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
   }
 
   const selectionCount = filtered.filter(l => selectedIds.has(l.id)).length
+  const allSelected  = filtered.length > 0 && filtered.every(l => selectedIds.has(l.id))
+  const someSelected = filtered.some(l => selectedIds.has(l.id)) && !allSelected
 
   return (
     <div>
@@ -388,6 +404,9 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
           </div>
         )}
         </div>
+
+        {/* Table header — pinned together with the rest, only rows below scroll */}
+        <LeadTableHeader allSelected={allSelected} someSelected={someSelected} onToggleAll={toggleAll} />
       </div>
 
       {/* Patch error toast */}
@@ -397,13 +416,19 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
         </div>
       )}
 
-      {/* Table */}
+      {/* Customer conversion toast */}
+      {customerToast && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-accent-green text-dark text-xs font-bold px-4 py-3 rounded-xl shadow-2xl max-w-sm text-center leading-relaxed">
+          {customerToast}
+        </div>
+      )}
+
+      {/* Table body */}
       <LeadTable
         leads={filtered}
         onLeadClick={setSelectedLead}
         selectedIds={selectedIds}
         onToggleSelect={toggleSelect}
-        onToggleAll={toggleAll}
         currentUsername={currentUsername}
         users={teamUsers}
         onQuickNote={setQuickNoteLead}
@@ -422,6 +447,16 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
           users={teamUsers}
           currentUsername={currentUsername}
           onSetHandler={handleSetHandler}
+          onConvertToCustomer={handleConvertToCustomer}
+        />
+      )}
+
+      {/* Lead auf Abschluss gesetzt — als Kunde übernehmen? */}
+      {pendingCustomerLead && (
+        <CustomerConfirmModal
+          lead={pendingCustomerLead}
+          onClose={() => setPendingCustomerLead(null)}
+          onConfirm={() => handleConvertToCustomer(pendingCustomerLead)}
         />
       )}
 

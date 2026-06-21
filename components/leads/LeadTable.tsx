@@ -77,12 +77,28 @@ function Circle({
   )
 }
 
+// Mobile: circle | company | phone | share | chevron  (5 cols)
+// SM:     circle | company | status+handler (auto) | phone | share | note | chevron  (7 cols)
+const ROW_GRID = 'grid grid-cols-[36px_1fr_32px_32px_16px] sm:grid-cols-[36px_1fr_auto_32px_32px_32px_16px] gap-3 items-center px-4 sm:px-5 min-h-16'
+
+export function LeadTableHeader({
+  allSelected, someSelected, onToggleAll,
+}: { allSelected: boolean; someSelected: boolean; onToggleAll: () => void }) {
+  return (
+    <div className={`${ROW_GRID} bg-accent rounded-t-2xl`}>
+      <Circle selected={allSelected} partial={someSelected} onAccent onClick={e => { e.stopPropagation(); onToggleAll() }} />
+      <span className="text-sm font-bold text-white">Unternehmen</span>
+      <span className="hidden sm:block text-xs font-bold text-white/70">Status / Bearbeiter</span>
+      <span /><span /><span /><span />
+    </div>
+  )
+}
+
 export function LeadTable({
   leads,
   onLeadClick,
   selectedIds,
   onToggleSelect,
-  onToggleAll,
   currentUsername,
   users = [],
   onQuickNote,
@@ -93,15 +109,12 @@ export function LeadTable({
   onLeadClick: (lead: Lead) => void
   selectedIds: Set<string>
   onToggleSelect: (id: string) => void
-  onToggleAll: () => void
   currentUsername?: string
   users?: TeamUser[]
   onQuickNote?: (lead: Lead) => void
   onSetHandler?: (id: string, newHandler: string | null) => void
   onSelectRange?: (ids: string[]) => void
 }) {
-  const allSelected  = leads.length > 0 && leads.every(l => selectedIds.has(l.id))
-  const someSelected = leads.some(l => selectedIds.has(l.id)) && !allSelected
   const [openHandlerFor, setOpenHandlerFor] = useState<string | null>(null)
   const [lastSelectedId, setLastSelectedId] = useState<string | null>(null)
 
@@ -115,26 +128,16 @@ export function LeadTable({
 
   if (leads.length === 0) {
     return (
-      <div className="bg-panel rounded-2xl py-16 text-center">
+      <div className="bg-panel rounded-b-2xl py-16 text-center">
         <p className="text-white/40 text-sm font-medium">Keine Leads in dieser Kategorie.</p>
       </div>
     )
   }
 
-  // Mobile: circle | company | phone | share | chevron  (5 cols)
-  // SM:     circle | company | status+handler (auto) | phone | share | note | chevron  (7 cols)
-  const rowGrid = 'grid grid-cols-[36px_1fr_32px_32px_16px] sm:grid-cols-[36px_1fr_auto_32px_32px_32px_16px] gap-3 items-center px-4 sm:px-5 min-h-16'
+  const rowGrid = ROW_GRID
 
   return (
-    <div className="bg-panel rounded-2xl overflow-hidden mt-2">
-      {/* Header */}
-      <div className={`${rowGrid} bg-accent mb-2`}>
-        <Circle selected={allSelected} partial={someSelected} onAccent onClick={e => { e.stopPropagation(); onToggleAll() }} />
-        <span className="text-sm font-bold text-white">Unternehmen</span>
-        <span className="hidden sm:block text-xs font-bold text-white/70">Status / Bearbeiter</span>
-        <span /><span /><span /><span />
-      </div>
-
+    <div className="bg-panel rounded-b-2xl overflow-hidden">
       <ul>
         {leads.map((lead, i) => {
           const selected = selectedIds.has(lead.id)

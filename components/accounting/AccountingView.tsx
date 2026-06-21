@@ -342,18 +342,33 @@ export function AccountingView() {
     }
   }
 
+  function subscriptionContribution(sub: AccountingSubscription, period: ListPeriod): number {
+    if (!sub.active) return 0
+    const start = new Date(sub.start_date)
+    const monthly = monthlyEquivalent(sub)
+    if (period === 'all') {
+      const now = new Date()
+      const months = Math.max(1, (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth()) + 1)
+      return monthly * months
+    }
+    if (typeof period === 'object') {
+      const monthEnd = new Date(period.year, period.month + 1, 0)
+      return start <= monthEnd ? monthly : 0
+    }
+    const year = period
+    if (start.getFullYear() > year) return 0
+    const monthsActiveInYear = start.getFullYear() === year ? 12 - start.getMonth() : 12
+    return monthly * monthsActiveInYear
+  }
+
   const totals = useMemo(() => {
-    const year = new Date().getFullYear()
-    const inYear = (d: string) => new Date(d).getFullYear() === year
-    const incomePaid = invoices.filter(d => d.status === 'paid' && inYear(d.issue_date)).reduce((s, d) => s + docTotal(d), 0)
-    const incomeOpen = invoices.filter(d => d.status !== 'paid' && inYear(d.issue_date)).reduce((s, d) => s + docTotal(d), 0)
-    const expensesReceipts = receipts.filter(r => r.receipt_type === 'expense' && inYear(r.date)).reduce((s, r) => s + r.amount, 0)
-    const expensesSubs = subscriptions
-      .filter(s => s.active && new Date(s.start_date).getFullYear() <= year)
-      .reduce((s, sub) => s + monthlyEquivalent(sub) * 12, 0)
+    const incomePaid = invoices.filter(d => d.status === 'paid' && inListPeriod(d.issue_date, listPeriod)).reduce((s, d) => s + docTotal(d), 0)
+    const incomeOpen = invoices.filter(d => d.status !== 'paid' && inListPeriod(d.issue_date, listPeriod)).reduce((s, d) => s + docTotal(d), 0)
+    const expensesReceipts = receipts.filter(r => r.receipt_type === 'expense' && inListPeriod(r.date, listPeriod)).reduce((s, r) => s + r.amount, 0)
+    const expensesSubs = subscriptions.reduce((s, sub) => s + subscriptionContribution(sub, listPeriod), 0)
     const expenses = expensesReceipts + expensesSubs
     return { incomePaid, incomeOpen, expenses, profit: incomePaid - expenses }
-  }, [invoices, receipts, subscriptions])
+  }, [invoices, receipts, subscriptions, listPeriod])
 
   const closing = useMemo(() => {
     let inPeriod: (isoDate: string) => boolean
@@ -606,9 +621,8 @@ export function AccountingView() {
         <p className="text-sm text-white/30 text-center py-16 font-medium">Lädt…</p>
       ) : tab === 'overview' ? (
         <div className="space-y-5">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xs font-black text-white/30 tracking-wide">Kennzahlen</h2>
-            {kpiVisible && (
+          {kpiVisible && (
+            <div className="flex items-center justify-end">
               <button
                 onClick={() => setKpiVisible(false)}
                 title="Verbergen"
@@ -616,15 +630,15 @@ export function AccountingView() {
               >
                 <EyeOff size={13} />
               </button>
-            )}
-          </div>
+            </div>
+          )}
 
           {kpiVisible ? (
             <div className="flex rounded-2xl overflow-hidden">
               <KpiCard icon={<TrendingUp size={16} />} label="Einnahmen (bezahlt)" value={fmtMoney(totals.incomePaid)} tone="default" />
               <KpiCard icon={<Wallet size={16} />} label="Offene Rechnungen" value={fmtMoney(totals.incomeOpen)} tone="gray" />
               <KpiCard icon={<TrendingDown size={16} />} label="Ausgaben" value={fmtMoney(totals.expenses)} tone="accent" />
-              <KpiCard icon={<TrendingUp size={16} />} label="Gewinn (dieses Jahr)" value={fmtMoney(totals.profit)} tone={totals.profit >= 0 ? 'green' : 'accent'} />
+              <KpiCard icon={<TrendingUp size={16} />} label="Gewinn" value={fmtMoney(totals.profit)} tone={totals.profit >= 0 ? 'green' : 'accent'} />
             </div>
           ) : (
             <button
