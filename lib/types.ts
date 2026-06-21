@@ -73,6 +73,8 @@ export interface AccountingCustomer {
   country?: string
   vat_number?: string
   vat_liable?: boolean
+  gisa_number?: string
+  entity_type?: PartnerEntityType
   email?: string
   phone?: string
   website?: string
