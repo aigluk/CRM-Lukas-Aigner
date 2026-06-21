@@ -333,8 +333,8 @@ export function GeneratorForm() {
         <h1 className="text-3xl font-black text-white tracking-tight leading-none">Lead Generator</h1>
       </div>
 
-      {/* Fixed-height two-column grid — both panels scroll internally on desktop */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 lg:overflow-hidden lg:h-[calc(100dvh-11.5rem)]">
+      {/* Two-column grid — both panels scroll internally on desktop, fills remaining space exactly */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 flex-1 min-h-0 lg:overflow-hidden">
 
         {/* ── LEFT CONFIG ─────────────────────────────────────────────── */}
         <form

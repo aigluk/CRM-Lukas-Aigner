@@ -30,21 +30,27 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
-      <div>
+    <div className="h-full flex flex-col gap-5">
+      <div className="shrink-0">
         <h1 className="text-3xl font-black text-white tracking-tight leading-none">Dashboard</h1>
         <ClientDate />
       </div>
 
-      <DbSetupBanner />
-      <ReminderBanner />
+      <div className="shrink-0">
+        <DbSetupBanner />
+        <ReminderBanner />
+      </div>
 
-      <StatTiles leads={all} />
+      <div className="shrink-0">
+        <StatTiles leads={all} />
+      </div>
 
-      <KPICards leads={all} />
+      <div className="shrink-0">
+        <KPICards leads={all} />
+      </div>
 
-      {/* Bottom row — fixed height on desktop so panels don't push the page */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 lg:grid-rows-1 gap-5 lg:h-100 overflow-hidden">
+      {/* Bottom row — fills remaining height on desktop so it never gets clipped or pushed off */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 lg:grid-rows-1 gap-5 flex-1 min-h-100 lg:min-h-0 overflow-hidden">
         <TodayPanel leads={all} />
         <ReminderWidget />
         <ActivityFeed leads={all} compact />
