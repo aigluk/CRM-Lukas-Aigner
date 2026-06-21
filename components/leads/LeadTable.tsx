@@ -138,7 +138,7 @@ export function LeadTable({
 
   return (
     <div className="bg-panel rounded-b-2xl overflow-y-auto flex-1 min-h-0">
-      <ul className="pt-1.5">
+      <ul>
         {leads.map((lead, i) => {
           const selected = selectedIds.has(lead.id)
           const sc = STATUS_COLORS[lead.status]
@@ -149,7 +149,7 @@ export function LeadTable({
           return (
             <li
               key={lead.id}
-              className={`${rowGrid} py-3 transition-colors cursor-pointer group ${
+              className={`${rowGrid} ${i === 0 ? 'pt-4 pb-3' : 'py-3'} transition-colors cursor-pointer group ${
                 i < leads.length - 1 ? 'border-b border-panel-2' : ''
               } ${selected ? 'bg-accent/7' : openHandlerFor === lead.id ? '' : 'hover:bg-panel-hover'}`}
             >

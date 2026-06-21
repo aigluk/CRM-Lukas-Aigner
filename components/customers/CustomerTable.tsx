@@ -78,7 +78,7 @@ export function CustomerTable({
 
   return (
     <div className="bg-panel rounded-b-2xl overflow-y-auto flex-1 min-h-0">
-      <ul className="pt-1.5">
+      <ul>
         {customers.map((c, i) => {
           const selected = selectedIds.has(c.id)
           const phone = c.phone?.trim()
@@ -87,7 +87,7 @@ export function CustomerTable({
           return (
             <li
               key={c.id}
-              className={`${ROW_GRID} py-3 transition-colors cursor-pointer group ${
+              className={`${ROW_GRID} ${i === 0 ? 'pt-4 pb-3' : 'py-3'} transition-colors cursor-pointer group ${
                 i < customers.length - 1 ? 'border-b border-panel-2' : ''
               } ${selected ? 'bg-accent/7' : 'hover:bg-panel-hover'}`}
               onClick={() => onCustomerClick(c)}
