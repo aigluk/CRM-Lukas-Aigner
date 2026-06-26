@@ -30,8 +30,8 @@ export function ReminderWidget() {
       <div className="flex-1 overflow-y-auto min-h-0 -mx-1 px-1 space-y-0.5">
         {reminders.length === 0 ? (
           <div className="h-full flex items-center justify-center py-6">
-            <div className="w-16 h-16 rounded-2xl bg-accent/12 flex items-center justify-center">
-              <BellRing size={30} strokeWidth={2.2} className="text-accent" />
+            <div className="w-14 h-14 rounded-2xl bg-accent/12 flex items-center justify-center">
+              <BellRing size={26} strokeWidth={2.2} className="text-accent" />
             </div>
           </div>
         ) : (

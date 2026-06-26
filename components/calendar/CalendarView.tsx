@@ -257,7 +257,7 @@ function NewAppointmentModal({
 
 export function CalendarView({ leads: initialLeads }: { leads: Lead[] }) {
   const [leads, setLeads]     = useState<Lead[]>(initialLeads)
-  const [view, setView]       = useState<View>('month')
+  const [view, setView]       = useState<View>('week')
   const [current, setCurrent] = useState(new Date())
   const [modal, setModal]     = useState<{ date: string; from?: string; to?: string } | null>(null)
   const [editLead, setEditLead] = useState<Lead | null>(null)
