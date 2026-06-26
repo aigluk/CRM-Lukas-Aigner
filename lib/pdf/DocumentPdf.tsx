@@ -96,6 +96,8 @@ const styles = StyleSheet.create({
   tRow: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: RULE_LIGHT },
   cPos:  { width: 48, fontSize: 8.5, fontWeight: 700, paddingVertical: 6, paddingHorizontal: 8, borderRightWidth: 0.5, borderRightColor: RULE_LIGHT },
   cSvc:  { flex: 1, fontSize: 8.5, paddingVertical: 6, paddingHorizontal: 8, borderRightWidth: 0.5, borderRightColor: RULE_LIGHT },
+  cSvcTitle: { fontSize: 8.5 },
+  cSvcDetails: { fontSize: 7.5, lineHeight: 1.4, color: MUTED, marginTop: 2 },
   cQty:  { width: 50, fontSize: 8.5, textAlign: 'right', paddingVertical: 6, paddingHorizontal: 8, borderRightWidth: 0.5, borderRightColor: RULE_LIGHT },
   cDur:  { width: 60, fontSize: 8.5, textAlign: 'right', paddingVertical: 6, paddingHorizontal: 8, borderRightWidth: 0.5, borderRightColor: RULE_LIGHT },
   cSum:  { width: 70, fontSize: 8.5, textAlign: 'right', fontWeight: 700, paddingVertical: 6, paddingHorizontal: 8 },
@@ -130,9 +132,12 @@ function fmtDocNumber(n: string, lang: DocLanguage): string {
 }
 
 function Lines({ text, style }: { text: string; style: any }) {
+  const lines = text.split('\n')
   return (
     <>
-      {text.split('\n').map((line, i) => <Text key={i} style={style}>{line}</Text>)}
+      {lines.map((line, i) => (
+        <Text key={i} style={i === lines.length - 1 ? style : { ...style, marginBottom: 0 }}>{line}</Text>
+      ))}
     </>
   )
 }
@@ -247,7 +252,10 @@ export function DocumentPdf({ doc, company }: { doc: AccountingDocument; company
           {items.map((item, i) => (
             <View key={i} style={styles.tRow}>
               <Text style={styles.cPos}>{tr.pos} {i + 1}</Text>
-              <Text style={styles.cSvc}>{item.description}</Text>
+              <View style={styles.cSvc}>
+                <Text style={styles.cSvcTitle}>{item.description}</Text>
+                {item.details && <Lines text={item.details} style={styles.cSvcDetails} />}
+              </View>
               <Text style={styles.cQty}>x{item.qty}</Text>
               <Text style={styles.cDur}>{item.duration || '-'}</Text>
               <Text style={styles.cSum}>{fmtMoney(item.qty * item.unit_price)}</Text>

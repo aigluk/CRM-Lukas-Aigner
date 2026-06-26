@@ -299,6 +299,16 @@ export function DocumentModal({
                       />
                     </div>
                   </div>
+                  <div className="mt-2.5 pr-9">
+                    <label className="block text-[10px] font-black uppercase tracking-wide text-white/25 mb-1">Leistungsbeschreibung (optional)</label>
+                    <textarea
+                      value={item.details ?? ''}
+                      onChange={e => updateItem(idx, { details: e.target.value })}
+                      placeholder="Details zur Leistung, z. B. einzelne Leistungsbestandteile..."
+                      rows={2}
+                      className={`${inputCls} resize-none`}
+                    />
+                  </div>
                 </div>
               ))}
             </div>

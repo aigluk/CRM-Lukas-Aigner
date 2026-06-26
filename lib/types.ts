@@ -59,6 +59,7 @@ export type DocLanguage = 'de' | 'en'
 
 export interface LineItem {
   description: string
+  details?: string
   qty: number
   unit_price: number
   duration?: string
