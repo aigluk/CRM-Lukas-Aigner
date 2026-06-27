@@ -90,15 +90,6 @@ function fmtPrice(raw?: string | null): string | undefined {
   return `€ ${formatted},-`
 }
 
-/** Wie bei Rechnung/Angebot: USt-ID, wenn umsatzsteuerpflichtig — sonst GISA-Zahl (Kleinunternehmer/Einzelunternehmer). */
-function legalIdentityLine(company: CompanyInfo): string {
-  const parts: string[] = []
-  if (company.legal_form === 'gmbh' && company.fn) parts.push(company.fn)
-  if (company.uid) parts.push(`UID ${company.uid}`)
-  else if (company.gisa) parts.push(`GISA ${company.gisa}`)
-  return parts.join(' · ')
-}
-
 type Section = { title: string; paragraphs: string[] }
 
 function Header({ company, title, subtitle }: { company: CompanyInfo; title: string; subtitle: string }) {
@@ -135,7 +126,6 @@ function Parties({
           <Text style={styles.partyRole}>{roleA}</Text>
           <Text style={styles.partyName}>{company.name || '-'}</Text>
           {addressLines.map((l, i) => <Text key={i} style={styles.partyLine}>{l}</Text>)}
-          {legalIdentityLine(company) && <Text style={styles.partyLine}>{legalIdentityLine(company)}</Text>}
         </View>
         <View style={styles.partyColRight}>
           <Text style={styles.partyRoleRight}>{roleB}</Text>
