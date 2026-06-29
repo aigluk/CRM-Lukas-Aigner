@@ -169,7 +169,7 @@ function SignatureBlock({ roleA, roleB }: { roleA: string; roleB: string }) {
   )
 }
 
-function Footer({ company }: { company: CompanyInfo }) {
+function Footer({ company, showBank = true }: { company: CompanyInfo; showBank?: boolean }) {
   const addressLines = (company.address || '').split('\n').filter(Boolean)
   return (
     <View style={styles.pageFooter} fixed>
@@ -180,11 +180,13 @@ function Footer({ company }: { company: CompanyInfo }) {
           {addressLines.map((l, i) => <Text key={i} style={styles.bottomLineMuted}>{l}</Text>)}
           {company.gisa && <Text style={styles.bottomLineMuted}>GISA-Zahl: {company.gisa}</Text>}
         </View>
-        <View style={[styles.bottomCol, { alignItems: 'flex-end' }]}>
-          {company.bank_name && <Text style={styles.bottomLineMuted}>{company.bank_name}</Text>}
-          {company.iban && <Text style={styles.bottomLineMuted}>IBAN: {company.iban}</Text>}
-          {company.bic && <Text style={styles.bottomLineMuted}>BIC: {company.bic}</Text>}
-        </View>
+        {showBank && (
+          <View style={[styles.bottomCol, { alignItems: 'flex-end' }]}>
+            {company.bank_name && <Text style={styles.bottomLineMuted}>{company.bank_name}</Text>}
+            {company.iban && <Text style={styles.bottomLineMuted}>IBAN: {company.iban}</Text>}
+            {company.bic && <Text style={styles.bottomLineMuted}>BIC: {company.bic}</Text>}
+          </View>
+        )}
       </View>
     </View>
   )
@@ -446,7 +448,7 @@ function agentContractSections(company: CompanyInfo, contract: AccountingContrac
       title: '§ 13 Schlussbestimmungen',
       paragraphs: [
         'Änderungen und Ergänzungen dieses Vertrages bedürfen der Schriftform. Mit Inkrafttreten dieses Vertrages treten alle vorherigen Vereinbarungen zwischen den Vertragsparteien zu diesem Gegenstand außer Kraft.',
-        'Der Karriereplan sowie die Kostenbeteiligungsvereinbarung sind integrierende Bestandteile dieses Vertrages.',
+        'Der Karriereplan ist integrierender Bestandteil dieses Vertrages.',
       ],
     },
   ]
@@ -486,7 +488,7 @@ export function ContractPdf({ contract, company }: { contract: AccountingContrac
           </View>
         )}
         <SignatureBlock roleA={meta.roleA} roleB={meta.roleB} />
-        <Footer company={company} />
+        <Footer company={company} showBank={contract.contract_type !== 'agent'} />
       </Page>
     </Document>
   )
