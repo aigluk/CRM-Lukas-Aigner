@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
     const ext = (file.name.split('.').pop() || 'pdf').toLowerCase()
     const filePath = `${ownerId}/documents/${id}.${ext}`
     const buffer = Buffer.from(await file.arrayBuffer())
+    if (buffer.length === 0) return NextResponse.json({ error: 'Datei konnte nicht gelesen werden (0 Byte) — bitte erneut auswählen.' }, { status: 400 })
     const { error: uploadError } = await db().storage.from('accounting').upload(filePath, buffer, {
       contentType: file.type || 'application/octet-stream',
       upsert: true,

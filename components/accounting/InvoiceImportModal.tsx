@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { X, Save, Upload, Loader2, Sparkles, Eye } from 'lucide-react'
+import { X, Save, Upload, Loader2, Eye } from 'lucide-react'
 import type { DocStatus } from '@/lib/types'
 import { DatePicker } from './DatePicker'
 
@@ -42,6 +42,8 @@ export function InvoiceImportModal({
   const fileRef = useRef<HTMLInputElement>(null)
 
   async function handleFile(f: File) {
+    if (!f.size) { setError('Datei konnte nicht gelesen werden (0 Byte) — bitte erneut auswählen.'); return }
+    setError('')
     setFile(f)
     setPreview(URL.createObjectURL(f))
     if (!f.type.startsWith('image/')) return
@@ -126,32 +128,48 @@ export function InvoiceImportModal({
             onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])}
           />
           {preview ? (
-            <div className="relative">
-              {file?.type.startsWith('image/') ? (
+            file?.type.startsWith('image/') ? (
+              <div className="relative">
                 <img src={preview} alt="" className="w-full max-h-56 object-contain bg-dark rounded-xl" />
-              ) : (
-                <div className="w-full py-8 bg-dark rounded-xl text-center text-sm text-white/40 font-medium">{file?.name}</div>
-              )}
-              {ocrLoading && (
-                <div className="absolute inset-0 bg-black/60 rounded-xl flex items-center justify-center gap-2 text-xs font-bold text-white">
-                  <Loader2 size={14} className="animate-spin" /> Texterkennung läuft…
+                {ocrLoading && (
+                  <div className="absolute inset-0 bg-black/60 rounded-xl flex items-center justify-center gap-2 text-xs font-bold text-white">
+                    <Loader2 size={14} className="animate-spin" /> Texterkennung läuft…
+                  </div>
+                )}
+                <div className="absolute bottom-2 right-2 flex gap-1.5">
+                  <button
+                    type="button" onClick={() => setLightbox(true)}
+                    className="flex items-center gap-1.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all"
+                  >
+                    <Eye size={13} />Vorschau
+                  </button>
+                  <button
+                    type="button" onClick={() => fileRef.current?.click()}
+                    className="bg-panel-hover text-white/70 hover:text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all"
+                  >
+                    Ändern
+                  </button>
                 </div>
-              )}
-              <div className="absolute bottom-2 right-2 flex gap-1.5">
-                <button
-                  type="button" onClick={() => setLightbox(true)}
-                  className="flex items-center gap-1.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all"
-                >
-                  <Eye size={13} />Vorschau
-                </button>
-                <button
-                  type="button" onClick={() => fileRef.current?.click()}
-                  className="bg-panel-hover text-white/70 hover:text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all"
-                >
-                  Ändern
-                </button>
               </div>
-            </div>
+            ) : (
+              <div className="flex items-center justify-between gap-3 bg-dark rounded-xl p-4">
+                <span className="text-sm text-white/40 font-medium truncate min-w-0">{file?.name}</span>
+                <div className="flex gap-1.5 shrink-0">
+                  <button
+                    type="button" onClick={() => setLightbox(true)}
+                    className="flex items-center gap-1.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all"
+                  >
+                    <Eye size={13} />Vorschau
+                  </button>
+                  <button
+                    type="button" onClick={() => fileRef.current?.click()}
+                    className="bg-panel-hover text-white/70 hover:text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all"
+                  >
+                    Ändern
+                  </button>
+                </div>
+              </div>
+            )
           ) : (
             <button
               type="button" onClick={() => fileRef.current?.click()}
@@ -159,7 +177,6 @@ export function InvoiceImportModal({
             >
               <Upload size={22} />
               <span className="text-sm font-bold">Bestehende Rechnung hochladen</span>
-              <span className="text-xs text-white/25 flex items-center gap-1"><Sparkles size={11} />Daten werden automatisch erkannt</span>
             </button>
           )}
 
