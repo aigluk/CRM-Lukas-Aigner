@@ -1,9 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type FocusEvent } from 'react'
 import { X, Save, ChevronDown } from 'lucide-react'
 import type { AccountingContract, AccountingCustomer, AccountingPartner, AccountingSalesPartner, ContractType, DocLanguage } from '@/lib/types'
 import { DatePicker } from '@/components/accounting/DatePicker'
+
+function selectAllOnFocus(e: FocusEvent<HTMLInputElement>) {
+  e.target.select()
+}
 
 const inputCls = 'w-full bg-dark rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all'
 const labelCls = 'block text-xs font-bold text-white/30 mb-1.5'
@@ -43,7 +47,7 @@ export function ContractModal({
   const [packageName, setPackageName] = useState(contract?.package_name ?? '')
   const [packagePrice, setPackagePrice] = useState(contract?.package_price ?? '')
   const [paymentMode, setPaymentMode] = useState(contract?.payment_mode ?? 'einmalzahlung')
-  const [termMonths, setTermMonths] = useState(contract?.term_months ?? 12)
+  const [termMonths, setTermMonths] = useState(contract?.term_months ?? ((contract?.payment_mode ?? 'einmalzahlung') === 'raten' ? 12 : 1))
   const [startDate, setStartDate] = useState(contract?.start_date ?? new Date().toISOString().slice(0, 10))
   const [language, setLanguage] = useState<DocLanguage>(contract?.language ?? 'de')
   const [notes, setNotes] = useState(contract?.notes ?? '')
@@ -225,17 +229,38 @@ export function ContractModal({
                 <div>
                   <label className={labelCls}>Zahlungsmodalität</label>
                   <div className="flex bg-panel rounded-xl p-1">
-                    <button type="button" onClick={() => setPaymentMode('einmalzahlung')}
+                    <button type="button" onClick={() => { setPaymentMode('einmalzahlung'); setTermMonths(1) }}
                       className={`flex-1 py-1.5 rounded-lg text-sm font-bold transition-all ${paymentMode === 'einmalzahlung' ? 'bg-accent text-white' : 'text-white/40 hover:text-white'}`}
                     >Einmalzahlung</button>
-                    <button type="button" onClick={() => setPaymentMode('raten')}
+                    <button type="button" onClick={() => { setPaymentMode('raten'); setTermMonths(12) }}
                       className={`flex-1 py-1.5 rounded-lg text-sm font-bold transition-all ${paymentMode === 'raten' ? 'bg-accent text-white' : 'text-white/40 hover:text-white'}`}
                     >Ratenzahlung</button>
                   </div>
                 </div>
                 <div>
                   <label className={labelCls}>Laufzeit (Monate)</label>
-                  <input type="number" value={termMonths} min={1} onChange={e => setTermMonths(parseInt(e.target.value) || 1)} className={inputCls} />
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setTermMonths(Math.max(1, termMonths - 1))}
+                      className="shrink-0 w-8 h-9 rounded-lg bg-accent hover:bg-accent-hover text-white font-black text-base flex items-center justify-center transition-all active:scale-90"
+                    >
+                      −
+                    </button>
+                    <input
+                      type="number" value={termMonths} min={1} step="any"
+                      onChange={e => setTermMonths(parseInt(e.target.value) || 1)}
+                      onFocus={selectAllOnFocus}
+                      className={`${inputCls} text-center px-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setTermMonths(termMonths + 1)}
+                      className="shrink-0 w-8 h-9 rounded-lg bg-accent hover:bg-accent-hover text-white font-black text-base flex items-center justify-center transition-all active:scale-90"
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

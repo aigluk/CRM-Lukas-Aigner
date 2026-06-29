@@ -5,6 +5,7 @@ import { Plus, Search, Trash2, X } from 'lucide-react'
 import type { AccountingCustomer } from '@/lib/types'
 import { CustomerModal } from '@/components/accounting/CustomerModal'
 import { CustomerTable, CustomerTableHeader } from './CustomerTable'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 export function CustomersView() {
   const [customers, setCustomers] = useState<AccountingCustomer[]>([])
@@ -13,6 +14,7 @@ export function CustomersView() {
   const [search, setSearch] = useState('')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [deleting, setDeleting] = useState(false)
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
 
   async function load() {
     setLoading(true)
@@ -75,9 +77,12 @@ export function CustomersView() {
     })
   }
 
-  async function handleBulkDelete() {
+  function handleBulkDelete() {
     if (!selectedIds.size || deleting) return
-    if (!confirm(`${selectedIds.size} Kunde(n) wirklich löschen?`)) return
+    setConfirmBulkDelete(true)
+  }
+
+  async function confirmBulkDeleteNow() {
     setDeleting(true)
     try {
       await Promise.all(Array.from(selectedIds).map(id =>
@@ -87,6 +92,7 @@ export function CustomersView() {
       setSelectedIds(new Set())
     } finally {
       setDeleting(false)
+      setConfirmBulkDelete(false)
     }
   }
 
@@ -164,6 +170,13 @@ export function CustomersView() {
           customer={modal.customer}
           onClose={() => setModal(null)}
           onSaved={() => { setModal(null); load() }}
+        />
+      )}
+      {confirmBulkDelete && (
+        <ConfirmDialog
+          message={`${selectedIds.size} Kunde(n) wirklich löschen?`}
+          onConfirm={confirmBulkDeleteNow}
+          onClose={() => setConfirmBulkDelete(false)}
         />
       )}
     </div>

@@ -17,6 +17,7 @@ import { InvoiceImportModal } from './InvoiceImportModal'
 import { SubscriptionModal } from './SubscriptionModal'
 import { ContractModal } from './ContractModal'
 import { ContractPreviewModal } from './ContractPreviewModal'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useClickOutside } from '@/lib/useClickOutside'
 import { useRef } from 'react'
 
@@ -290,6 +291,7 @@ export function AccountingView() {
   const [exportingPdf, setExportingPdf] = useState(false)
   const [search, setSearch] = useState('')
   const [importModal, setImportModal] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState<{ message: string; action: () => Promise<void> } | null>(null)
 
   const [periodMode, setPeriodMode] = useState<PeriodMode>('month')
   const now = new Date()
@@ -315,10 +317,15 @@ export function AccountingView() {
     }
   }
 
-  async function deleteContract(id: string) {
-    if (!confirm('Vertrag wirklich löschen?')) return
-    setContracts(prev => prev.filter(c => c.id !== id))
-    await fetch(`/api/accounting/contracts?id=${id}`, { method: 'DELETE' })
+  function deleteContract(id: string) {
+    setConfirmDelete({
+      message: 'Vertrag wirklich löschen?',
+      action: async () => {
+        setContracts(prev => prev.filter(c => c.id !== id))
+        await fetch(`/api/accounting/contracts?id=${id}`, { method: 'DELETE' })
+        setConfirmDelete(null)
+      },
+    })
   }
 
   function nextContractNumberHint(type: ContractType): string {
@@ -340,10 +347,15 @@ export function AccountingView() {
     })
   }
 
-  async function deleteSubscription(id: string) {
-    if (!confirm('Abo wirklich löschen?')) return
-    setSubscriptions(prev => prev.filter(s => s.id !== id))
-    await fetch(`/api/accounting/subscriptions?id=${id}`, { method: 'DELETE' })
+  function deleteSubscription(id: string) {
+    setConfirmDelete({
+      message: 'Abo wirklich löschen?',
+      action: async () => {
+        setSubscriptions(prev => prev.filter(s => s.id !== id))
+        await fetch(`/api/accounting/subscriptions?id=${id}`, { method: 'DELETE' })
+        setConfirmDelete(null)
+      },
+    })
   }
 
   useEffect(() => {
@@ -526,16 +538,26 @@ export function AccountingView() {
     await fetch('/api/accounting/documents', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, status }) })
   }
 
-  async function deleteDoc(id: string) {
-    if (!confirm('Dokument wirklich löschen?')) return
-    setDocuments(prev => prev.filter(d => d.id !== id))
-    await fetch(`/api/accounting/documents?id=${id}`, { method: 'DELETE' })
+  function deleteDoc(id: string) {
+    setConfirmDelete({
+      message: 'Dokument wirklich löschen?',
+      action: async () => {
+        setDocuments(prev => prev.filter(d => d.id !== id))
+        await fetch(`/api/accounting/documents?id=${id}`, { method: 'DELETE' })
+        setConfirmDelete(null)
+      },
+    })
   }
 
-  async function deleteReceipt(id: string) {
-    if (!confirm('Beleg wirklich löschen?')) return
-    setReceipts(prev => prev.filter(r => r.id !== id))
-    await fetch(`/api/accounting/receipts?id=${id}`, { method: 'DELETE' })
+  function deleteReceipt(id: string) {
+    setConfirmDelete({
+      message: 'Beleg wirklich löschen?',
+      action: async () => {
+        setReceipts(prev => prev.filter(r => r.id !== id))
+        await fetch(`/api/accounting/receipts?id=${id}`, { method: 'DELETE' })
+        setConfirmDelete(null)
+      },
+    })
   }
 
   function DocList({ docs, type }: { docs: AccountingDocument[]; type: DocType }) {
@@ -975,6 +997,13 @@ export function AccountingView() {
       )}
       {previewContract && (
         <ContractPreviewModal contract={previewContract} onClose={() => setPreviewContract(null)} />
+      )}
+      {confirmDelete && (
+        <ConfirmDialog
+          message={confirmDelete.message}
+          onConfirm={confirmDelete.action}
+          onClose={() => setConfirmDelete(null)}
+        />
       )}
     </div>
   )

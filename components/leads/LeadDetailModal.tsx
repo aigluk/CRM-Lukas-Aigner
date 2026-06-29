@@ -12,6 +12,7 @@ import {
 import { DatePicker, TimePicker } from '@/components/ui/DateTimePicker'
 import { useClickOutside } from '@/lib/useClickOutside'
 import { addReminder } from '@/lib/useReminders'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 export type TeamUser = { id: string; username: string }
 
@@ -177,6 +178,7 @@ export function LeadDetailModal({
   const [reminderText, setReminderText] = useState('')
   const [reminderDate, setReminderDate] = useState('')
   const [reminderTime, setReminderTime] = useState('09:00')
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   function set<K extends keyof Lead>(field: K, value: Lead[K]) {
     setForm(prev => ({ ...prev, [field]: value }))
@@ -231,7 +233,6 @@ export function LeadDetailModal({
   }
 
   async function handleDelete() {
-    if (!confirm(`"${lead.name}" wirklich löschen?`)) return
     await onDelete(lead.id)
   }
 
@@ -592,7 +593,7 @@ export function LeadDetailModal({
 
           {/* Delete */}
           <div className="pt-4">
-            <button onClick={handleDelete}
+            <button onClick={() => setConfirmDelete(true)}
               className="flex items-center gap-2 text-xs text-white/20 hover:text-accent transition-colors font-bold"
             >
               <Trash2 size={13} />
@@ -604,6 +605,13 @@ export function LeadDetailModal({
           <div style={{ height: 'max(2rem, calc(env(safe-area-inset-bottom) + 1rem))' }} />
         </div>
       </div>
+      {confirmDelete && (
+        <ConfirmDialog
+          message={`"${lead.name}" wirklich löschen?`}
+          onConfirm={async () => { await handleDelete(); setConfirmDelete(false) }}
+          onClose={() => setConfirmDelete(false)}
+        />
+      )}
     </div>
   )
 }

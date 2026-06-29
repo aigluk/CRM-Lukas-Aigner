@@ -5,6 +5,7 @@ import { Plus, Search, Trash2, X } from 'lucide-react'
 import type { AccountingPartner } from '@/lib/types'
 import { PartnerModal } from '@/components/accounting/PartnerModal'
 import { PartnerTable, PartnerTableHeader } from './PartnerTable'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 export function PartnersView() {
   const [partners, setPartners] = useState<AccountingPartner[]>([])
@@ -13,6 +14,7 @@ export function PartnersView() {
   const [search, setSearch] = useState('')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [deleting, setDeleting] = useState(false)
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
 
   async function load() {
     setLoading(true)
@@ -75,9 +77,12 @@ export function PartnersView() {
     })
   }
 
-  async function handleBulkDelete() {
+  function handleBulkDelete() {
     if (!selectedIds.size || deleting) return
-    if (!confirm(`${selectedIds.size} Partner wirklich löschen?`)) return
+    setConfirmBulkDelete(true)
+  }
+
+  async function confirmBulkDeleteNow() {
     setDeleting(true)
     try {
       await Promise.all(Array.from(selectedIds).map(id =>
@@ -87,6 +92,7 @@ export function PartnersView() {
       setSelectedIds(new Set())
     } finally {
       setDeleting(false)
+      setConfirmBulkDelete(false)
     }
   }
 
@@ -164,6 +170,13 @@ export function PartnersView() {
           partner={modal.partner}
           onClose={() => setModal(null)}
           onSaved={() => { setModal(null); load() }}
+        />
+      )}
+      {confirmBulkDelete && (
+        <ConfirmDialog
+          message={`${selectedIds.size} Partner wirklich löschen?`}
+          onConfirm={confirmBulkDeleteNow}
+          onClose={() => setConfirmBulkDelete(false)}
         />
       )}
     </div>

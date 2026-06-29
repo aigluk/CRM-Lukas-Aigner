@@ -5,6 +5,7 @@ import { X, Save, BellRing, Trash2 } from 'lucide-react'
 import type { AccountingCustomer, PartnerEntityType } from '@/lib/types'
 import { addReminder } from '@/lib/useReminders'
 import { DatePicker, TimePicker } from '@/components/ui/DateTimePicker'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 
 const inputCls = 'w-full bg-dark rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all'
 const labelCls = 'block text-xs font-bold text-white/30 mb-1.5'
@@ -36,6 +37,7 @@ export function CustomerModal({
   const [reminderText, setReminderText] = useState('')
   const [reminderDate, setReminderDate] = useState('')
   const [reminderTime, setReminderTime] = useState('09:00')
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   function saveReminder() {
     if (!reminderText.trim() || !customer?.id) return
@@ -55,7 +57,6 @@ export function CustomerModal({
 
   async function handleDelete() {
     if (!customer?.id || deleting) return
-    if (!confirm(`"${customer.name}" wirklich löschen?`)) return
     setDeleting(true)
     try {
       const res = await fetch(`/api/accounting/customers?id=${customer.id}`, { method: 'DELETE' })
@@ -132,7 +133,7 @@ export function CustomerModal({
           )}
           {isEdit && (
             <button
-              onClick={handleDelete}
+              onClick={() => setConfirmDelete(true)}
               disabled={deleting}
               title="Kunde löschen"
               className="p-1.5 rounded-xl bg-panel-hover text-white/30 hover:text-accent transition-all shrink-0 disabled:opacity-50"
@@ -267,6 +268,13 @@ export function CustomerModal({
           <div style={{ height: 'max(1rem, env(safe-area-inset-bottom))' }} />
         </div>
       </div>
+      {confirmDelete && (
+        <ConfirmDialog
+          message={`"${customer?.name}" wirklich löschen?`}
+          onConfirm={async () => { await handleDelete(); setConfirmDelete(false) }}
+          onClose={() => setConfirmDelete(false)}
+        />
+      )}
     </div>
   )
 }
