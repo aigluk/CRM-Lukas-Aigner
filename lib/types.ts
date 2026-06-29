@@ -143,6 +143,10 @@ export interface AccountingDocument {
   notes?: string
   status: DocStatus
   language: DocLanguage
+  linked_quote_id?: string | null
+  linked_quote_number?: string
+  linked_quote_date?: string
+  is_imported?: boolean
   pdf_path?: string
   created_at: string
   updated_at: string
@@ -206,6 +210,9 @@ export interface AccountingContract {
   term_months?: number
   start_date?: string
   notes?: string
+  linked_quote_id?: string | null
+  linked_quote_number?: string
+  linked_quote_date?: string
   pdf_path?: string
   created_at: string
   updated_at: string

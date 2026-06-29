@@ -235,6 +235,12 @@ export function DocumentPdf({ doc, company }: { doc: AccountingDocument; company
         </View>
 
         {/* Greeting */}
+        {isInvoice && doc.linked_quote_number && (
+          <Text style={styles.greeting}>
+            {lang === 'en' ? 'Reference: Quote' : 'Bezug: Angebot'} {fmtDocNumber(doc.linked_quote_number, lang)}
+            {doc.linked_quote_date ? ` ${lang === 'en' ? 'dated' : 'vom'} ${fmtDate(doc.linked_quote_date, lang)}` : ''}
+          </Text>
+        )}
         <Lines text={tr.greeting[k]} style={styles.greeting} />
         {isInvoice && company.small_business && (
           <Text style={styles.smallBizNote}>{tr.smallBusiness}</Text>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, type FocusEvent } from 'react'
 import { X, Save, ChevronDown } from 'lucide-react'
-import type { AccountingContract, AccountingCustomer, AccountingPartner, AccountingSalesPartner, ContractType, DocLanguage } from '@/lib/types'
+import type { AccountingContract, AccountingCustomer, AccountingDocument, AccountingPartner, AccountingSalesPartner, ContractType, DocLanguage } from '@/lib/types'
 import { DatePicker } from '@/components/accounting/DatePicker'
 
 function selectAllOnFocus(e: FocusEvent<HTMLInputElement>) {
@@ -51,12 +51,21 @@ export function ContractModal({
   const [startDate, setStartDate] = useState(contract?.start_date ?? new Date().toISOString().slice(0, 10))
   const [language, setLanguage] = useState<DocLanguage>(contract?.language ?? 'de')
   const [notes, setNotes] = useState(contract?.notes ?? '')
+  const [quotes, setQuotes] = useState<AccountingDocument[]>([])
+  const [linkedQuoteId, setLinkedQuoteId] = useState(contract?.linked_quote_id ?? '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
     fetch(meta.endpoint).then(r => r.json()).then(d => setContacts(d[meta.listKey] ?? [])).catch(() => {})
   }, [meta.endpoint, meta.listKey])
+
+  useEffect(() => {
+    if (contractType !== 'service') return
+    fetch('/api/accounting/documents?doc_type=quote').then(r => r.json()).then(d => setQuotes(d.documents ?? [])).catch(() => {})
+  }, [contractType])
+
+  const linkedQuote = quotes.find(q => q.id === linkedQuoteId)
 
   function applyContact(id: string) {
     setContactId(id)
@@ -96,6 +105,9 @@ export function ContractModal({
       start_date: startDate || null,
       language,
       notes: notes || null,
+      linked_quote_id: linkedQuote?.id || null,
+      linked_quote_number: linkedQuote?.doc_number || null,
+      linked_quote_date: linkedQuote?.issue_date || null,
     }
 
     try {
@@ -171,6 +183,28 @@ export function ContractModal({
                 </select>
                 <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
               </div>
+            </div>
+          )}
+
+          {contractType === 'service' && quotes.length > 0 && (
+            <div>
+              <label className={labelCls}>Zugehöriges Angebot referenzieren</label>
+              <div className="relative">
+                <select
+                  value={linkedQuoteId}
+                  onChange={e => setLinkedQuoteId(e.target.value)}
+                  className={`${inputCls} appearance-none pr-9`}
+                >
+                  <option value="">- Kein Angebot referenzieren -</option>
+                  {quotes.map(q => <option key={q.id} value={q.id}>{q.doc_number} · {q.client_name}</option>)}
+                </select>
+                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+              </div>
+              {linkedQuote && (
+                <p className="text-xs text-white/30 mt-1.5">
+                  Vertrag verweist auf Angebot {linkedQuote.doc_number} vom {new Date(linkedQuote.issue_date).toLocaleDateString('de-AT')}.
+                </p>
+              )}
             </div>
           )}
 

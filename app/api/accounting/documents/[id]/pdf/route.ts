@@ -41,15 +41,20 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   if (error || !doc) return NextResponse.json({ error: 'Nicht gefunden' }, { status: 404 })
 
-  // Try the stored PDF first
+  // Try the stored file first (either a generated PDF or an imported original invoice file)
   if (doc.pdf_path) {
     const { data: file } = await admin.storage.from('accounting').download(doc.pdf_path)
     if (file) {
+      const ext = (doc.pdf_path.split('.').pop() || 'pdf').toLowerCase()
+      const contentType = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg'
+        : ext === 'png' ? 'image/png'
+        : ext === 'webp' ? 'image/webp'
+        : 'application/pdf'
       const buffer = new Uint8Array(await file.arrayBuffer())
       return new NextResponse(buffer, {
         headers: {
-          'Content-Type': 'application/pdf',
-          'Content-Disposition': `${disposition}; filename="${doc.doc_number}.pdf"`,
+          'Content-Type': contentType,
+          'Content-Disposition': `${disposition}; filename="${doc.doc_number}.${ext}"`,
         },
       })
     }

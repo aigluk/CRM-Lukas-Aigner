@@ -1,9 +1,11 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { X, Save, Upload, Loader2, Sparkles } from 'lucide-react'
+import { X, Save, Upload, Loader2, Sparkles, Eye } from 'lucide-react'
 import type { DocStatus } from '@/lib/types'
 import { DatePicker } from './DatePicker'
+
+const numberInputCls = '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
 
 const inputCls = 'w-full bg-dark rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all'
 const labelCls = 'block text-xs font-bold text-white/30 mb-1.5'
@@ -36,6 +38,7 @@ export function InvoiceImportModal({
   const [ocrLoading, setOcrLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [lightbox, setLightbox] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   async function handleFile(f: File) {
@@ -70,24 +73,23 @@ export function InvoiceImportModal({
     if (!amt || amt <= 0) { setError('Betrag fehlt.'); return }
     if (!clientName.trim()) { setError('Kundenname fehlt.'); return }
     if (!docNumber.trim()) { setError('Rechnungsnummer fehlt.'); return }
+    if (!file) { setError('Bitte die Rechnungsdatei hochladen.'); return }
     setSaving(true)
     setError('')
 
     try {
-      const rate = parseFloat(taxRate) || 0
-      const unitPrice = amt / (1 + rate / 100)
-      const res = await fetch('/api/accounting/documents', {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('doc_number', docNumber.trim())
+      formData.append('client_name', clientName.trim())
+      formData.append('issue_date', issueDate)
+      formData.append('tax_rate', taxRate)
+      formData.append('status', status)
+      formData.append('amount', amount)
+
+      const res = await fetch('/api/accounting/documents/import', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          doc_type: 'invoice',
-          doc_number: docNumber.trim(),
-          client_name: clientName.trim(),
-          issue_date: issueDate,
-          tax_rate: rate,
-          status,
-          line_items: [{ description: 'Leistung', qty: 1, unit_price: unitPrice }],
-        }),
+        body: formData,
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
@@ -135,12 +137,20 @@ export function InvoiceImportModal({
                   <Loader2 size={14} className="animate-spin" /> Texterkennung läuft…
                 </div>
               )}
-              <button
-                type="button" onClick={() => fileRef.current?.click()}
-                className="absolute bottom-2 right-2 bg-panel-hover text-white/70 hover:text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all"
-              >
-                Ändern
-              </button>
+              <div className="absolute bottom-2 right-2 flex gap-1.5">
+                <button
+                  type="button" onClick={() => setLightbox(true)}
+                  className="flex items-center gap-1.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all"
+                >
+                  <Eye size={13} />Vorschau
+                </button>
+                <button
+                  type="button" onClick={() => fileRef.current?.click()}
+                  className="bg-panel-hover text-white/70 hover:text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all"
+                >
+                  Ändern
+                </button>
+              </div>
             </div>
           ) : (
             <button
@@ -173,14 +183,14 @@ export function InvoiceImportModal({
             </div>
             <div>
               <label className={labelCls}>Betrag (€, brutto)</label>
-              <input type="number" value={amount} onChange={e => setAmount(e.target.value)} step="any" placeholder="0.00" className={inputCls} />
+              <input type="number" value={amount} onChange={e => setAmount(e.target.value)} step="any" placeholder="0.00" className={`${inputCls} ${numberInputCls}`} />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={labelCls}>USt-Satz (%)</label>
-              <input type="number" value={taxRate} onChange={e => setTaxRate(e.target.value)} step="any" className={inputCls} />
+              <input type="number" value={taxRate} onChange={e => setTaxRate(e.target.value)} step="any" className={`${inputCls} ${numberInputCls}`} />
             </div>
             <div>
               <label className={labelCls}>Status</label>
@@ -212,6 +222,29 @@ export function InvoiceImportModal({
           <div style={{ height: 'max(1rem, env(safe-area-inset-bottom))' }} />
         </div>
       </div>
+      {lightbox && preview && (
+        <div
+          className="fixed inset-0 bg-black/90 backdrop-blur-sm z-70 flex items-center justify-center p-4"
+          onClick={() => setLightbox(false)}
+        >
+          <button
+            onClick={() => setLightbox(false)}
+            className="absolute top-4 right-4 p-2 rounded-xl bg-panel-hover text-white/70 hover:text-white transition-all"
+          >
+            <X size={18} />
+          </button>
+          {file?.type.startsWith('image/') ? (
+            <img src={preview} alt="" className="max-w-full max-h-full rounded-xl" onClick={e => e.stopPropagation()} />
+          ) : (
+            <iframe
+              src={preview}
+              title="Rechnungsvorschau"
+              onClick={e => e.stopPropagation()}
+              className="w-full h-full max-w-4xl bg-white rounded-xl border-0"
+            />
+          )}
+        </div>
+      )}
     </div>
   )
 }

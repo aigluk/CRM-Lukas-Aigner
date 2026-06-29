@@ -124,6 +124,9 @@ export async function POST(req: NextRequest) {
       tax_rate:       typeof body.tax_rate === 'number' ? body.tax_rate : 20,
       notes:          body.notes ?? null,
       status:         body.status || 'draft',
+      linked_quote_id:     body.linked_quote_id || null,
+      linked_quote_number: body.linked_quote_number || null,
+      linked_quote_date:   body.linked_quote_date || null,
     }
 
     const { data, error } = await db().from('accounting_documents').insert(row).select().single()
@@ -168,8 +171,9 @@ export async function PATCH(req: NextRequest) {
     const contentChanged = [
       'line_items', 'client_name', 'client_address', 'client_country', 'client_vat', 'client_email',
       'tax_rate', 'notes', 'due_date', 'issue_date', 'service_date', 'language',
+      'linked_quote_id', 'linked_quote_number', 'linked_quote_date',
     ].some(k => k in updates)
-    if (contentChanged) {
+    if (contentChanged && !data.is_imported) {
       const pdfPath = await generateAndStorePdf(data as AccountingDocument, ownerId)
       if (pdfPath) data.pdf_path = pdfPath
     }

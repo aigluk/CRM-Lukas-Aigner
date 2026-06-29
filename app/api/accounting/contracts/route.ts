@@ -129,6 +129,9 @@ export async function POST(req: NextRequest) {
       term_months:      typeof body.term_months === 'number' ? body.term_months : null,
       start_date:       body.start_date || new Date().toISOString().slice(0, 10),
       notes:            body.notes ?? null,
+      linked_quote_id:     body.linked_quote_id || null,
+      linked_quote_number: body.linked_quote_number || null,
+      linked_quote_date:   body.linked_quote_date || null,
     }
 
     const { data, error } = await db().from('accounting_contracts').insert(row).select().single()
@@ -173,6 +176,7 @@ export async function PATCH(req: NextRequest) {
       'party_name', 'party_address', 'party_email', 'party_phone', 'party_birthdate',
       'party_vat_number', 'party_gisa_number',
       'package_name', 'package_price', 'payment_mode', 'term_months', 'start_date', 'notes', 'language',
+      'linked_quote_id', 'linked_quote_number', 'linked_quote_date',
     ].some(k => k in updates)
     if (contentChanged) {
       const pdfPath = await generateAndStorePdf(data as AccountingContract, ownerId)

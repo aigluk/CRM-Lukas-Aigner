@@ -201,6 +201,9 @@ function serviceContractSections(company: CompanyInfo, contract: AccountingContr
   const payment = contract.payment_mode === 'raten'
     ? `Ratenzahlung über ${contract.term_months || 36} Monate`
     : 'Einmalzahlung'
+  const quoteRef = contract.linked_quote_number
+    ? `dem Angebot Nr. ${contract.linked_quote_number}${contract.linked_quote_date ? ` vom ${fmtDate(contract.linked_quote_date)}` : ''}`
+    : 'dem zugehörigen Angebot bzw. der Leistungsbeschreibung'
 
   return [
     {
@@ -217,7 +220,7 @@ function serviceContractSections(company: CompanyInfo, contract: AccountingContr
         `Vereinbarter Pauschalpreis: ${price}.`,
         `Zahlungsmodalität: ${payment}.`,
         `Vertragslaufzeit: ${contract.term_months ? `${contract.term_months} Monate` : 'laut Angebot/Beilage'}.`,
-        'Die genaue Leistungsbeschreibung sowie Preis- und Zahlungsdetails ergeben sich aus dem zugehörigen Angebot bzw. der Leistungsbeschreibung, die als Beilage integrierender Bestandteil dieses Vertrages ist.',
+        `Die genaue Leistungsbeschreibung sowie Preis- und Zahlungsdetails ergeben sich aus ${quoteRef}, das/die als Beilage integrierender Bestandteil dieses Vertrages ist.`,
       ],
     },
     {
@@ -466,7 +469,11 @@ export function ContractPdf({ contract, company }: { contract: AccountingContrac
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <Header company={company} title={meta.title} subtitle={`Vertrags-Nr. ${contract.contract_number} · ${fmtDate(contract.start_date || contract.created_at)}`} />
+        <Header
+          company={company}
+          title={meta.title}
+          subtitle={`Vertrags-Nr. ${contract.contract_number} · ${fmtDate(contract.start_date || contract.created_at)}${contract.linked_quote_number ? ` · Bezug: Angebot ${contract.linked_quote_number}${contract.linked_quote_date ? ` vom ${fmtDate(contract.linked_quote_date)}` : ''}` : ''}`}
+        />
         <Parties roleA={meta.roleA} roleB={meta.roleB} company={company} contract={contract} />
         <Text style={styles.preamble}>
           Zwischen den oben angeführten Vertragsparteien wird einvernehmlich folgender {meta.greeting} geschlossen:

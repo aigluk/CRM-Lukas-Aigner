@@ -53,12 +53,21 @@ export function DocumentModal({
   const [taxRate, setTaxRate]       = useState(doc?.tax_rate ?? 0)
   const [notes, setNotes]           = useState(doc?.notes ?? '')
   const [items, setItems]           = useState<LineItem[]>(doc?.line_items?.length ? doc.line_items : [emptyItem()])
+  const [quotes, setQuotes]         = useState<AccountingDocument[]>([])
+  const [linkedQuoteId, setLinkedQuoteId] = useState(doc?.linked_quote_id ?? '')
   const [saving, setSaving]         = useState(false)
   const [error, setError]           = useState('')
 
   useEffect(() => {
     fetch('/api/accounting/customers').then(r => r.json()).then(d => setCustomers(d.customers ?? [])).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (docType !== 'invoice') return
+    fetch('/api/accounting/documents?doc_type=quote').then(r => r.json()).then(d => setQuotes(d.documents ?? [])).catch(() => {})
+  }, [docType])
+
+  const linkedQuote = quotes.find(q => q.id === linkedQuoteId)
 
   useEffect(() => {
     fetch('/api/company').then(r => r.json()).then(d => {
@@ -114,6 +123,9 @@ export function DocumentModal({
       line_items: items.filter(i => i.description.trim()),
       tax_rate: effectiveTaxRate,
       notes: notes || null,
+      linked_quote_id: linkedQuote?.id || null,
+      linked_quote_number: linkedQuote?.doc_number || null,
+      linked_quote_date: linkedQuote?.issue_date || null,
     }
 
     try {
@@ -203,6 +215,28 @@ export function DocumentModal({
                 </select>
                 <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
               </div>
+            </div>
+          )}
+
+          {docType === 'invoice' && quotes.length > 0 && (
+            <div>
+              <label className={labelCls}>Zugehöriges Angebot referenzieren</label>
+              <div className="relative">
+                <select
+                  value={linkedQuoteId}
+                  onChange={e => setLinkedQuoteId(e.target.value)}
+                  className={`${inputCls} appearance-none pr-9`}
+                >
+                  <option value="">- Kein Angebot referenzieren -</option>
+                  {quotes.map(q => <option key={q.id} value={q.id}>{q.doc_number} · {q.client_name}</option>)}
+                </select>
+                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+              </div>
+              {linkedQuote && (
+                <p className="text-xs text-white/30 mt-1.5">
+                  Rechnung verweist auf Angebot {linkedQuote.doc_number} vom {new Date(linkedQuote.issue_date).toLocaleDateString('de-AT')}.
+                </p>
+              )}
             </div>
           )}
 
