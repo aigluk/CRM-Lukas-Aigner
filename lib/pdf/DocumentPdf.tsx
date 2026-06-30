@@ -89,6 +89,7 @@ const styles = StyleSheet.create({
   titleText: { fontSize: 13, fontWeight: 700, color: INK },
 
   greeting: { fontSize: 9, lineHeight: 1.5, marginBottom: 10 },
+  quoteRef: { fontSize: 9, fontWeight: 700, color: INK, marginBottom: 12, paddingVertical: 5, paddingHorizontal: 8, backgroundColor: HEAD_BG },
   smallBizNote: { fontSize: 9, lineHeight: 1.5, marginBottom: 16 },
 
   table: { marginTop: 4, marginBottom: 16, borderWidth: 0.5, borderColor: RULE_LIGHT },
@@ -236,8 +237,8 @@ export function DocumentPdf({ doc, company }: { doc: AccountingDocument; company
 
         {/* Greeting */}
         {isInvoice && doc.linked_quote_number && (
-          <Text style={styles.greeting}>
-            {lang === 'en' ? 'Reference: Quote' : 'Bezug: Angebot'} {fmtDocNumber(doc.linked_quote_number, lang)}
+          <Text style={styles.quoteRef}>
+            {lang === 'en' ? 'Reference: Quote No.' : 'Bezug: Angebot Nr.'} {fmtDocNumber(doc.linked_quote_number, lang)}
             {doc.linked_quote_date ? ` ${lang === 'en' ? 'dated' : 'vom'} ${fmtDate(doc.linked_quote_date, lang)}` : ''}
           </Text>
         )}

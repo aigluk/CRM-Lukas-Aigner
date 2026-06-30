@@ -1,5 +1,7 @@
 'use client'
 
+'use client'
+
 import { useState, useRef } from 'react'
 import { X, Save, Upload, Loader2, Eye } from 'lucide-react'
 import type { DocStatus } from '@/lib/types'
@@ -14,13 +16,11 @@ const STATUS_LABELS: Record<DocStatus, string> = {
   draft: 'Entwurf', sent: 'Versendet', paid: 'Bezahlt', overdue: 'Überfällig',
 }
 
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve((reader.result as string).split(',')[1])
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
+function bufferToBase64(buffer: ArrayBuffer, mimeType: string): string {
+  const bytes = new Uint8Array(buffer)
+  let binary = ''
+  for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i])
+  return btoa(binary)
 }
 
 export function InvoiceImportModal({
@@ -33,7 +33,9 @@ export function InvoiceImportModal({
   const [amount, setAmount] = useState('')
   const [taxRate, setTaxRate] = useState('20')
   const [status, setStatus] = useState<DocStatus>('paid')
-  const [file, setFile] = useState<File | null>(null)
+  const [fileBlob, setFileBlob] = useState<Blob | null>(null)
+  const [fileName, setFileName] = useState('')
+  const [fileType, setFileType] = useState('')
   const [preview, setPreview] = useState<string | null>(null)
   const [ocrLoading, setOcrLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -42,19 +44,37 @@ export function InvoiceImportModal({
   const fileRef = useRef<HTMLInputElement>(null)
 
   async function handleFile(f: File) {
-    if (!f.size) { setError('Datei konnte nicht gelesen werden (0 Byte) — bitte erneut auswählen.'); return }
     setError('')
-    setFile(f)
-    setPreview(URL.createObjectURL(f))
-    if (!f.type.startsWith('image/')) return
+    // Read into memory immediately — makes preview work regardless of source
+    // (OneDrive, Google Drive, iCloud Drive all require the read to happen
+    //  synchronously in the file-picker callback context on iOS)
+    let buffer: ArrayBuffer
+    try {
+      buffer = await f.arrayBuffer()
+    } catch {
+      setError('Datei konnte nicht gelesen werden — bitte direkt aus "Auf meinem iPad/iPhone" auswählen.')
+      return
+    }
+    if (!buffer.byteLength) {
+      setError('Datei ist leer (0 Byte) — bitte erneut auswählen.')
+      return
+    }
+    const mimeType = f.type || 'application/octet-stream'
+    const blob = new Blob([buffer], { type: mimeType })
+    setFileBlob(blob)
+    setFileName(f.name)
+    setFileType(mimeType)
+    // Blob URL from local memory — always accessible, no cloud dependency
+    setPreview(URL.createObjectURL(blob))
 
+    if (!mimeType.startsWith('image/')) return
     setOcrLoading(true)
     try {
-      const base64 = await fileToBase64(f)
+      const base64 = bufferToBase64(buffer, mimeType)
       const res = await fetch('/api/accounting/documents/ocr', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64: base64, mediaType: f.type }),
+        body: JSON.stringify({ imageBase64: base64, mediaType: mimeType }),
       })
       const data = await res.json()
       if (res.ok) {
@@ -64,7 +84,7 @@ export function InvoiceImportModal({
         if (data.invoice_number) setDetectedNumber(data.invoice_number)
       }
     } catch {
-      // OCR best-effort - manual entry still works
+      // OCR best-effort
     } finally {
       setOcrLoading(false)
     }
@@ -75,13 +95,13 @@ export function InvoiceImportModal({
     if (!amt || amt <= 0) { setError('Betrag fehlt.'); return }
     if (!clientName.trim()) { setError('Kundenname fehlt.'); return }
     if (!docNumber.trim()) { setError('Rechnungsnummer fehlt.'); return }
-    if (!file) { setError('Bitte die Rechnungsdatei hochladen.'); return }
+    if (!fileBlob) { setError('Bitte die Rechnungsdatei hochladen.'); return }
     setSaving(true)
     setError('')
 
     try {
       const formData = new FormData()
-      formData.append('file', file)
+      formData.append('file', fileBlob, fileName)
       formData.append('doc_number', docNumber.trim())
       formData.append('client_name', clientName.trim())
       formData.append('issue_date', issueDate)
@@ -128,7 +148,7 @@ export function InvoiceImportModal({
             onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])}
           />
           {preview ? (
-            file?.type.startsWith('image/') ? (
+            fileType.startsWith('image/') ? (
               <div className="relative">
                 <img src={preview} alt="" className="w-full max-h-56 object-contain bg-dark rounded-xl" />
                 {ocrLoading && (
@@ -153,7 +173,7 @@ export function InvoiceImportModal({
               </div>
             ) : (
               <div className="flex items-center justify-between gap-3 bg-dark rounded-xl p-4">
-                <span className="text-sm text-white/40 font-medium truncate min-w-0">{file?.name}</span>
+                <span className="text-sm text-white/40 font-medium truncate min-w-0">{fileName}</span>
                 <div className="flex gap-1.5 shrink-0">
                   <button
                     type="button" onClick={() => setLightbox(true)}
@@ -250,7 +270,7 @@ export function InvoiceImportModal({
           >
             <X size={18} />
           </button>
-          {file?.type.startsWith('image/') ? (
+          {fileType.startsWith('image/') ? (
             <img src={preview} alt="" className="max-w-full max-h-full rounded-xl" onClick={e => e.stopPropagation()} />
           ) : (
             <iframe

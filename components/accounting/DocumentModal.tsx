@@ -95,6 +95,21 @@ export function DocumentModal({
     }
   }
 
+  function applyQuote(id: string) {
+    setLinkedQuoteId(id)
+    const q = quotes.find(x => x.id === id)
+    if (!q) return
+    setClientName(q.client_name || '')
+    setClientAddress(q.client_address || '')
+    setClientCountry(q.client_country || '')
+    setClientVat(q.client_vat || '')
+    setClientEmail(q.client_email || '')
+    if (q.customer_id) setCustomerId(q.customer_id)
+    if (q.line_items?.length) setItems(q.line_items)
+    if (q.tax_rate !== undefined) { setTaxRate(q.tax_rate); setTaxAdded(q.tax_rate > 0) }
+    if (q.notes) setNotes(q.notes)
+  }
+
   function updateItem(idx: number, patch: Partial<LineItem>) {
     setItems(prev => prev.map((it, i) => i === idx ? { ...it, ...patch } : it))
   }
@@ -220,21 +235,21 @@ export function DocumentModal({
 
           {docType === 'invoice' && quotes.length > 0 && (
             <div>
-              <label className={labelCls}>Zugehöriges Angebot referenzieren</label>
+              <label className={labelCls}>Angebot übernehmen & Rechnung daraus erstellen</label>
               <div className="relative">
                 <select
                   value={linkedQuoteId}
-                  onChange={e => setLinkedQuoteId(e.target.value)}
+                  onChange={e => applyQuote(e.target.value)}
                   className={`${inputCls} appearance-none pr-9`}
                 >
-                  <option value="">- Kein Angebot referenzieren -</option>
+                  <option value="">- Kein Angebot verknüpfen -</option>
                   {quotes.map(q => <option key={q.id} value={q.id}>{q.doc_number} · {q.client_name}</option>)}
                 </select>
                 <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
               </div>
               {linkedQuote && (
-                <p className="text-xs text-white/30 mt-1.5">
-                  Rechnung verweist auf Angebot {linkedQuote.doc_number} vom {new Date(linkedQuote.issue_date).toLocaleDateString('de-AT')}.
+                <p className="text-xs text-accent font-bold mt-1.5">
+                  Daten aus Angebot {linkedQuote.doc_number} vom {new Date(linkedQuote.issue_date).toLocaleDateString('de-AT')} übernommen.
                 </p>
               )}
             </div>

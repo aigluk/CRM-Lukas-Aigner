@@ -19,6 +19,7 @@ const styles = StyleSheet.create({
   titleRow: { marginBottom: 4 },
   titleText: { fontSize: 13, fontWeight: 700, color: INK },
   subTitleText: { fontSize: 8.5, color: MUTED, marginTop: 3 },
+  quoteRefBlock: { fontSize: 9, fontWeight: 700, color: INK, marginTop: 12, paddingVertical: 5, paddingHorizontal: 8, backgroundColor: '#EFEFEF' },
 
   partiesBlock: { marginTop: 18, marginBottom: 18 },
   partiesLabel: { fontSize: 8, fontWeight: 700, color: MUTED, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
@@ -37,6 +38,7 @@ const styles = StyleSheet.create({
   section: { marginBottom: 11 },
   sectionTitle: { fontSize: 9.5, fontWeight: 700, color: INK, marginBottom: 4 },
   paragraph: { fontSize: 8.5, lineHeight: 1.5, color: INK, marginBottom: 4, textAlign: 'justify' },
+  keyParagraph: { fontSize: 8.5, fontWeight: 700, color: INK, marginBottom: 4 },
 
   signBlock: { marginTop: 28 },
   signRule: { borderTopWidth: 0.5, borderTopColor: RULE_LIGHT, marginBottom: 16 },
@@ -90,9 +92,10 @@ function fmtPrice(raw?: string | null): string | undefined {
   return `€ ${formatted},-`
 }
 
-type Section = { title: string; paragraphs: string[] }
+type Para = string | { text: string; key: true }
+type Section = { title: string; paragraphs: Para[] }
 
-function Header({ company, title, subtitle }: { company: CompanyInfo; title: string; subtitle: string }) {
+function Header({ company, title, subtitle, quoteRef }: { company: CompanyInfo; title: string; subtitle: string; quoteRef?: string }) {
   return (
     <>
       <View style={styles.brandRow}>
@@ -104,6 +107,7 @@ function Header({ company, title, subtitle }: { company: CompanyInfo; title: str
         <Text style={styles.titleText}>{title}</Text>
         <Text style={styles.subTitleText}>{subtitle}</Text>
       </View>
+      {quoteRef && <Text style={styles.quoteRefBlock}>{quoteRef}</Text>}
     </>
   )
 }
@@ -145,7 +149,10 @@ function Sections({ sections }: { sections: Section[] }) {
       {sections.map((s, i) => (
         <View key={i} style={styles.section} wrap={false}>
           <Text style={styles.sectionTitle}>{s.title}</Text>
-          {s.paragraphs.map((p, j) => <Text key={j} style={styles.paragraph}>{p}</Text>)}
+          {s.paragraphs.map((p, j) => {
+            const isKey = typeof p !== 'string'
+            return <Text key={j} style={isKey ? styles.keyParagraph : styles.paragraph}>{isKey ? p.text : p}</Text>
+          })}
         </View>
       ))}
     </>
@@ -219,9 +226,9 @@ function serviceContractSections(company: CompanyInfo, contract: AccountingContr
       title: '§ 2 Auswahl des Dienstleistungspakets',
       paragraphs: [
         `Der Auftraggeber wählt folgendes Leistungspaket: ${pkg}.`,
-        `Vereinbarter Pauschalpreis: ${price}.`,
-        `Zahlungsmodalität: ${payment}.`,
-        `Vertragslaufzeit: ${contract.term_months ? `${contract.term_months} Monate` : 'laut Angebot/Beilage'}.`,
+        { text: `Vereinbarter Pauschalpreis: ${price}.`, key: true },
+        { text: `Zahlungsmodalität: ${payment}.`, key: true },
+        { text: `Vertragslaufzeit: ${contract.term_months ? `${contract.term_months} Monate` : 'laut Angebot/Beilage'}.`, key: true },
         `Die genaue Leistungsbeschreibung sowie Preis- und Zahlungsdetails ergeben sich aus ${quoteRef}, das/die als Beilage integrierender Bestandteil dieses Vertrages ist.`,
       ],
     },
@@ -296,7 +303,7 @@ function fulfillmentContractSections(company: CompanyInfo, contract: AccountingC
     {
       title: '§ 2 Vergütung',
       paragraphs: [
-        `Für die vereinbarten Leistungen erhält die Partneragentur eine Pauschalvergütung gemäß Anlage 1 (Leistungs- und Vergütungsvereinbarung): ${fee}.`,
+        { text: `Pauschalvergütung gemäß Anlage 1 (Leistungs- und Vergütungsvereinbarung): ${fee}.`, key: true },
         'Die Auszahlung erfolgt innerhalb von 14 Tagen nach Zahlungseingang des Endkunden beim Auftraggeber.',
         'Verzugszinsen richten sich nach § 1333 ABGB.',
       ],
@@ -474,7 +481,8 @@ export function ContractPdf({ contract, company }: { contract: AccountingContrac
         <Header
           company={company}
           title={meta.title}
-          subtitle={`Vertrags-Nr. ${contract.contract_number} · ${fmtDate(contract.start_date || contract.created_at)}${contract.linked_quote_number ? ` · Bezug: Angebot ${contract.linked_quote_number}${contract.linked_quote_date ? ` vom ${fmtDate(contract.linked_quote_date)}` : ''}` : ''}`}
+          subtitle={`Vertrags-Nr. ${contract.contract_number} · ${fmtDate(contract.start_date || contract.created_at)}`}
+          quoteRef={contract.linked_quote_number ? `Bezug: Angebot Nr. ${contract.linked_quote_number}${contract.linked_quote_date ? ` vom ${fmtDate(contract.linked_quote_date)}` : ''}` : undefined}
         />
         <Parties roleA={meta.roleA} roleB={meta.roleB} company={company} contract={contract} />
         <Text style={styles.preamble}>
