@@ -29,7 +29,6 @@ export async function POST(req: NextRequest) {
 
     const form = await req.formData()
     const file = form.get('file') as File | null
-    if (!file || file.size === 0) return NextResponse.json({ error: 'Datei fehlt.' }, { status: 400 })
 
     const docNumber  = (form.get('doc_number') as string)?.trim() || ''
     const clientName = (form.get('client_name') as string)?.trim() || ''
@@ -42,21 +41,35 @@ export async function POST(req: NextRequest) {
     if (!clientName) return NextResponse.json({ error: 'Kunde fehlt.' }, { status: 400 })
     if (!grossAmount || grossAmount <= 0) return NextResponse.json({ error: 'Betrag fehlt.' }, { status: 400 })
 
-    const id = crypto.randomUUID()
-    const ext = (file.name.split('.').pop() || 'pdf').toLowerCase()
-    const filePath = `${ownerId}/documents/${id}.${ext}`
-    const buffer = Buffer.from(await file.arrayBuffer())
-    if (buffer.length === 0) return NextResponse.json({ error: 'Datei konnte nicht gelesen werden (0 Byte) — bitte erneut auswählen.' }, { status: 400 })
-    const { error: uploadError } = await db().storage.from('accounting').upload(filePath, buffer, {
-      contentType: file.type || 'application/octet-stream',
-      upsert: true,
-    })
-    if (uploadError) return NextResponse.json({ error: uploadError.message }, { status: 500 })
+    // Support pre-uploaded files (uploaded immediately at file-select time to
+    // avoid cloud-provider security scope expiry by the time the user clicks save)
+    const uploadedPath = (form.get('uploaded_path') as string | null)?.trim() || null
+
+    let filePath: string
+    let rowId: string
+    if (uploadedPath) {
+      filePath = uploadedPath
+      // Extract the UUID from the path: {ownerId}/documents/{uuid}.{ext}
+      const basename = uploadedPath.split('/').pop() || ''
+      rowId = basename.replace(/\.[^.]+$/, '')
+    } else {
+      if (!file || file.size === 0) return NextResponse.json({ error: 'Datei fehlt.' }, { status: 400 })
+      rowId = crypto.randomUUID()
+      const ext = (file.name.split('.').pop() || 'pdf').toLowerCase()
+      filePath = `${ownerId}/documents/${rowId}.${ext}`
+      const buffer = Buffer.from(await file.arrayBuffer())
+      if (buffer.length === 0) return NextResponse.json({ error: 'Datei konnte nicht gelesen werden (0 Byte) — bitte erneut auswählen.' }, { status: 400 })
+      const { error: uploadError } = await db().storage.from('accounting').upload(filePath, buffer, {
+        contentType: file?.type || 'application/octet-stream',
+        upsert: true,
+      })
+      if (uploadError) return NextResponse.json({ error: uploadError.message }, { status: 500 })
+    }
 
     const unitPrice = grossAmount / (1 + taxRate / 100)
 
     const row = {
-      id,
+      id:          rowId,
       user_id:     ownerId,
       doc_type:    'invoice',
       doc_number:  docNumber,

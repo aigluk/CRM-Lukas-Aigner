@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { X, Save, Upload, Loader2, Eye } from 'lucide-react'
+import { X, Save, Upload, Loader2, Eye, AlertCircle, RefreshCw } from 'lucide-react'
 import type { DocStatus } from '@/lib/types'
 import { DatePicker } from './DatePicker'
 
@@ -13,26 +13,22 @@ const STATUS_LABELS: Record<DocStatus, string> = {
   draft: 'Entwurf', sent: 'Versendet', paid: 'Bezahlt', overdue: 'Überfällig',
 }
 
-function bufferToBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer)
-  let binary = ''
-  for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i])
-  return btoa(binary)
-}
-
 export function InvoiceImportModal({
   nextNumberHint, onClose, onSaved,
 }: { nextNumberHint: string; onClose: () => void; onSaved: () => void }) {
   const [docNumber, setDocNumber] = useState(nextNumberHint)
-  const [detectedNumber, setDetectedNumber] = useState('')
   const [clientName, setClientName] = useState('')
   const [issueDate, setIssueDate] = useState(new Date().toISOString().slice(0, 10))
   const [amount, setAmount] = useState('')
   const [taxRate, setTaxRate] = useState('0')
   const [status, setStatus] = useState<DocStatus>('paid')
+
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
-  const [ocrLoading, setOcrLoading] = useState(false)
+  const [uploadedPath, setUploadedPath] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
+
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [lightbox, setLightbox] = useState(false)
@@ -44,39 +40,31 @@ export function InvoiceImportModal({
     }).catch(() => {})
   }, [])
 
+  // Upload the file immediately when selected so the browser's native upload
+  // can run while the security scope for cloud-provider files is still active.
+  async function uploadFile(f: File) {
+    setUploading(true)
+    setUploadError('')
+    setUploadedPath(null)
+    try {
+      const fd = new FormData()
+      fd.append('file', f, f.name)
+      const res = await fetch('/api/accounting/documents/import/upload', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Upload fehlgeschlagen.')
+      setUploadedPath(data.file_path)
+    } catch (e: any) {
+      setUploadError(e.message || 'Datei konnte nicht hochgeladen werden.')
+    } finally {
+      setUploading(false)
+    }
+  }
+
   function handleFile(f: File) {
     setError('')
     setFile(f)
     setPreview(URL.createObjectURL(f))
-
-    // Try OCR for images — best-effort, uses FileReader which may work for local files.
-    // Cloud-provider files may skip OCR silently; user can enter fields manually.
-    if (f.type.startsWith('image/')) {
-      setOcrLoading(true)
-      const reader = new FileReader()
-      reader.onload = async () => {
-        try {
-          const buf = reader.result as ArrayBuffer
-          if (!buf.byteLength) return
-          const base64 = bufferToBase64(buf)
-          const res = await fetch('/api/accounting/documents/ocr', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ imageBase64: base64, mediaType: f.type }),
-          })
-          const data = await res.json()
-          if (res.ok) {
-            if (data.client_name) setClientName(data.client_name)
-            if (data.date) setIssueDate(data.date)
-            if (data.amount) setAmount(String(data.amount))
-            if (data.invoice_number) setDetectedNumber(data.invoice_number)
-          }
-        } catch { /* OCR best-effort */ }
-        finally { setOcrLoading(false) }
-      }
-      reader.onerror = () => setOcrLoading(false)
-      reader.readAsArrayBuffer(f) // synchronous initiation
-    }
+    uploadFile(f)
   }
 
   async function save() {
@@ -85,16 +73,16 @@ export function InvoiceImportModal({
     if (!clientName.trim()) { setError('Kundenname fehlt.'); return }
     if (!docNumber.trim()) { setError('Rechnungsnummer fehlt.'); return }
     if (!file) { setError('Bitte die Rechnungsdatei hochladen.'); return }
+    if (uploading) { setError('Datei wird noch hochgeladen, bitte warten…'); return }
+    if (uploadError) { setError('Datei-Upload fehlgeschlagen. Bitte Datei erneut auswählen.'); return }
+    if (!uploadedPath) { setError('Datei noch nicht bereit.'); return }
 
     setSaving(true)
     setError('')
 
     try {
-      // Pass File object directly — iOS native HTTP can upload cloud-provider files
-      // (OneDrive, Google Drive, iCloud) even when FileReader/arrayBuffer() cannot
-      // read them, because the system uses a different file access code path for uploads.
       const formData = new FormData()
-      formData.append('file', file, file.name)
+      formData.append('uploaded_path', uploadedPath)
       formData.append('doc_number', docNumber.trim())
       formData.append('client_name', clientName.trim())
       formData.append('issue_date', issueDate)
@@ -103,10 +91,8 @@ export function InvoiceImportModal({
       formData.append('amount', String(amt))
 
       const res = await fetch('/api/accounting/documents/import', { method: 'POST', body: formData })
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || 'Import fehlgeschlagen.')
-      }
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Import fehlgeschlagen.')
       onSaved()
     } catch (err: any) {
       setError(err.message)
@@ -135,15 +121,34 @@ export function InvoiceImportModal({
           <input ref={fileRef} type="file" accept="image/*,application/pdf" className="hidden"
             onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
 
-          {preview && file ? (
-            isImage ? (
-              <div className="relative">
-                <img src={preview} alt="" className="w-full max-h-56 object-contain bg-dark rounded-xl" />
-                {ocrLoading && (
-                  <div className="absolute inset-0 bg-black/60 rounded-xl flex items-center justify-center gap-2 text-xs font-bold text-white">
-                    <Loader2 size={14} className="animate-spin" /> Texterkennung läuft…
+          {file ? (
+            <div className="relative rounded-xl overflow-hidden">
+              {isImage ? (
+                <img src={preview ?? ''} alt="" className="w-full max-h-56 object-contain bg-dark" />
+              ) : (
+                <div className="bg-dark px-4 py-3 flex items-center gap-3">
+                  <span className="text-sm text-white/60 font-medium truncate min-w-0">{file.name}</span>
+                </div>
+              )}
+
+              {/* Upload status overlay */}
+              {uploading && (
+                <div className="absolute inset-0 bg-black/60 flex items-center justify-center gap-2 text-xs font-bold text-white">
+                  <Loader2 size={14} className="animate-spin" /> Wird hochgeladen…
+                </div>
+              )}
+              {uploadError && !uploading && (
+                <div className="absolute inset-0 bg-black/75 flex flex-col items-center justify-center gap-2 p-4">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-accent">
+                    <AlertCircle size={13} />{uploadError}
                   </div>
-                )}
+                  <button type="button" onClick={() => uploadFile(file)}
+                    className="flex items-center gap-1.5 bg-panel-hover text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all">
+                    <RefreshCw size={12} /> Nochmal versuchen
+                  </button>
+                </div>
+              )}
+              {!uploading && !uploadError && uploadedPath && (
                 <div className="absolute bottom-2 right-2 flex gap-1.5">
                   <button type="button" onClick={() => setLightbox(true)}
                     className="flex items-center gap-1.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all">
@@ -154,22 +159,8 @@ export function InvoiceImportModal({
                     Ändern
                   </button>
                 </div>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between gap-3 bg-dark rounded-xl p-4">
-                <span className="text-sm text-white/40 font-medium truncate min-w-0">{file.name}</span>
-                <div className="flex gap-1.5 shrink-0">
-                  <button type="button" onClick={() => setLightbox(true)}
-                    className="flex items-center gap-1.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all">
-                    <Eye size={13} />Vorschau
-                  </button>
-                  <button type="button" onClick={() => fileRef.current?.click()}
-                    className="bg-panel-hover text-white/70 hover:text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all">
-                    Ändern
-                  </button>
-                </div>
-              </div>
-            )
+              )}
+            </div>
           ) : (
             <button type="button" onClick={() => fileRef.current?.click()}
               className="w-full flex flex-col items-center justify-center gap-2 bg-dark border border-dashed border-white/15 rounded-xl py-8 text-white/40 hover:text-white hover:border-white/30 transition-all">
@@ -181,9 +172,6 @@ export function InvoiceImportModal({
           <div>
             <label className={labelCls}>Rechnungsnummer</label>
             <input type="text" value={docNumber} onChange={e => setDocNumber(e.target.value)} className={inputCls} />
-            {detectedNumber && (
-              <p className="text-[11px] text-white/30 mt-1">Auf dem Dokument erkannt: {detectedNumber}</p>
-            )}
           </div>
 
           <div>
@@ -226,10 +214,14 @@ export function InvoiceImportModal({
 
           {error && <p className="text-xs text-accent font-bold">{error}</p>}
 
-          <button onClick={save} disabled={saving}
+          <button onClick={save} disabled={saving || uploading}
             className="w-full flex items-center justify-center gap-2 bg-accent hover:opacity-90 disabled:opacity-50 text-white font-black text-sm py-3.5 rounded-xl transition-all active:scale-[0.98]">
-            <Save size={14} />
-            {saving ? 'Importieren…' : 'Rechnung importieren'}
+            {uploading
+              ? <><Loader2 size={14} className="animate-spin" />Wird hochgeladen…</>
+              : saving
+                ? <><Save size={14} />Importieren…</>
+                : <><Save size={14} />Rechnung importieren</>
+            }
           </button>
 
           <div style={{ height: 'max(1rem, env(safe-area-inset-bottom))' }} />
