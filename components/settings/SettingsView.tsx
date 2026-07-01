@@ -39,9 +39,8 @@ export function SettingsView() {
   const [nameSaving, setNameSaving]     = useState(false)
   const [nameMsg, setNameMsg]           = useState('')
 
-  const [newPassword, setNewPassword]   = useState('')
-  const [pwSaving, setPwSaving]         = useState(false)
-  const [pwMsg, setPwMsg]               = useState('')
+  const [pwSending, setPwSending]       = useState(false)
+  const [pwSentMsg, setPwSentMsg]       = useState('')
 
   const [company, setCompany]           = useState({
     name: '', legal_form: 'einzelunternehmer' as 'einzelunternehmer' | 'gmbh', fn: '',
@@ -108,15 +107,14 @@ export function SettingsView() {
     setNameSaving(false)
   }
 
-  async function savePassword(e: React.FormEvent) {
-    e.preventDefault()
-    if (!newPassword) return
-    setPwSaving(true)
-    setPwMsg('')
-    const { error } = await supabase.auth.updateUser({ password: newPassword })
-    setPwMsg(error ? error.message : 'Passwort aktualisiert.')
-    setPwSaving(false)
-    if (!error) setNewPassword('')
+  async function sendResetLink() {
+    setPwSending(true)
+    setPwSentMsg('')
+    const { error } = await supabase.auth.resetPasswordForEmail(currentEmail, {
+      redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+    })
+    setPwSentMsg(error ? error.message : 'Reset-Link gesendet! Prüfe deine E-Mail.')
+    setPwSending(false)
   }
 
   async function saveCompany(e: React.FormEvent) {
@@ -349,18 +347,12 @@ export function SettingsView() {
               <Lock size={14} className="text-accent" />
               <h2 className="text-sm font-black text-white">Passwort ändern</h2>
             </div>
-            <form onSubmit={savePassword} className="space-y-3">
-              <div>
-                <Label text="Neues Passwort" />
-                <PasswordInput value={newPassword} onChange={setNewPassword}
-                  placeholder="••••••••" className={inputCls} />
-              </div>
-              {pwMsg && <p className="text-xs text-white/40">{pwMsg}</p>}
-              <button type="submit" disabled={pwSaving || !newPassword}
-                className="w-full bg-accent hover:opacity-90 disabled:opacity-30 text-white font-black text-sm py-3 rounded-xl transition-all active:scale-[0.98]">
-                {pwSaving ? <Loader2 size={14} className="animate-spin mx-auto" /> : 'Passwort aktualisieren'}
-              </button>
-            </form>
+            <p className="text-xs text-white/25">Du erhältst einen sicheren Link per E-Mail zum Setzen eines neuen Passworts.</p>
+            {pwSentMsg && <p className="text-xs text-white/40">{pwSentMsg}</p>}
+            <button type="button" onClick={sendResetLink} disabled={pwSending || !currentEmail}
+              className="w-full bg-accent hover:opacity-90 disabled:opacity-30 text-white font-black text-sm py-3 rounded-xl transition-all active:scale-[0.98]">
+              {pwSending ? <Loader2 size={14} className="animate-spin mx-auto" /> : 'Reset-Link per E-Mail senden'}
+            </button>
           </div>
         </div>
 

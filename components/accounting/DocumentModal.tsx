@@ -194,6 +194,18 @@ export function DocumentModal({
           </div>
         </div>
 
+        {isEdit && (
+          <div className="px-5 pt-4">
+            <div className="rounded-xl overflow-hidden bg-dark" style={{ height: 220 }}>
+              <iframe
+                src={`/api/accounting/documents/${doc!.id}/pdf`}
+                className="w-full h-full border-0"
+                title="Rechnungsvorschau"
+              />
+            </div>
+          </div>
+        )}
+
         <div className="px-5 py-5 space-y-5">
           {/* Number + dates */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

@@ -107,6 +107,15 @@ export function ImportedInvoiceEditModal({
           </button>
         </div>
 
+        {/* PDF Preview */}
+        <div className="mx-5 mt-4 rounded-xl overflow-hidden bg-dark" style={{ height: 220 }}>
+          <iframe
+            src={`/api/accounting/documents/${doc.id}/pdf`}
+            className="w-full h-full border-0"
+            title="Rechnungsvorschau"
+          />
+        </div>
+
         {/* Form */}
         <div className="p-5 flex flex-col gap-4">
           {/* Rechnungsnummer */}
