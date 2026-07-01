@@ -174,7 +174,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'service_contracts',  label: 'Dienstleistungsverträge' },
   { id: 'fulfillment',        label: 'Fulfillment' },
   { id: 'sales_partners',     label: 'Vertriebspartner' },
-  { id: 'receipts',           label: 'Belege' },
+  { id: 'receipts',           label: 'Zahlungen' },
   { id: 'subscriptions',      label: 'Abos' },
   { id: 'closings',           label: 'Abschlüsse' },
 ]
@@ -281,6 +281,7 @@ export function AccountingView() {
   const [loading, setLoading]     = useState(true)
   const [docModal, setDocModal]   = useState<{ type: DocType; doc?: AccountingDocument } | null>(null)
   const [receiptModal, setReceiptModal] = useState(false)
+  const [editReceipt, setEditReceipt] = useState<AccountingReceipt | null>(null)
   const [subscriptionModal, setSubscriptionModal] = useState<{ sub?: AccountingSubscription } | null>(null)
   const [contractModal, setContractModal] = useState<{ type: ContractType; contract?: AccountingContract } | null>(null)
   const [previewDoc, setPreviewDoc] = useState<AccountingDocument | null>(null)
@@ -460,7 +461,7 @@ export function AccountingView() {
     const todayMonthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
     const effectiveSubEnd = periodEnd < todayMonthStart ? periodEnd : todayMonthStart
 
-    // Build per-subscription items with accurate elapsed months
+    // Build per-subscription items, month-by-month using price_history for accuracy
     const subItems = subscriptions
       .filter(s => s.active && new Date(s.start_date) <= effectiveSubEnd)
       .map(sub => {
@@ -468,9 +469,22 @@ export function AccountingView() {
         const actualFrom = subStart > periodStart ? subStart : periodStart
         const fromY = actualFrom.getFullYear(), fromM = actualFrom.getMonth()
         const toY = effectiveSubEnd.getFullYear(), toM = effectiveSubEnd.getMonth()
-        const months = Math.max(0, (toY - fromY) * 12 + toM - fromM + 1)
-        const monthly = monthlyEquivalent(sub)
-        return { ...sub, months, monthly, amount: monthly * months }
+        const totalMonths = Math.max(0, (toY - fromY) * 12 + toM - fromM + 1)
+
+        const history = [...(sub.price_history ?? [])].sort((a, b) => a.effective_from.localeCompare(b.effective_from))
+        const intervalFactor = sub.interval === 'monthly' ? 1 : sub.interval === 'quarterly' ? 3 : 12
+
+        let totalAmount = 0
+        for (let i = 0; i < totalMonths; i++) {
+          const monthDate = new Date(fromY, fromM + i, 1)
+          const monthStr = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}-01`
+          const applicable = history.filter(e => e.effective_from <= monthStr)
+          const priceEntry = applicable.length > 0 ? applicable[applicable.length - 1] : null
+          totalAmount += (priceEntry ? priceEntry.amount : sub.amount) / intervalFactor
+        }
+
+        const monthly = totalMonths > 0 ? totalAmount / totalMonths : 0
+        return { ...sub, months: totalMonths, monthly, amount: totalAmount }
       })
       .filter(x => x.amount > 0)
 
@@ -602,7 +616,7 @@ export function AccountingView() {
 
   function deleteReceipt(id: string) {
     setConfirmDelete({
-      message: 'Beleg wirklich löschen?',
+      message: 'Zahlung wirklich löschen?',
       action: async () => {
         setReceipts(prev => prev.filter(r => r.id !== id))
         await fetch(`/api/accounting/receipts?id=${id}`, { method: 'DELETE' })
@@ -730,7 +744,7 @@ export function AccountingView() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-black text-white tracking-tight leading-none">Buchhaltung</h1>
-          <p className="text-sm text-white/30 mt-2 font-medium">Rechnungen, Angebote & Belege</p>
+          <p className="text-sm text-white/30 mt-2 font-medium">Rechnungen, Angebote & Zahlungen</p>
         </div>
         {tab === 'invoices' && (
           <div className="flex items-center gap-2">
@@ -749,7 +763,7 @@ export function AccountingView() {
         )}
         {tab === 'receipts' && (
           <button onClick={() => setReceiptModal(true)} className="flex items-center gap-2 bg-accent hover:bg-accent-hover text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95">
-            <Plus size={16} /><span className="hidden sm:inline">Beleg hinzufügen</span>
+            <Plus size={16} /><span className="hidden sm:inline">Zahlung hinzufügen</span>
           </button>
         )}
         {tab === 'subscriptions' && (
@@ -831,7 +845,7 @@ export function AccountingView() {
           )}
 
           <div className="bg-panel rounded-2xl p-6">
-            <h2 className="text-sm font-black text-white mb-4">Letzte Belege & Rechnungen</h2>
+            <h2 className="text-sm font-black text-white mb-4">Letzte Zahlungen & Rechnungen</h2>
             {overviewItems.slice(0, 20).map((item: any, i) => (
               <button
                 key={item.id}
@@ -969,25 +983,36 @@ export function AccountingView() {
       ) : (
         <div className="bg-panel rounded-2xl overflow-hidden">
           {listReceipts.length === 0 ? (
-            <div className="py-16 text-center"><p className="text-white/40 text-sm font-medium">Noch keine Belege.</p></div>
+            <div className="py-16 text-center"><p className="text-white/40 text-sm font-medium">Noch keine Zahlungen.</p></div>
           ) : (
             <ul>
               {listReceipts.map((r, i) => (
                 <li key={r.id} className={`flex items-center gap-3 px-4 sm:px-5 py-3.5 ${i < listReceipts.length - 1 ? 'border-b border-panel-2' : ''}`}>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-white truncate">{r.vendor || RECEIPT_TYPE_LABELS[r.receipt_type]}</p>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <p className="text-sm font-semibold text-white truncate">{r.vendor || RECEIPT_TYPE_LABELS[r.receipt_type]}</p>
+                      <span className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-white/8 text-white/35">
+                        {RECEIPT_TYPE_LABELS[r.receipt_type]}
+                      </span>
+                    </div>
                     <p className="text-xs text-white/35 mt-0.5">{fmtDate(r.date)}{r.category ? ` · ${r.category}` : ''}</p>
                   </div>
                   <p className="text-sm font-bold text-accent shrink-0">{fmtMoney(r.amount)}</p>
-                  {r.file_path && (
-                    <button
-                      onClick={() => setPreviewReceipt(r)}
-                      title="Beleg ansehen"
-                      className="w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 flex items-center justify-center text-white/40 hover:text-white transition-all shrink-0"
-                    >
-                      <ImageIcon size={13} />
-                    </button>
-                  )}
+                  <button
+                    onClick={() => setPreviewReceipt(r)}
+                    title="Vorschau"
+                    className={`w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 flex items-center justify-center transition-all shrink-0 ${r.file_path ? 'text-white/40 hover:text-white' : 'text-white/15 cursor-default'}`}
+                    disabled={!r.file_path}
+                  >
+                    <ImageIcon size={13} />
+                  </button>
+                  <button
+                    onClick={() => setEditReceipt(r)}
+                    title="Bearbeiten"
+                    className="w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 flex items-center justify-center text-white/40 hover:text-white transition-all shrink-0"
+                  >
+                    <Pencil size={13} />
+                  </button>
                   <button
                     onClick={() => deleteReceipt(r.id)}
                     title="Löschen"
@@ -1015,6 +1040,13 @@ export function AccountingView() {
         <ReceiptModal
           onClose={() => setReceiptModal(false)}
           onSaved={() => { setReceiptModal(false); loadAll() }}
+        />
+      )}
+      {editReceipt && (
+        <ReceiptModal
+          receipt={editReceipt}
+          onClose={() => setEditReceipt(null)}
+          onSaved={() => { setEditReceipt(null); loadAll() }}
         />
       )}
       {importModal && (

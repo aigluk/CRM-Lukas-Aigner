@@ -170,6 +170,13 @@ export interface AccountingReceipt {
 
 export type SubscriptionInterval = 'monthly' | 'quarterly' | 'yearly'
 
+export interface PriceHistoryEntry {
+  id: string
+  effective_from: string
+  amount: number
+  note?: string
+}
+
 export interface AccountingSubscription {
   id: string
   user_id: string
@@ -179,6 +186,7 @@ export interface AccountingSubscription {
   start_date: string
   active: boolean
   notes?: string
+  price_history: PriceHistoryEntry[]
   created_at: string
 }
 

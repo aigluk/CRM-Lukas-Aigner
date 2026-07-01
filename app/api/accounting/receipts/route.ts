@@ -96,6 +96,46 @@ export async function POST(req: NextRequest) {
   }
 }
 
+export async function PATCH(req: NextRequest) {
+  try {
+    const user = await getAuthUser()
+    if (!user) return NextResponse.json({ error: 'Nicht angemeldet' }, { status: 401 })
+    const ownerId = await getWorkspaceOwnerId(user.id)
+
+    const form = await req.formData()
+    const id = form.get('id') as string | null
+    if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })
+
+    const updates: Record<string, any> = {
+      receipt_type: form.get('receipt_type') || 'expense',
+      vendor:       (form.get('vendor') as string) || null,
+      amount:       parseFloat((form.get('amount') as string) || '0'),
+      date:         (form.get('date') as string) || new Date().toISOString().slice(0, 10),
+      category:     (form.get('category') as string) || null,
+      notes:        (form.get('notes') as string) || null,
+    }
+
+    const file = form.get('file') as File | null
+    if (file && file.size > 0) {
+      const { data: existing } = await db().from('accounting_receipts').select('file_path').eq('id', id).eq('user_id', ownerId).single()
+      if (existing?.file_path) await db().storage.from('accounting').remove([existing.file_path])
+      const ext = file.name.split('.').pop() || 'jpg'
+      const filePath = `${ownerId}/receipts/${crypto.randomUUID()}.${ext}`
+      const buffer = Buffer.from(await file.arrayBuffer())
+      const { error: uploadError } = await db().storage.from('accounting').upload(filePath, buffer, { contentType: file.type || 'application/octet-stream' })
+      if (uploadError) return NextResponse.json({ error: uploadError.message }, { status: 500 })
+      updates.file_path = filePath
+    }
+
+    const { data, error } = await db().from('accounting_receipts').update(updates).eq('id', id).eq('user_id', ownerId).select().single()
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ receipt: data })
+  } catch (err: any) {
+    console.error('[PATCH /api/accounting/receipts]', err?.message)
+    return NextResponse.json({ error: err?.message ?? 'Interner Serverfehler' }, { status: 500 })
+  }
+}
+
 export async function DELETE(req: NextRequest) {
   try {
     const user = await getAuthUser()

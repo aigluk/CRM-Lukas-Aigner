@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { X, Save, Camera, Loader2, Sparkles } from 'lucide-react'
-import type { ReceiptType } from '@/lib/types'
+import type { AccountingReceipt, ReceiptType } from '@/lib/types'
 import { DatePicker } from './DatePicker'
 
 const inputCls = 'w-full bg-dark rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all'
@@ -22,19 +22,28 @@ function fileToBase64(file: File): Promise<string> {
   })
 }
 
-export function ReceiptModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
-  const [receiptType, setReceiptType] = useState<ReceiptType>('expense')
-  const [vendor, setVendor]   = useState('')
-  const [amount, setAmount]   = useState('')
-  const [date, setDate]       = useState(new Date().toISOString().slice(0, 10))
-  const [category, setCategory] = useState('')
-  const [notes, setNotes]     = useState('')
-  const [file, setFile]       = useState<File | null>(null)
-  const [preview, setPreview] = useState<string | null>(null)
-  const [ocrRaw, setOcrRaw]   = useState('')
+export function ReceiptModal({
+  receipt,
+  onClose,
+  onSaved,
+}: {
+  receipt?: AccountingReceipt
+  onClose: () => void
+  onSaved: () => void
+}) {
+  const isEdit = !!receipt
+  const [receiptType, setReceiptType] = useState<ReceiptType>(receipt?.receipt_type ?? 'expense')
+  const [vendor, setVendor]     = useState(receipt?.vendor ?? '')
+  const [amount, setAmount]     = useState(receipt ? String(receipt.amount) : '')
+  const [date, setDate]         = useState(receipt?.date ?? new Date().toISOString().slice(0, 10))
+  const [category, setCategory] = useState(receipt?.category ?? '')
+  const [notes, setNotes]       = useState(receipt?.notes ?? '')
+  const [file, setFile]         = useState<File | null>(null)
+  const [preview, setPreview]   = useState<string | null>(null)
+  const [ocrRaw, setOcrRaw]     = useState('')
   const [ocrLoading, setOcrLoading] = useState(false)
-  const [saving, setSaving]   = useState(false)
-  const [error, setError]     = useState('')
+  const [saving, setSaving]     = useState(false)
+  const [error, setError]       = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
 
   async function handleFile(f: File) {
@@ -52,14 +61,14 @@ export function ReceiptModal({ onClose, onSaved }: { onClose: () => void; onSave
       })
       const data = await res.json()
       if (res.ok) {
-        if (data.vendor) setVendor(data.vendor)
-        if (data.amount) setAmount(String(data.amount))
-        if (data.date) setDate(data.date)
-        if (data.category) setCategory(data.category)
+        if (data.vendor && !vendor) setVendor(data.vendor)
+        if (data.amount && !amount) setAmount(String(data.amount))
+        if (data.date && !receipt?.date) setDate(data.date)
+        if (data.category && !category) setCategory(data.category)
         setOcrRaw(data.raw ?? '')
       }
     } catch {
-      // OCR best-effort - manual entry still works
+      // OCR best-effort
     } finally {
       setOcrLoading(false)
     }
@@ -73,6 +82,7 @@ export function ReceiptModal({ onClose, onSaved }: { onClose: () => void; onSave
 
     try {
       const form = new FormData()
+      if (isEdit) form.append('id', receipt!.id)
       if (file) form.append('file', file)
       form.append('receipt_type', receiptType)
       form.append('vendor', vendor)
@@ -80,9 +90,10 @@ export function ReceiptModal({ onClose, onSaved }: { onClose: () => void; onSave
       form.append('date', date)
       form.append('category', category)
       form.append('notes', notes)
-      form.append('ocr_raw', ocrRaw)
+      if (!isEdit) form.append('ocr_raw', ocrRaw)
 
-      const res = await fetch('/api/accounting/receipts', { method: 'POST', body: form })
+      const method = isEdit ? 'PATCH' : 'POST'
+      const res = await fetch('/api/accounting/receipts', { method, body: form })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
         throw new Error(data.error || 'Speichern fehlgeschlagen.')
@@ -95,6 +106,8 @@ export function ReceiptModal({ onClose, onSaved }: { onClose: () => void; onSave
     }
   }
 
+  const existingFilePreviewUrl = receipt?.file_path ? `/api/accounting/receipts/${receipt.id}/file` : null
+
   return (
     <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-60 flex items-end sm:items-center justify-center px-3 sm:p-4"
       style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
@@ -104,14 +117,14 @@ export function ReceiptModal({ onClose, onSaved }: { onClose: () => void; onSave
         style={{ maxHeight: 'calc(94dvh - env(safe-area-inset-bottom))', WebkitOverflowScrolling: 'touch' }}
       >
         <div className="sticky top-0 bg-panel z-10 px-5 pt-4 pb-3 border-b border-rim-subtle flex items-center justify-between gap-3">
-          <h2 className="text-base font-black text-white">Beleg hinzufügen</h2>
+          <h2 className="text-base font-black text-white">{isEdit ? 'Zahlung bearbeiten' : 'Zahlung hinzufügen'}</h2>
           <button onClick={onClose} className="p-1.5 rounded-xl bg-panel-hover text-white/30 hover:text-white transition-all shrink-0">
             <X size={16} />
           </button>
         </div>
 
         <div className="px-5 py-5 space-y-4">
-          {/* Upload */}
+          {/* Upload / file preview */}
           <input
             ref={fileRef} type="file" accept="image/*,application/pdf" capture="environment"
             className="hidden"
@@ -129,33 +142,35 @@ export function ReceiptModal({ onClose, onSaved }: { onClose: () => void; onSave
                   <Loader2 size={14} className="animate-spin" /> Texterkennung läuft…
                 </div>
               )}
-              <button
-                type="button" onClick={() => fileRef.current?.click()}
-                className="absolute bottom-2 right-2 bg-panel-hover text-white/70 hover:text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all"
-              >
+              <button type="button" onClick={() => fileRef.current?.click()}
+                className="absolute bottom-2 right-2 bg-panel-hover text-white/70 hover:text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all">
                 Ändern
               </button>
             </div>
+          ) : isEdit && existingFilePreviewUrl ? (
+            <div className="relative rounded-xl overflow-hidden bg-dark" style={{ height: 180 }}>
+              <iframe src={existingFilePreviewUrl} className="w-full h-full border-0" title="Vorhandener Beleg" />
+              <button type="button" onClick={() => fileRef.current?.click()}
+                className="absolute bottom-2 right-2 bg-panel-hover text-white/70 hover:text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all">
+                Ersetzen
+              </button>
+            </div>
           ) : (
-            <button
-              type="button" onClick={() => fileRef.current?.click()}
-              className="w-full flex flex-col items-center justify-center gap-2 bg-dark border border-dashed border-white/15 rounded-xl py-8 text-white/40 hover:text-white hover:border-white/30 transition-all"
-            >
+            <button type="button" onClick={() => fileRef.current?.click()}
+              className="w-full flex flex-col items-center justify-center gap-2 bg-dark border border-dashed border-white/15 rounded-xl py-8 text-white/40 hover:text-white hover:border-white/30 transition-all">
               <Camera size={22} />
               <span className="text-sm font-bold">Foto / PDF hinzufügen</span>
-              <span className="text-xs text-white/25 flex items-center gap-1"><Sparkles size={11} />Betrag wird automatisch erkannt</span>
+              {!isEdit && <span className="text-xs text-white/25 flex items-center gap-1"><Sparkles size={11} />Betrag wird automatisch erkannt</span>}
             </button>
           )}
 
           {/* Type */}
           <div className="flex gap-2">
             {(Object.keys(TYPE_LABELS) as Exclude<ReceiptType, 'income_other'>[]).map(t => (
-              <button
-                key={t} type="button" onClick={() => setReceiptType(t)}
+              <button key={t} type="button" onClick={() => setReceiptType(t)}
                 className={`flex-1 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
                   receiptType === t ? 'bg-accent text-white' : 'bg-panel-hover text-white/40 hover:text-white'
-                }`}
-              >
+                }`}>
                 {TYPE_LABELS[t]}
               </button>
             ))}
@@ -164,10 +179,8 @@ export function ReceiptModal({ onClose, onSaved }: { onClose: () => void; onSave
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={labelCls}>Betrag (€)</label>
-              <input
-                type="number" value={amount} onChange={e => setAmount(e.target.value)} step="any" placeholder="0.00"
-                className={`${inputCls} [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
-              />
+              <input type="number" value={amount} onChange={e => setAmount(e.target.value)} step="any" placeholder="0.00"
+                className={`${inputCls} [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`} />
             </div>
             <div>
               <label className={labelCls}>Datum</label>
@@ -197,12 +210,10 @@ export function ReceiptModal({ onClose, onSaved }: { onClose: () => void; onSave
 
           {error && <p className="text-xs text-accent font-bold">{error}</p>}
 
-          <button
-            onClick={save} disabled={saving}
-            className="w-full flex items-center justify-center gap-2 bg-accent hover:opacity-90 disabled:opacity-50 text-white font-black text-sm py-3.5 rounded-xl transition-all active:scale-[0.98]"
-          >
+          <button onClick={save} disabled={saving}
+            className="w-full flex items-center justify-center gap-2 bg-accent hover:opacity-90 disabled:opacity-50 text-white font-black text-sm py-3.5 rounded-xl transition-all active:scale-[0.98]">
             <Save size={14} />
-            {saving ? 'Speichern…' : 'Beleg speichern'}
+            {saving ? 'Speichern…' : 'Zahlung speichern'}
           </button>
 
           <div style={{ height: 'max(1rem, env(safe-area-inset-bottom))' }} />
