@@ -625,10 +625,10 @@ export function AccountingView() {
     })
   }
 
-  function DocList({ docs, type }: { docs: AccountingDocument[]; type: DocType }) {
+  function DocList({ docs, type, className }: { docs: AccountingDocument[]; type: DocType; className?: string }) {
     if (docs.length === 0) {
       return (
-        <div className="bg-panel rounded-2xl py-16 text-center">
+        <div className={`bg-panel rounded-2xl py-16 text-center ${className ?? ''}`}>
           <p className="text-white/40 text-sm font-medium">Noch keine {type === 'invoice' ? 'Rechnungen' : 'Angebote'}.</p>
         </div>
       )
@@ -641,8 +641,8 @@ export function AccountingView() {
       return numB - numA
     })
     return (
-      <div className="bg-panel rounded-2xl overflow-visible">
-        <ul className="overflow-visible">
+      <div className={`bg-panel rounded-2xl ${className ?? ''}`}>
+        <ul>
           {sorted.map((doc, i) => (
             <li key={doc.id} className={`flex items-center gap-3 px-4 sm:px-5 py-3.5 ${i < sorted.length - 1 ? 'border-b border-panel-2' : ''}`}>
               <button
@@ -690,17 +690,17 @@ export function AccountingView() {
     )
   }
 
-  function ContractList({ items, type }: { items: AccountingContract[]; type: ContractType }) {
+  function ContractList({ items, type, className }: { items: AccountingContract[]; type: ContractType; className?: string }) {
     if (items.length === 0) {
       return (
-        <div className="bg-panel rounded-2xl py-16 text-center">
+        <div className={`bg-panel rounded-2xl py-16 text-center ${className ?? ''}`}>
           <p className="text-white/40 text-sm font-medium">Noch keine {CONTRACT_TYPE_LABELS[type]}e.</p>
         </div>
       )
     }
     return (
-      <div className="bg-panel rounded-2xl overflow-visible">
-        <ul className="overflow-visible">
+      <div className={`bg-panel rounded-2xl ${className ?? ''}`}>
+        <ul>
           {items.map((c, i) => (
             <li key={c.id} className={`flex items-center gap-3 px-4 sm:px-5 py-3.5 ${i < items.length - 1 ? 'border-b border-panel-2' : ''}`}>
               <button
@@ -883,14 +883,13 @@ export function AccountingView() {
           </div>
         </div>
       ) : tab === 'subscriptions' ? (
-        <div className="flex-1 min-h-0 overflow-y-auto pb-4">
-          {subscriptions.length === 0 ? (
-            <div className="bg-panel rounded-2xl py-16 text-center">
-              <p className="text-white/40 text-sm font-medium">Noch keine Abos.</p>
-            </div>
-          ) : (
-            <div className="bg-panel rounded-2xl overflow-hidden">
-              <ul>
+        subscriptions.length === 0 ? (
+          <div className="bg-panel rounded-2xl py-16 text-center flex-1 min-h-0">
+            <p className="text-white/40 text-sm font-medium">Noch keine Abos.</p>
+          </div>
+        ) : (
+          <div className="bg-panel rounded-2xl flex-1 min-h-0 overflow-y-auto">
+            <ul>
               {subscriptions.map((s, i) => (
                 <li key={s.id} className={`flex items-center gap-3 px-4 sm:px-5 py-3.5 ${i < subscriptions.length - 1 ? 'border-b border-panel-2' : ''} ${s.active ? '' : 'opacity-40'}`}>
                   <div className="w-9 h-9 rounded-xl bg-white/8 text-white/50 flex items-center justify-center shrink-0">
@@ -927,9 +926,8 @@ export function AccountingView() {
                 </li>
               ))}
               </ul>
-            </div>
-          )}
-        </div>
+          </div>
+        )
       ) : tab === 'closings' ? (
         <div className="flex-1 min-h-0 overflow-y-auto pb-4">
           <div className="space-y-5">
@@ -989,28 +987,17 @@ export function AccountingView() {
           </div>
         </div>
       ) : tab === 'invoices' ? (
-        <div className="flex-1 min-h-0 overflow-y-auto pb-4">
-          <DocList docs={listInvoices} type="invoice" />
-        </div>
+        <DocList docs={listInvoices} type="invoice" className="flex-1 min-h-0 overflow-y-auto" />
       ) : tab === 'quotes' ? (
-        <div className="flex-1 min-h-0 overflow-y-auto pb-4">
-          <DocList docs={listQuotes} type="quote" />
-        </div>
+        <DocList docs={listQuotes} type="quote" className="flex-1 min-h-0 overflow-y-auto" />
       ) : tab === 'service_contracts' ? (
-        <div className="flex-1 min-h-0 overflow-y-auto pb-4">
-          <ContractList items={listServiceContracts} type="service" />
-        </div>
+        <ContractList items={listServiceContracts} type="service" className="flex-1 min-h-0 overflow-y-auto" />
       ) : tab === 'fulfillment' ? (
-        <div className="flex-1 min-h-0 overflow-y-auto pb-4">
-          <ContractList items={listFulfillmentContracts} type="fulfillment" />
-        </div>
+        <ContractList items={listFulfillmentContracts} type="fulfillment" className="flex-1 min-h-0 overflow-y-auto" />
       ) : tab === 'sales_partners' ? (
-        <div className="flex-1 min-h-0 overflow-y-auto pb-4">
-          <ContractList items={listAgentContracts} type="agent" />
-        </div>
+        <ContractList items={listAgentContracts} type="agent" className="flex-1 min-h-0 overflow-y-auto" />
       ) : (
-        <div className="flex-1 min-h-0 overflow-y-auto pb-4">
-        <div className="bg-panel rounded-2xl overflow-hidden">
+        <div className="bg-panel rounded-2xl flex-1 min-h-0 overflow-y-auto">
           {listReceipts.length === 0 ? (
             <div className="py-16 text-center"><p className="text-white/40 text-sm font-medium">Noch keine Zahlungen.</p></div>
           ) : (
@@ -1053,7 +1040,6 @@ export function AccountingView() {
               ))}
             </ul>
           )}
-        </div>
         </div>
       )}
 
