@@ -96,6 +96,14 @@ export interface ClosingInvoiceItem {
   amount_gross: number
 }
 
+export interface ClosingExpenseItem {
+  label: string
+  date?: string
+  amount: number
+  months?: number
+  monthly?: number
+}
+
 export interface ClosingPdfData {
   label: string
   revenueNet: number
@@ -115,6 +123,7 @@ export interface ClosingPdfData {
   invoiceCount: number
   receiptCount: number
   invoices?: ClosingInvoiceItem[]
+  expenseItems?: ClosingExpenseItem[]
 }
 
 export function ClosingPdf({ data, company }: { data: ClosingPdfData; company: CompanyInfo }) {
@@ -187,12 +196,53 @@ export function ClosingPdf({ data, company }: { data: ClosingPdfData; company: C
           </>
         )}
 
-        <Text style={styles.sectionTitle}>Ausgaben & Vorsteuer</Text>
+        <Text style={styles.sectionTitle}>
+          {data.vorsteuer > 0 ? 'Ausgaben & Vorsteuer' : 'Ausgaben'}
+        </Text>
         <View style={styles.table}>
-          <Row label="Ausgaben netto" value={-data.expensesNet} />
-          <Row label="Vorsteuer" value={-data.vorsteuer} />
-          <Row label="Ausgaben brutto" value={-data.expensesGross} bold />
+          {data.vorsteuer > 0 ? (
+            <>
+              <Row label="Ausgaben netto" value={-data.expensesNet} />
+              <Row label="Vorsteuer" value={-data.vorsteuer} />
+              <Row label="Ausgaben brutto" value={-data.expensesGross} bold />
+            </>
+          ) : (
+            <Row label="Ausgaben gesamt" value={-data.expensesGross} bold />
+          )}
         </View>
+
+        {data.expenseItems && data.expenseItems.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>Ausgaben-Aufschlüsselung</Text>
+            <View style={styles.bkTable}>
+              <View style={styles.bkHead}>
+                <Text style={[styles.bkCClient, styles.bkBold]}>Beschreibung</Text>
+                <Text style={[styles.bkCDate, styles.bkBold]}>Datum / Zeitraum</Text>
+                <Text style={[styles.bkCAmt, styles.bkBold]}>Betrag</Text>
+              </View>
+              {data.expenseItems.map((item, i) => {
+                const isLast = i === data.expenseItems!.length - 1
+                const dateOrPeriod = item.date
+                  ? fmtDate(item.date)
+                  : item.months !== undefined
+                  ? `${item.months} Mon. × ${fmtMoney(item.monthly ?? 0)}`
+                  : ''
+                return (
+                  <View key={i} style={isLast ? styles.bkRowLast : styles.bkRow}>
+                    <Text style={styles.bkCClient}>{item.label}</Text>
+                    <Text style={styles.bkCDate}>{dateOrPeriod}</Text>
+                    <Text style={styles.bkCAmt}>{fmtMoney(item.amount)}</Text>
+                  </View>
+                )
+              })}
+              <View style={styles.bkTotalRow}>
+                <Text style={[styles.bkCClient, styles.bkBold]}>Gesamt</Text>
+                <Text style={styles.bkCDate}></Text>
+                <Text style={[styles.bkCAmt, styles.bkBold]}>{fmtMoney(data.expensesGross)}</Text>
+              </View>
+            </View>
+          </>
+        )}
 
         <Text style={styles.sectionTitle}>Ergebnis</Text>
         <View style={styles.table}>

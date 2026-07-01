@@ -448,20 +448,60 @@ export function AccountingView() {
     const vatCollected = revenueGross - revenueNet
 
     const periodExpenses = receipts.filter(r => r.receipt_type === 'expense' && inPeriod(r.date))
-    const monthsInPeriod = periodMode === 'month' ? 1 : periodMode === 'quarter' ? 3 : 12
+
+    const periodStart = periodMode === 'month' ? new Date(periodYear, periodMonth, 1)
+      : periodMode === 'quarter' ? new Date(periodYear, periodQuarter * 3, 1)
+      : new Date(periodYear, 0, 1)
     const periodEnd = periodMode === 'month' ? new Date(periodYear, periodMonth + 1, 0)
       : periodMode === 'quarter' ? new Date(periodYear, periodQuarter * 3 + 3, 0)
       : new Date(periodYear, 11, 31)
-    const subsExpenses = subscriptions
-      .filter(s => s.active && new Date(s.start_date) <= periodEnd)
-      .reduce((s, sub) => s + monthlyEquivalent(sub) * monthsInPeriod, 0)
+
+    // Cap subscription months at the start of the current month — don't count future months
+    const todayMonthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+    const effectiveSubEnd = periodEnd < todayMonthStart ? periodEnd : todayMonthStart
+
+    // Build per-subscription items with accurate elapsed months
+    const subItems = subscriptions
+      .filter(s => s.active && new Date(s.start_date) <= effectiveSubEnd)
+      .map(sub => {
+        const subStart = new Date(sub.start_date)
+        const actualFrom = subStart > periodStart ? subStart : periodStart
+        const fromY = actualFrom.getFullYear(), fromM = actualFrom.getMonth()
+        const toY = effectiveSubEnd.getFullYear(), toM = effectiveSubEnd.getMonth()
+        const months = Math.max(0, (toY - fromY) * 12 + toM - fromM + 1)
+        const monthly = monthlyEquivalent(sub)
+        return { ...sub, months, monthly, amount: monthly * months }
+      })
+      .filter(x => x.amount > 0)
+
+    const subsExpenses = subItems.reduce((s, x) => s + x.amount, 0)
     const expensesGross = periodExpenses.reduce((s, r) => s + r.amount, 0) + subsExpenses
-    const vorsteuer = expensesGross * (ASSUMED_EXPENSE_VAT_RATE / (100 + ASSUMED_EXPENSE_VAT_RATE))
-    const expensesNet = expensesGross - vorsteuer
 
     const smallBusinessActive = !!company.small_business
+    // KU cannot claim Vorsteuer (§ 6 Abs. 1 Z 27 UStG removes input VAT deduction right)
+    const vorsteuer = smallBusinessActive ? 0 : expensesGross * (ASSUMED_EXPENSE_VAT_RATE / (100 + ASSUMED_EXPENSE_VAT_RATE))
+    const expensesNet = expensesGross - vorsteuer
+
     const vatPayable = smallBusinessActive ? 0 : vatCollected - vorsteuer
     const profitBeforeTax = revenueNet - expensesNet
+
+    // Expense breakdown items for PDF
+    const expenseItems = [
+      ...periodExpenses.map(r => ({
+        label: r.vendor || r.category || RECEIPT_TYPE_LABELS[r.receipt_type as ReceiptType] || 'Ausgabe',
+        date: r.date,
+        amount: r.amount,
+        months: undefined as number | undefined,
+        monthly: undefined as number | undefined,
+      })),
+      ...subItems.map(x => ({
+        label: x.name,
+        date: undefined as string | undefined,
+        amount: x.amount,
+        months: x.months,
+        monthly: x.monthly,
+      })),
+    ]
 
     // Kleinunternehmer-Grenze bezieht sich immer auf das volle Kalenderjahr, unabhängig vom gewählten Zeitraum
     const ytdRevenueGross = invoices
@@ -480,7 +520,7 @@ export function AccountingView() {
       label, revenueGross, revenueNet, vatCollected,
       expensesGross, expensesNet, vorsteuer, vatPayable, profitBeforeTax,
       invoiceCount: periodInvoices.length, receiptCount: periodExpenses.length,
-      periodInvoices,
+      periodInvoices, expenseItems,
       smallBusinessActive, ytdRevenueGross,
       estimatedIncomeTax, estimatedAnnualIncomeTax, estimatedQuarterlyPrepayment,
       profitAfterTax,
@@ -516,6 +556,7 @@ export function AccountingView() {
             issue_date: d.issue_date,
             amount_gross: docTotal(d),
           })),
+        expenseItems: closing.expenseItems,
       }
       const res = await fetch('/api/accounting/closing-pdf', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
