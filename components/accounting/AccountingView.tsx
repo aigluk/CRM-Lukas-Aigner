@@ -820,72 +820,77 @@ export function AccountingView() {
       )}
       </div>{/* /shrink-0 */}
 
-      <div className="flex-1 min-h-0 overflow-y-auto pb-8">
+      <div className="flex-1 min-h-0 flex flex-col">
       {loading ? (
         <p className="text-sm text-white/30 text-center py-16 font-medium">Lädt…</p>
       ) : tab === 'overview' ? (
-        <div className="space-y-5">
-          {kpiVisible && (
-            <div className="flex items-center justify-end">
-              <button
-                onClick={() => setKpiVisible(false)}
-                title="Verbergen"
-                className="w-7 h-7 rounded-full bg-white/6 hover:bg-white/12 flex items-center justify-center text-white/40 hover:text-white transition-all"
-              >
-                <EyeOff size={13} />
-              </button>
-            </div>
-          )}
-
-          {kpiVisible ? (
-            <div className="flex rounded-2xl overflow-hidden">
-              <KpiCard icon={<TrendingUp size={16} />} label="Einnahmen (bezahlt)" value={fmtMoney(totals.incomePaid)} tone="default" />
-              <KpiCard icon={<Wallet size={16} />} label="Offene Rechnungen" value={fmtMoney(totals.incomeOpen)} tone="gray" />
-              <KpiCard icon={<TrendingDown size={16} />} label="Ausgaben" value={fmtMoney(totals.expenses)} tone="accent" />
-              <KpiCard icon={<TrendingUp size={16} />} label="Gewinn" value={fmtMoney(totals.profit)} tone={totals.profit >= 0 ? 'green' : 'accent'} />
-            </div>
-          ) : (
-            <button
-              title="Anzeigen"
-              onClick={() => setKpiVisible(true)}
-              className="w-full h-24 bg-accent rounded-2xl flex items-center justify-center hover:opacity-90 transition-all active:scale-[0.99]"
-            >
-              <Eye size={20} className="text-white" />
-            </button>
-          )}
-
-          <div className="bg-panel rounded-2xl p-6">
-            <h2 className="text-sm font-black text-white mb-4">Letzte Zahlungen & Rechnungen</h2>
-            {overviewItems.slice(0, 20).map((item: any, i) => (
-              <button
-                key={item.id}
-                onClick={() => openOverviewItem(item)}
-                className={`flex items-center justify-between gap-3 py-2.5 w-full text-left rounded-xl px-2 -mx-2 hover:bg-panel-hover transition-colors ${i > 0 ? 'border-t border-panel-2' : ''}`}
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-white truncate">
-                    {item._isReceipt ? (item.vendor || RECEIPT_TYPE_LABELS[item.receipt_type as ReceiptType]) : item.client_name}
-                  </p>
-                  <p className="text-xs text-white/30 mt-0.5">{fmtDate(item._isReceipt ? item.date : item.issue_date)}</p>
-                </div>
-                <p className={`text-sm font-bold shrink-0 ${item._isReceipt ? 'text-accent' : 'text-accent-green'}`}>
-                  {item._isReceipt ? '−' : '+'}{fmtMoney(item._isReceipt ? item.amount : docTotal(item))}
-                </p>
-              </button>
-            ))}
-            {overviewItems.length === 0 && (
-              <p className="text-sm text-white/35 text-center py-6 font-medium">Noch keine Einträge.</p>
+        <div className="flex-1 min-h-0 flex flex-col gap-5">
+          <div className="shrink-0">
+            {kpiVisible && (
+              <div className="flex items-center justify-end mb-3">
+                <button
+                  onClick={() => setKpiVisible(false)}
+                  title="Verbergen"
+                  className="w-7 h-7 rounded-full bg-white/6 hover:bg-white/12 flex items-center justify-center text-white/40 hover:text-white transition-all"
+                >
+                  <EyeOff size={13} />
+                </button>
+              </div>
             )}
+            {kpiVisible ? (
+              <div className="flex rounded-2xl overflow-hidden">
+                <KpiCard icon={<TrendingUp size={16} />} label="Einnahmen (bezahlt)" value={fmtMoney(totals.incomePaid)} tone="default" />
+                <KpiCard icon={<Wallet size={16} />} label="Offene Rechnungen" value={fmtMoney(totals.incomeOpen)} tone="gray" />
+                <KpiCard icon={<TrendingDown size={16} />} label="Ausgaben" value={fmtMoney(totals.expenses)} tone="accent" />
+                <KpiCard icon={<TrendingUp size={16} />} label="Gewinn" value={fmtMoney(totals.profit)} tone={totals.profit >= 0 ? 'green' : 'accent'} />
+              </div>
+            ) : (
+              <button
+                title="Anzeigen"
+                onClick={() => setKpiVisible(true)}
+                className="w-full h-24 bg-accent rounded-2xl flex items-center justify-center hover:opacity-90 transition-all active:scale-[0.99]"
+              >
+                <Eye size={20} className="text-white" />
+              </button>
+            )}
+          </div>
+          <div className="bg-panel rounded-2xl flex-1 min-h-0 flex flex-col overflow-hidden">
+            <div className="shrink-0 px-6 pt-5 pb-0">
+              <h2 className="text-sm font-black text-white mb-4">Letzte Zahlungen & Rechnungen</h2>
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-6">
+              {overviewItems.slice(0, 20).map((item: any, i) => (
+                <button
+                  key={item.id}
+                  onClick={() => openOverviewItem(item)}
+                  className={`flex items-center justify-between gap-3 py-2.5 w-full text-left rounded-xl px-2 -mx-2 hover:bg-panel-hover transition-colors ${i > 0 ? 'border-t border-panel-2' : ''}`}
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-white truncate">
+                      {item._isReceipt ? (item.vendor || RECEIPT_TYPE_LABELS[item.receipt_type as ReceiptType]) : item.client_name}
+                    </p>
+                    <p className="text-xs text-white/30 mt-0.5">{fmtDate(item._isReceipt ? item.date : item.issue_date)}</p>
+                  </div>
+                  <p className={`text-sm font-bold shrink-0 ${item._isReceipt ? 'text-accent' : 'text-accent-green'}`}>
+                    {item._isReceipt ? '−' : '+'}{fmtMoney(item._isReceipt ? item.amount : docTotal(item))}
+                  </p>
+                </button>
+              ))}
+              {overviewItems.length === 0 && (
+                <p className="text-sm text-white/35 text-center py-6 font-medium">Noch keine Einträge.</p>
+              )}
+            </div>
           </div>
         </div>
       ) : tab === 'subscriptions' ? (
-        subscriptions.length === 0 ? (
-          <div className="bg-panel rounded-2xl py-16 text-center">
-            <p className="text-white/40 text-sm font-medium">Noch keine Abos.</p>
-          </div>
-        ) : (
-          <div className="bg-panel rounded-2xl overflow-hidden">
-            <ul>
+        <div className="flex-1 min-h-0 overflow-y-auto pb-4">
+          {subscriptions.length === 0 ? (
+            <div className="bg-panel rounded-2xl py-16 text-center">
+              <p className="text-white/40 text-sm font-medium">Noch keine Abos.</p>
+            </div>
+          ) : (
+            <div className="bg-panel rounded-2xl overflow-hidden">
+              <ul>
               {subscriptions.map((s, i) => (
                 <li key={s.id} className={`flex items-center gap-3 px-4 sm:px-5 py-3.5 ${i < subscriptions.length - 1 ? 'border-b border-panel-2' : ''} ${s.active ? '' : 'opacity-40'}`}>
                   <div className="w-9 h-9 rounded-xl bg-white/8 text-white/50 flex items-center justify-center shrink-0">
@@ -921,12 +926,14 @@ export function AccountingView() {
                   </button>
                 </li>
               ))}
-            </ul>
-          </div>
-        )
+              </ul>
+            </div>
+          )}
+        </div>
       ) : tab === 'closings' ? (
-        <div className="space-y-5">
-          <div className="bg-panel rounded-2xl p-5">
+        <div className="flex-1 min-h-0 overflow-y-auto pb-4">
+          <div className="space-y-5">
+            <div className="bg-panel rounded-2xl p-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-black text-white">Zeitraum</h2>
               <button
@@ -979,18 +986,30 @@ export function AccountingView() {
             <p className="text-xs text-white/30 mb-2 px-1">Abschluss · {closing.label} - {closing.invoiceCount} bezahlte Rechnung(en)</p>
             <DocList docs={closing.periodInvoices} type="invoice" />
           </div>
+          </div>
         </div>
       ) : tab === 'invoices' ? (
-        <DocList docs={listInvoices} type="invoice" />
+        <div className="flex-1 min-h-0 overflow-y-auto pb-4">
+          <DocList docs={listInvoices} type="invoice" />
+        </div>
       ) : tab === 'quotes' ? (
-        <DocList docs={listQuotes} type="quote" />
+        <div className="flex-1 min-h-0 overflow-y-auto pb-4">
+          <DocList docs={listQuotes} type="quote" />
+        </div>
       ) : tab === 'service_contracts' ? (
-        <ContractList items={listServiceContracts} type="service" />
+        <div className="flex-1 min-h-0 overflow-y-auto pb-4">
+          <ContractList items={listServiceContracts} type="service" />
+        </div>
       ) : tab === 'fulfillment' ? (
-        <ContractList items={listFulfillmentContracts} type="fulfillment" />
+        <div className="flex-1 min-h-0 overflow-y-auto pb-4">
+          <ContractList items={listFulfillmentContracts} type="fulfillment" />
+        </div>
       ) : tab === 'sales_partners' ? (
-        <ContractList items={listAgentContracts} type="agent" />
+        <div className="flex-1 min-h-0 overflow-y-auto pb-4">
+          <ContractList items={listAgentContracts} type="agent" />
+        </div>
       ) : (
+        <div className="flex-1 min-h-0 overflow-y-auto pb-4">
         <div className="bg-panel rounded-2xl overflow-hidden">
           {listReceipts.length === 0 ? (
             <div className="py-16 text-center"><p className="text-white/40 text-sm font-medium">Noch keine Zahlungen.</p></div>
@@ -1035,9 +1054,10 @@ export function AccountingView() {
             </ul>
           )}
         </div>
+        </div>
       )}
 
-      </div>{/* /flex-1 scroll area */}
+      </div>{/* /flex-1 */}
 
       {docModal && (
         <DocumentModal
