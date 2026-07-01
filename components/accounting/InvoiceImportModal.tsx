@@ -13,6 +13,10 @@ const STATUS_LABELS: Record<DocStatus, string> = {
   draft: 'Entwurf', sent: 'Versendet', paid: 'Bezahlt', overdue: 'Überfällig',
 }
 
+const ONEDRIVE_MSG =
+  'Datei nicht verfügbar — OneDrive hat sie nur in der Cloud. ' +
+  'Rechtsklick auf die Datei in OneDrive → „Immer auf diesem Gerät verfügbar" → erneut versuchen.'
+
 export function InvoiceImportModal({
   nextNumberHint, onClose, onSaved,
 }: { nextNumberHint: string; onClose: () => void; onSaved: () => void }) {
@@ -34,100 +38,148 @@ export function InvoiceImportModal({
   const [error, setError] = useState('')
   const [lightbox, setLightbox] = useState(false)
 
+  // Iframe form-submit fallback (Safari / browsers without showOpenFilePicker)
   const formRef = useRef<HTMLFormElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
-  // Refs for cleanup
-  const listenerRef = useRef<(() => void) | null>(null)
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const iframeListenerRef = useRef<(() => void) | null>(null)
+  const iframeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     fetch('/api/company').then(r => r.json()).then(d => {
       setTaxRate(d.company?.small_business ? '0' : '20')
     }).catch(() => {})
     return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+      if (iframeTimeoutRef.current) clearTimeout(iframeTimeoutRef.current)
     }
   }, [])
 
-  function submitUpload() {
+  // ─── Primary upload: File System Access API + arrayBuffer + fetch ──────────
+  // Chrome/Edge support showOpenFilePicker which uses proper macOS file
+  // coordination — unlike <input type="file">, it can trigger on-demand
+  // downloads for cloud-provider files (OneDrive, Google Drive, iCloud).
+  async function uploadViaFetch(f: File) {
+    setUploading(true)
+    setUploadError('')
+    setUploadedPath(null)
+    try {
+      const buf = await Promise.race<ArrayBuffer>([
+        f.arrayBuffer(),
+        new Promise<never>((_, rej) =>
+          setTimeout(() => rej(new Error('timeout')), 25_000)
+        ),
+      ])
+      if (!buf.byteLength) throw new Error('empty')
+
+      const fd = new FormData()
+      fd.append('file', new Blob([buf], { type: f.type || 'application/octet-stream' }), f.name)
+      const res = await fetch('/api/accounting/documents/import/upload', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Upload fehlgeschlagen.')
+      setUploadedPath(data.file_path)
+    } catch (e: any) {
+      const msg = e.message
+      setUploadError(
+        msg === 'timeout' || msg === 'empty'
+          ? ONEDRIVE_MSG
+          : (msg || ONEDRIVE_MSG)
+      )
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  // ─── Fallback upload: native form → hidden iframe ──────────────────────────
+  // Used when showOpenFilePicker is unavailable (Safari) or as retry path.
+  function uploadViaIframe() {
     const iframe = iframeRef.current
     const form = formRef.current
     if (!iframe || !form) return
 
-    // Clean up any existing listener/timeout from a previous attempt
-    if (listenerRef.current) {
-      iframe.removeEventListener('load', listenerRef.current)
-      listenerRef.current = null
+    if (iframeListenerRef.current) {
+      iframe.removeEventListener('load', iframeListenerRef.current)
+      iframeListenerRef.current = null
     }
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current)
-      timeoutRef.current = null
-    }
+    if (iframeTimeoutRef.current) clearTimeout(iframeTimeoutRef.current)
 
     setUploading(true)
     setUploadError('')
     setUploadedPath(null)
 
     function finish(err?: string, path?: string) {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current)
-      if (listenerRef.current) {
-        iframe!.removeEventListener('load', listenerRef.current)
-        listenerRef.current = null
+      if (iframeTimeoutRef.current) clearTimeout(iframeTimeoutRef.current)
+      if (iframeListenerRef.current) {
+        iframe!.removeEventListener('load', iframeListenerRef.current)
+        iframeListenerRef.current = null
       }
       if (path) setUploadedPath(path)
       if (err) setUploadError(err)
       setUploading(false)
     }
 
-    // 30s timeout — handles the case where the OneDrive file download never completes
-    timeoutRef.current = setTimeout(() => {
-      finish('Datei nicht erreichbar. In OneDrive → Rechtsklick → "Immer auf diesem Gerät verfügbar" aktivieren.')
-    }, 30_000)
+    iframeTimeoutRef.current = setTimeout(() => finish(ONEDRIVE_MSG), 25_000)
 
     const handleLoad = () => {
       try {
         const doc = iframe.contentDocument ?? iframe.contentWindow?.document
         const text = (doc?.body?.innerText ?? doc?.body?.textContent ?? '').trim()
-
-        // The iframe fires a load event for the about:blank interim state during
-        // form submission — ignore it and wait for the actual response.
+        // Skip the about:blank interim load that fires before the real response
         if (!text || iframe.contentWindow?.location?.href === 'about:blank') return
 
         let data: Record<string, string>
         try { data = JSON.parse(text) }
-        catch { finish('Unerwartete Antwort vom Server.'); return }
+        catch { finish('Unerwartete Server-Antwort.'); return }
 
-        if (data.file_path) {
-          finish(undefined, data.file_path)
-        } else if (data.error === 'Datei fehlt.' || data.error === 'Datei leer.') {
-          finish('Datei nicht lesbar — in OneDrive → Rechtsklick → "Immer auf diesem Gerät verfügbar" aktivieren.')
-        } else {
-          finish(data.error ?? 'Upload fehlgeschlagen.')
-        }
+        if (data.file_path) finish(undefined, data.file_path)
+        else if (data.error === 'Datei fehlt.' || data.error === 'Datei leer.') finish(ONEDRIVE_MSG)
+        else finish(data.error ?? 'Upload fehlgeschlagen.')
       } catch {
-        // SecurityError on contentDocument access — shouldn't happen same-origin
-        finish('Upload fehlgeschlagen (Sicherheitsfehler). Bitte erneut versuchen.')
+        // SecurityError: browser loaded an error page (cross-origin) instead
+        // of our response — means the OS couldn't read the cloud-only file
+        finish(ONEDRIVE_MSG)
       }
     }
 
-    listenerRef.current = handleLoad
+    iframeListenerRef.current = handleLoad
     iframe.addEventListener('load', handleLoad)
     form.submit()
   }
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0]
-    if (!f) return
+  async function handleFileSelected(f: File) {
     setFileName(f.name)
     setIsImage(f.type.startsWith('image/'))
     setError('')
     if (preview) URL.revokeObjectURL(preview)
     setPreview(URL.createObjectURL(f))
-    submitUpload()
+    await uploadViaFetch(f)
   }
 
-  function triggerPicker() {
+  async function triggerPicker() {
+    // File System Access API: better cloud file support (Chrome 86+, Edge)
+    if (typeof window !== 'undefined' && 'showOpenFilePicker' in window) {
+      try {
+        const [handle] = await (window as any).showOpenFilePicker({
+          types: [{
+            description: 'Rechnung (PDF oder Bild)',
+            accept: {
+              'application/pdf': ['.pdf'],
+              'image/jpeg': ['.jpg', '.jpeg'],
+              'image/png': ['.png'],
+              'image/heic': ['.heic'],
+            },
+          }],
+          multiple: false,
+          excludeAcceptAllOption: false,
+        })
+        const file: File = await handle.getFile()
+        await handleFileSelected(file)
+        return
+      } catch (e: any) {
+        if (e.name === 'AbortError') return // User cancelled
+        // Fall through to traditional input on any other error
+      }
+    }
+    // Fallback: traditional <input> → iframe form submit
     if (fileInputRef.current) fileInputRef.current.value = ''
     fileInputRef.current?.click()
   }
@@ -163,29 +215,18 @@ export function InvoiceImportModal({
     }
   }
 
+  const showFileArea = !!fileName
+
   return (
     <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-60 flex items-end sm:items-center justify-center px-3 sm:p-4"
       style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
     >
-      {/* Hidden iframe receives the form POST response */}
+      {/* Iframe + form for Safari/fallback upload path */}
       <iframe ref={iframeRef} name="upload-target" title="upload" className="hidden" />
-
-      {/* Hidden form — file input must live inside it so native form submit carries file bytes */}
-      <form
-        ref={formRef}
-        method="POST"
-        action="/api/accounting/documents/import/upload"
-        encType="multipart/form-data"
-        target="upload-target"
-        className="hidden"
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          name="file"
-          accept="image/*,application/pdf"
-          onChange={handleFileChange}
-        />
+      <form ref={formRef} method="POST" action="/api/accounting/documents/import/upload"
+        encType="multipart/form-data" target="upload-target" className="hidden">
+        <input ref={fileInputRef} type="file" name="file" accept="image/*,application/pdf"
+          onChange={e => { if (e.target.files?.[0]) handleFileSelected(e.target.files[0]) }} />
       </form>
 
       <div className="bg-panel w-full sm:max-w-md rounded-2xl overflow-y-auto shadow-2xl overscroll-contain"
@@ -200,48 +241,60 @@ export function InvoiceImportModal({
 
         <div className="px-5 py-5 space-y-4">
 
-          {fileName ? (
-            // min-h ensures the overlay always has enough room regardless of inner content height
-            <div className="relative rounded-xl overflow-hidden bg-dark min-h-20">
-              {isImage && preview ? (
-                <img src={preview} alt="" className="w-full max-h-56 object-contain" />
-              ) : (
-                <div className="flex items-center gap-3 px-4 py-5">
-                  <span className="text-sm text-white/60 font-medium truncate min-w-0">{fileName}</span>
-                </div>
-              )}
+          {/* ── File area ───────────────────────────────────────────────── */}
+          {showFileArea ? (
+            <div className="rounded-xl bg-dark overflow-hidden">
 
-              {uploading && (
-                <div className="absolute inset-0 bg-black/65 flex items-center justify-center gap-2 text-xs font-bold text-white">
-                  <Loader2 size={14} className="animate-spin" />Wird hochgeladen…
-                </div>
-              )}
-
-              {!uploading && uploadError && (
-                <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center gap-3 p-5">
-                  <div className="flex items-start gap-1.5 text-xs font-bold text-accent text-center leading-relaxed">
-                    <AlertCircle size={13} className="shrink-0 mt-0.5" />
-                    <span>{uploadError}</span>
-                  </div>
-                  <button type="button" onClick={submitUpload}
-                    className="flex items-center gap-1.5 bg-panel-hover hover:bg-white/10 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all">
-                    <RefreshCw size={12} />Nochmal versuchen
-                  </button>
-                </div>
-              )}
-
-              {!uploading && !uploadError && uploadedPath && (
-                <div className="absolute bottom-2 right-2 flex gap-1.5">
-                  {preview && (
-                    <button type="button" onClick={() => setLightbox(true)}
-                      className="flex items-center gap-1.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all">
-                      <Eye size={13} />Vorschau
+              {/* Error state: standalone block, no absolute overlay */}
+              {!uploading && uploadError ? (
+                <div className="p-4 flex flex-col gap-3">
+                  <div className="flex items-center gap-2.5 text-xs text-white/40">
+                    <span className="truncate min-w-0">{fileName}</span>
+                    <button type="button" onClick={triggerPicker}
+                      className="shrink-0 text-white/30 hover:text-white underline text-[11px] transition-all">
+                      Ändern
                     </button>
-                  )}
-                  <button type="button" onClick={triggerPicker}
-                    className="bg-panel-hover text-white/70 hover:text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all">
-                    Ändern
+                  </div>
+                  <div className="flex items-start gap-2 bg-accent/10 rounded-xl p-3">
+                    <AlertCircle size={14} className="shrink-0 text-accent mt-0.5" />
+                    <p className="text-xs text-accent leading-relaxed font-medium">{uploadError}</p>
+                  </div>
+                  <button type="button" onClick={() => uploadViaIframe()}
+                    className="flex items-center justify-center gap-1.5 bg-panel-hover hover:bg-white/10 text-white text-xs font-bold px-3 py-2 rounded-xl transition-all">
+                    <RefreshCw size={12} />Nochmal versuchen (alternatives Verfahren)
                   </button>
+                </div>
+              ) : (
+                /* Normal / loading state */
+                <div className="relative">
+                  {isImage && preview ? (
+                    <img src={preview} alt="" className="w-full max-h-56 object-contain" />
+                  ) : (
+                    <div className="flex items-center gap-3 px-4 py-5">
+                      <span className="text-sm text-white/60 font-medium truncate min-w-0">{fileName}</span>
+                    </div>
+                  )}
+
+                  {uploading && (
+                    <div className="absolute inset-0 bg-black/65 flex items-center justify-center gap-2 text-xs font-bold text-white">
+                      <Loader2 size={14} className="animate-spin" />Wird hochgeladen…
+                    </div>
+                  )}
+
+                  {!uploading && uploadedPath && (
+                    <div className="absolute bottom-2 right-2 flex gap-1.5">
+                      {preview && (
+                        <button type="button" onClick={() => setLightbox(true)}
+                          className="flex items-center gap-1.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all">
+                          <Eye size={13} />Vorschau
+                        </button>
+                      )}
+                      <button type="button" onClick={triggerPicker}
+                        className="bg-panel-hover text-white/70 hover:text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all">
+                        Ändern
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
