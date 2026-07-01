@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
   bkHead: { flexDirection: 'row', backgroundColor: HEAD_BG, borderBottomWidth: 0.5, borderBottomColor: RULE_LIGHT },
   bkRow: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: RULE_LIGHT },
   bkRowLast: { flexDirection: 'row' },
-  bkTotalRow: { flexDirection: 'row', backgroundColor: TOTAL_BG },
+  bkTotalRow: { flexDirection: 'row', backgroundColor: TOTAL_BG, borderTopWidth: 0.5, borderTopColor: RULE_LIGHT },
   bkCNr: { width: 72, fontSize: 7.5, paddingVertical: 5, paddingHorizontal: 6 },
   bkCClient: { flex: 1, fontSize: 7.5, paddingVertical: 5, paddingHorizontal: 6 },
   bkCDate: { width: 54, fontSize: 7.5, paddingVertical: 5, paddingHorizontal: 6 },
@@ -187,9 +187,7 @@ export function ClosingPdf({ data, company }: { data: ClosingPdfData; company: C
               ))}
               {/* Total */}
               <View style={styles.bkTotalRow}>
-                <Text style={[styles.bkCNr, styles.bkBold]}></Text>
-                <Text style={[styles.bkCClient, styles.bkBold]}>Gesamt</Text>
-                <Text style={styles.bkCDate}></Text>
+                <Text style={[{ flex: 1, fontSize: 7.5, paddingVertical: 5, paddingHorizontal: 6 }, styles.bkBold]}>Gesamt</Text>
                 <Text style={[styles.bkCAmt, styles.bkBold]}>{fmtMoney(data.revenueGross)}</Text>
               </View>
             </View>
@@ -236,8 +234,7 @@ export function ClosingPdf({ data, company }: { data: ClosingPdfData; company: C
                 )
               })}
               <View style={styles.bkTotalRow}>
-                <Text style={[styles.bkCClient, styles.bkBold]}>Gesamt</Text>
-                <Text style={styles.bkCDate}></Text>
+                <Text style={[{ flex: 1, fontSize: 7.5, paddingVertical: 5, paddingHorizontal: 6 }, styles.bkBold]}>Gesamt</Text>
                 <Text style={[styles.bkCAmt, styles.bkBold]}>{fmtMoney(data.expensesGross)}</Text>
               </View>
             </View>

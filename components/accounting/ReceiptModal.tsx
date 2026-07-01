@@ -148,7 +148,7 @@ export function ReceiptModal({
               </button>
             </div>
           ) : isEdit && existingFilePreviewUrl ? (
-            <div className="relative rounded-xl overflow-hidden bg-dark" style={{ height: 180 }}>
+            <div className="relative overflow-hidden bg-dark" style={{ height: 180 }}>
               <iframe src={existingFilePreviewUrl} className="w-full h-full border-0" title="Vorhandener Beleg" />
               <button type="button" onClick={() => fileRef.current?.click()}
                 className="absolute bottom-2 right-2 bg-panel-hover text-white/70 hover:text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all">

@@ -108,7 +108,7 @@ export function ImportedInvoiceEditModal({
         </div>
 
         {/* PDF Preview */}
-        <div className="mx-5 mt-4 rounded-xl overflow-hidden bg-dark" style={{ height: 220 }}>
+        <div className="mx-5 mt-4 overflow-hidden bg-dark" style={{ height: 220 }}>
           <iframe
             src={`/api/accounting/documents/${doc.id}/pdf`}
             className="w-full h-full border-0"

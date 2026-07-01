@@ -196,7 +196,7 @@ export function DocumentModal({
 
         {isEdit && (
           <div className="px-5 pt-4">
-            <div className="rounded-xl overflow-hidden bg-dark" style={{ height: 220 }}>
+            <div className="overflow-hidden bg-dark" style={{ height: 220 }}>
               <iframe
                 src={`/api/accounting/documents/${doc!.id}/pdf`}
                 className="w-full h-full border-0"

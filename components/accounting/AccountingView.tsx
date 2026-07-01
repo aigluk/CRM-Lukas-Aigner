@@ -633,11 +633,18 @@ export function AccountingView() {
         </div>
       )
     }
+    const sorted = [...docs].sort((a, b) => {
+      const dateDiff = new Date(b.issue_date).getTime() - new Date(a.issue_date).getTime()
+      if (dateDiff !== 0) return dateDiff
+      const numA = parseInt(a.doc_number.split('-').pop() || '0', 10)
+      const numB = parseInt(b.doc_number.split('-').pop() || '0', 10)
+      return numB - numA
+    })
     return (
       <div className="bg-panel rounded-2xl overflow-visible">
         <ul className="overflow-visible">
-          {docs.map((doc, i) => (
-            <li key={doc.id} className={`flex items-center gap-3 px-4 sm:px-5 py-3.5 ${i < docs.length - 1 ? 'border-b border-panel-2' : ''}`}>
+          {sorted.map((doc, i) => (
+            <li key={doc.id} className={`flex items-center gap-3 px-4 sm:px-5 py-3.5 ${i < sorted.length - 1 ? 'border-b border-panel-2' : ''}`}>
               <button
                 onClick={() => setPreviewDoc(doc)}
                 className="min-w-0 flex-1 text-left"
@@ -740,7 +747,8 @@ export function AccountingView() {
   }
 
   return (
-    <div>
+    <div className="h-full flex flex-col">
+      <div className="shrink-0">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-3xl font-black text-white tracking-tight leading-none">Buchhaltung</h1>
@@ -810,7 +818,9 @@ export function AccountingView() {
           <ListPeriodFilter period={listPeriod} onChange={setListPeriod} />
         </div>
       )}
+      </div>{/* /shrink-0 */}
 
+      <div className="flex-1 min-h-0 overflow-y-auto pb-8">
       {loading ? (
         <p className="text-sm text-white/30 text-center py-16 font-medium">Lädt…</p>
       ) : tab === 'overview' ? (
@@ -1026,6 +1036,8 @@ export function AccountingView() {
           )}
         </div>
       )}
+
+      </div>{/* /flex-1 scroll area */}
 
       {docModal && (
         <DocumentModal
