@@ -34,19 +34,20 @@ export function InvoiceImportModal({
   const [error, setError] = useState('')
   const [lightbox, setLightbox] = useState(false)
 
-  // Native form + iframe approach: bypasses JS file reading entirely.
-  // The browser submits the form using OS-level file access (same path as any
-  // native app upload), which works for OneDrive cloud-only files where
-  // FileReader and fetch(FormData) both fail due to JS sandbox restrictions.
   const formRef = useRef<HTMLFormElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
-  const iframeListenerRef = useRef<(() => void) | null>(null)
+  // Refs for cleanup
+  const listenerRef = useRef<(() => void) | null>(null)
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     fetch('/api/company').then(r => r.json()).then(d => {
       setTaxRate(d.company?.small_business ? '0' : '20')
     }).catch(() => {})
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    }
   }, [])
 
   function submitUpload() {
@@ -54,35 +55,63 @@ export function InvoiceImportModal({
     const form = formRef.current
     if (!iframe || !form) return
 
-    // Clean up any previous listener
-    if (iframeListenerRef.current) {
-      iframe.removeEventListener('load', iframeListenerRef.current)
+    // Clean up any existing listener/timeout from a previous attempt
+    if (listenerRef.current) {
+      iframe.removeEventListener('load', listenerRef.current)
+      listenerRef.current = null
+    }
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
     }
 
     setUploading(true)
     setUploadError('')
     setUploadedPath(null)
 
-    const handleLoad = () => {
-      iframe.removeEventListener('load', handleLoad)
-      iframeListenerRef.current = null
-      try {
-        const text = iframe.contentDocument?.body?.innerText
-          || iframe.contentWindow?.document?.body?.innerText
-          || ''
-        const data = JSON.parse(text)
-        if (data.file_path) {
-          setUploadedPath(data.file_path)
-        } else {
-          setUploadError(data.error || 'Upload fehlgeschlagen.')
-        }
-      } catch {
-        setUploadError('Upload fehlgeschlagen. Bitte nochmal versuchen.')
+    function finish(err?: string, path?: string) {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+      if (listenerRef.current) {
+        iframe!.removeEventListener('load', listenerRef.current)
+        listenerRef.current = null
       }
+      if (path) setUploadedPath(path)
+      if (err) setUploadError(err)
       setUploading(false)
     }
 
-    iframeListenerRef.current = handleLoad
+    // 30s timeout — handles the case where the OneDrive file download never completes
+    timeoutRef.current = setTimeout(() => {
+      finish('Datei nicht erreichbar. In OneDrive → Rechtsklick → "Immer auf diesem Gerät verfügbar" aktivieren.')
+    }, 30_000)
+
+    const handleLoad = () => {
+      try {
+        const doc = iframe.contentDocument ?? iframe.contentWindow?.document
+        const text = (doc?.body?.innerText ?? doc?.body?.textContent ?? '').trim()
+
+        // The iframe fires a load event for the about:blank interim state during
+        // form submission — ignore it and wait for the actual response.
+        if (!text || iframe.contentWindow?.location?.href === 'about:blank') return
+
+        let data: Record<string, string>
+        try { data = JSON.parse(text) }
+        catch { finish('Unerwartete Antwort vom Server.'); return }
+
+        if (data.file_path) {
+          finish(undefined, data.file_path)
+        } else if (data.error === 'Datei fehlt.' || data.error === 'Datei leer.') {
+          finish('Datei nicht lesbar — in OneDrive → Rechtsklick → "Immer auf diesem Gerät verfügbar" aktivieren.')
+        } else {
+          finish(data.error ?? 'Upload fehlgeschlagen.')
+        }
+      } catch {
+        // SecurityError on contentDocument access — shouldn't happen same-origin
+        finish('Upload fehlgeschlagen (Sicherheitsfehler). Bitte erneut versuchen.')
+      }
+    }
+
+    listenerRef.current = handleLoad
     iframe.addEventListener('load', handleLoad)
     form.submit()
   }
@@ -90,22 +119,15 @@ export function InvoiceImportModal({
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0]
     if (!f) return
-
     setFileName(f.name)
     setIsImage(f.type.startsWith('image/'))
-    setUploadedPath(null)
-    setUploadError('')
     setError('')
-
-    // createObjectURL works even for cloud-only files (it's just a reference)
     if (preview) URL.revokeObjectURL(preview)
     setPreview(URL.createObjectURL(f))
-
     submitUpload()
   }
 
   function triggerPicker() {
-    // Reset input so onChange fires even for the same file
     if (fileInputRef.current) fileInputRef.current.value = ''
     fileInputRef.current?.click()
   }
@@ -122,16 +144,15 @@ export function InvoiceImportModal({
     setSaving(true)
     setError('')
     try {
-      const formData = new FormData()
-      formData.append('uploaded_path', uploadedPath)
-      formData.append('doc_number', docNumber.trim())
-      formData.append('client_name', clientName.trim())
-      formData.append('issue_date', issueDate)
-      formData.append('tax_rate', taxRate)
-      formData.append('status', status)
-      formData.append('amount', String(amt))
-
-      const res = await fetch('/api/accounting/documents/import', { method: 'POST', body: formData })
+      const fd = new FormData()
+      fd.append('uploaded_path', uploadedPath)
+      fd.append('doc_number', docNumber.trim())
+      fd.append('client_name', clientName.trim())
+      fd.append('issue_date', issueDate)
+      fd.append('tax_rate', taxRate)
+      fd.append('status', status)
+      fd.append('amount', String(amt))
+      const res = await fetch('/api/accounting/documents/import', { method: 'POST', body: fd })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.error || 'Import fehlgeschlagen.')
       onSaved()
@@ -146,10 +167,10 @@ export function InvoiceImportModal({
     <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-60 flex items-end sm:items-center justify-center px-3 sm:p-4"
       style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
     >
-      {/* Hidden iframe receives the form submission response */}
+      {/* Hidden iframe receives the form POST response */}
       <iframe ref={iframeRef} name="upload-target" title="upload" className="hidden" />
 
-      {/* Hidden form — file input lives here so native form submit carries the file */}
+      {/* Hidden form — file input must live inside it so native form submit carries file bytes */}
       <form
         ref={formRef}
         method="POST"
@@ -179,13 +200,13 @@ export function InvoiceImportModal({
 
         <div className="px-5 py-5 space-y-4">
 
-          {/* File upload area */}
           {fileName ? (
-            <div className="relative rounded-xl overflow-hidden bg-dark">
+            // min-h ensures the overlay always has enough room regardless of inner content height
+            <div className="relative rounded-xl overflow-hidden bg-dark min-h-20">
               {isImage && preview ? (
                 <img src={preview} alt="" className="w-full max-h-56 object-contain" />
               ) : (
-                <div className="px-4 py-4 flex items-center gap-3">
+                <div className="flex items-center gap-3 px-4 py-5">
                   <span className="text-sm text-white/60 font-medium truncate min-w-0">{fileName}</span>
                 </div>
               )}
@@ -197,12 +218,13 @@ export function InvoiceImportModal({
               )}
 
               {!uploading && uploadError && (
-                <div className="absolute inset-0 bg-black/75 flex flex-col items-center justify-center gap-2.5 p-4">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-accent text-center">
-                    <AlertCircle size={13} className="shrink-0" />{uploadError}
+                <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center gap-3 p-5">
+                  <div className="flex items-start gap-1.5 text-xs font-bold text-accent text-center leading-relaxed">
+                    <AlertCircle size={13} className="shrink-0 mt-0.5" />
+                    <span>{uploadError}</span>
                   </div>
                   <button type="button" onClick={submitUpload}
-                    className="flex items-center gap-1.5 bg-panel-hover text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all">
+                    className="flex items-center gap-1.5 bg-panel-hover hover:bg-white/10 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all">
                     <RefreshCw size={12} />Nochmal versuchen
                   </button>
                 </div>
@@ -301,7 +323,7 @@ export function InvoiceImportModal({
           ) : (
             <iframe src={preview} title="Rechnungsvorschau"
               className="w-full h-full max-w-4xl bg-white rounded-xl border-0"
-              onClick={e => e.stopPropagation()} />
+              onClick={(e) => e.stopPropagation()} />
           )}
         </div>
       )}
