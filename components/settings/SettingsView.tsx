@@ -1,9 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Mail, Lock, Users, Plus, Loader2, Check, Trash2, AtSign, User, LogOut, Building2 } from 'lucide-react'
+import { Mail, Lock, Users, Plus, Loader2, Check, Trash2, AtSign, User, LogOut, Building2, Send } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { PasswordInput } from '@/components/ui/PasswordInput'
 import { formatDate } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
 import { PermissionPicker } from './PermissionPicker'
@@ -54,8 +53,8 @@ export function SettingsView() {
   const [users, setUsers]               = useState<AdminUser[]>([])
   const [loadingUsers, setLoadingUsers] = useState(true)
   const [newUserEmail, setNewUserEmail] = useState('')
-  const [newUserPw, setNewUserPw]       = useState('')
   const [newUserName, setNewUserName]   = useState('')
+  const [resetSending, setResetSending] = useState<Set<string>>(new Set())
   const [newUserPerms, setNewUserPerms] = useState<string[]>(PERMISSION_ITEMS.filter(i => i.default === true).map(i => i.href))
   const [addingUser, setAddingUser]     = useState(false)
   const [userError, setUserError]       = useState('')
@@ -128,26 +127,38 @@ export function SettingsView() {
 
   async function addUser(e: React.FormEvent) {
     e.preventDefault()
-    if (!newUserEmail || !newUserPw) return
+    if (!newUserEmail) return
     setAddingUser(true)
     setUserError('')
     try {
       const res = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: newUserEmail, password: newUserPw, username: newUserName, permissions: newUserPerms }),
+        body: JSON.stringify({ email: newUserEmail, username: newUserName, permissions: newUserPerms }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Fehler')
       setNewUserEmail('')
-      setNewUserPw('')
       setNewUserName('')
-      setNewUserPerms(PERMISSION_ITEMS.map(i => i.href))
+      setNewUserPerms(PERMISSION_ITEMS.filter(i => i.default === true).map(i => i.href))
       loadUsers()
     } catch (err: any) {
       setUserError(err.message)
     } finally {
       setAddingUser(false)
+    }
+  }
+
+  async function sendResetToUser(email: string, id: string) {
+    setResetSending(prev => new Set(prev).add(id))
+    try {
+      await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'send_reset', email }),
+      })
+    } finally {
+      setResetSending(prev => { const s = new Set(prev); s.delete(id); return s })
     }
   }
 
@@ -369,27 +380,20 @@ export function SettingsView() {
               <input type="text" value={newUserName} onChange={e => setNewUserName(e.target.value)}
                 placeholder="z. B. Max M." className={inputCls} />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <Label text="E-Mail" />
-                <input type="email" value={newUserEmail} onChange={e => setNewUserEmail(e.target.value)}
-                  placeholder="kollege@firma.at" className={inputCls} />
-              </div>
-              <div>
-                <Label text="Passwort" />
-                <PasswordInput value={newUserPw} onChange={setNewUserPw}
-                  placeholder="••••••••" className={inputCls} />
-              </div>
+            <div>
+              <Label text="E-Mail" />
+              <input type="email" value={newUserEmail} onChange={e => setNewUserEmail(e.target.value)}
+                placeholder="kollege@firma.at" className={inputCls} />
             </div>
             <div>
               <Label text="Zugriff auf" />
               <PermissionPicker value={newUserPerms} onChange={setNewUserPerms} />
             </div>
             {userError && <p className="text-xs text-accent font-bold">{userError}</p>}
-            <button type="submit" disabled={addingUser || !newUserEmail || !newUserPw}
+            <button type="submit" disabled={addingUser || !newUserEmail}
               className="w-full flex items-center justify-center gap-2 bg-accent hover:opacity-90 disabled:opacity-30 text-white font-black text-sm py-3 rounded-xl transition-all active:scale-[0.98]">
-              {addingUser ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
-              Benutzer hinzufügen
+              {addingUser ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+              Einladen & Passwort-Link senden
             </button>
           </form>
 
@@ -420,12 +424,22 @@ export function SettingsView() {
                       <Check size={11} /> Du
                     </span>
                   ) : (
-                    <button
-                      onClick={e => { e.stopPropagation(); removeUser(u.id) }}
-                      className="text-white/20 hover:text-accent transition-colors shrink-0 p-1"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        title="Reset-Link senden"
+                        onClick={e => { e.stopPropagation(); sendResetToUser(u.email, u.id) }}
+                        disabled={resetSending.has(u.id)}
+                        className="w-7 h-7 flex items-center justify-center rounded-lg text-white/20 hover:text-white hover:bg-white/10 transition-all disabled:opacity-40"
+                      >
+                        {resetSending.has(u.id) ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
+                      </button>
+                      <button
+                        onClick={e => { e.stopPropagation(); removeUser(u.id) }}
+                        className="w-7 h-7 flex items-center justify-center rounded-lg text-white/20 hover:text-accent hover:bg-accent/10 transition-all"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
                   )}
                 </div>
               ))

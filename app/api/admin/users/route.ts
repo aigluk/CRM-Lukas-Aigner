@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://la-crm-one.vercel.app'
+
 async function getAuthUserId(): Promise<string | null> {
   try {
     const supabase = await createClient()
@@ -31,7 +33,6 @@ export async function GET() {
   const { data, error } = await admin.auth.admin.listUsers({ perPage: 1000 })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // Admin = first created user
   const sorted = [...data.users].sort((a, b) =>
     new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
   )
@@ -39,7 +40,6 @@ export async function GET() {
   const me = data.users.find(u => u.id === userId)
   const myPermissions = ((me?.user_metadata as Record<string, unknown>)?.permissions as string[] | undefined) ?? null
 
-  // Non-admins get empty list + isAdmin: false (hides the section in UI)
   if (!isAdmin) {
     return NextResponse.json({ users: [], isAdmin: false, myPermissions })
   }
@@ -60,20 +60,31 @@ export async function POST(req: NextRequest) {
   if (!userId) return NextResponse.json({ error: 'Nicht angemeldet' }, { status: 401 })
   if (!(await isAdminUser(userId))) return NextResponse.json({ error: 'Nur für Admins' }, { status: 403 })
 
-  const { email, password, username, permissions } = await req.json()
-  if (!email || !password) {
-    return NextResponse.json({ error: 'E-Mail und Passwort erforderlich' }, { status: 400 })
+  const body = await req.json()
+  const admin = createAdminClient()
+
+  // Send password reset link to existing user
+  if (body.action === 'send_reset') {
+    const { email } = body
+    if (!email) return NextResponse.json({ error: 'E-Mail erforderlich' }, { status: 400 })
+    const supabase = await createClient()
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${SITE_URL}/auth/callback?next=/reset-password`,
+    })
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+    return NextResponse.json({ success: true })
   }
 
-  const admin = createAdminClient()
-  const { data, error } = await admin.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-    user_metadata: {
+  // Invite new user (sends branded invite email, no password sharing needed)
+  const { email, username, permissions } = body
+  if (!email) return NextResponse.json({ error: 'E-Mail erforderlich' }, { status: 400 })
+
+  const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
+    data: {
       ...(username ? { display_name: username } : {}),
       ...(Array.isArray(permissions) ? { permissions } : {}),
     },
+    redirectTo: `${SITE_URL}/auth/callback?next=/reset-password`,
   })
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
