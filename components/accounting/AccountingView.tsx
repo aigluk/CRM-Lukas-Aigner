@@ -14,6 +14,7 @@ import { ReceiptModal } from './ReceiptModal'
 import { ReceiptPreviewModal } from './ReceiptPreviewModal'
 import { PdfPreviewModal } from './PdfPreviewModal'
 import { InvoiceImportModal } from './InvoiceImportModal'
+import { ImportedInvoiceEditModal } from './ImportedInvoiceEditModal'
 import { SubscriptionModal } from './SubscriptionModal'
 import { ContractModal } from './ContractModal'
 import { ContractPreviewModal } from './ContractPreviewModal'
@@ -291,6 +292,7 @@ export function AccountingView() {
   const [exportingPdf, setExportingPdf] = useState(false)
   const [search, setSearch] = useState('')
   const [importModal, setImportModal] = useState(false)
+  const [importedEditDoc, setImportedEditDoc] = useState<AccountingDocument | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<{ message: string; action: () => Promise<void> } | null>(null)
 
   const [periodMode, setPeriodMode] = useState<PeriodMode>('month')
@@ -506,6 +508,12 @@ export function AccountingView() {
         kuTolerance: KU_TOLERANCE,
         invoiceCount: closing.invoiceCount,
         receiptCount: closing.receiptCount,
+        invoices: closing.periodInvoices.map(d => ({
+          doc_number: d.doc_number,
+          client_name: d.client_name,
+          issue_date: d.issue_date,
+          amount_gross: docTotal(d),
+        })),
       }
       const res = await fetch('/api/accounting/closing-pdf', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
@@ -598,7 +606,7 @@ export function AccountingView() {
                 <Download size={13} />
               </a>
               <button
-                onClick={() => setDocModal({ type, doc })}
+                onClick={() => doc.is_imported ? setImportedEditDoc(doc) : setDocModal({ type, doc })}
                 title="Bearbeiten"
                 className="w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 flex items-center justify-center text-white/40 hover:text-white transition-all shrink-0"
               >
@@ -971,6 +979,13 @@ export function AccountingView() {
           nextNumberHint={nextNumberHint('invoice')}
           onClose={() => setImportModal(false)}
           onSaved={() => { setImportModal(false); loadAll() }}
+        />
+      )}
+      {importedEditDoc && (
+        <ImportedInvoiceEditModal
+          doc={importedEditDoc}
+          onClose={() => setImportedEditDoc(null)}
+          onSaved={() => { setImportedEditDoc(null); loadAll() }}
         />
       )}
       {subscriptionModal && (

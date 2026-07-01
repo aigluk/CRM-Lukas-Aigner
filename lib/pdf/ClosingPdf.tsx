@@ -33,6 +33,18 @@ const styles = StyleSheet.create({
   note: { fontSize: 8, lineHeight: 1.5, color: MUTED, marginTop: 8 },
   noteStrong: { fontSize: 8.5, lineHeight: 1.5, color: INK, marginTop: 4, fontWeight: 700 },
 
+  /* Breakdown table */
+  bkTable: { marginTop: 4, marginBottom: 4, borderWidth: 0.5, borderColor: RULE_LIGHT },
+  bkHead: { flexDirection: 'row', backgroundColor: HEAD_BG, borderBottomWidth: 0.5, borderBottomColor: RULE_LIGHT },
+  bkRow: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: RULE_LIGHT },
+  bkRowLast: { flexDirection: 'row' },
+  bkTotalRow: { flexDirection: 'row', backgroundColor: TOTAL_BG },
+  bkCNr: { width: 72, fontSize: 7.5, paddingVertical: 5, paddingHorizontal: 6 },
+  bkCClient: { flex: 1, fontSize: 7.5, paddingVertical: 5, paddingHorizontal: 6 },
+  bkCDate: { width: 54, fontSize: 7.5, paddingVertical: 5, paddingHorizontal: 6 },
+  bkCAmt: { width: 70, fontSize: 7.5, textAlign: 'right', paddingVertical: 5, paddingHorizontal: 6 },
+  bkBold: { fontWeight: 700 },
+
   footerNotes: { marginTop: 'auto', paddingTop: 10 },
   footerPara: { fontSize: 7.5, lineHeight: 1.5, color: MUTED, marginBottom: 6 },
   bottomRule: { borderTopWidth: 0.5, borderTopColor: RULE_LIGHT, marginTop: 6, marginBottom: 10 },
@@ -44,6 +56,11 @@ const styles = StyleSheet.create({
 
 function fmtMoney(n: number): string {
   return n.toLocaleString('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'
+}
+
+function fmtDate(iso: string): string {
+  const [y, m, d] = iso.split('-')
+  return `${d}.${m}.${y}`
 }
 
 function BrandLogo() {
@@ -72,6 +89,13 @@ function Row({ label, value, bold }: { label: string; value: number; bold?: bool
   )
 }
 
+export interface ClosingInvoiceItem {
+  doc_number: string
+  client_name: string
+  issue_date: string
+  amount_gross: number
+}
+
 export interface ClosingPdfData {
   label: string
   revenueNet: number
@@ -90,6 +114,7 @@ export interface ClosingPdfData {
   kuTolerance: number
   invoiceCount: number
   receiptCount: number
+  invoices?: ClosingInvoiceItem[]
 }
 
 export function ClosingPdf({ data, company }: { data: ClosingPdfData; company: CompanyInfo }) {
@@ -131,6 +156,36 @@ export function ClosingPdf({ data, company }: { data: ClosingPdfData; company: C
           <Row label="Umsatzsteuer (USt.)" value={data.vatCollected} />
           <Row label="Umsatz brutto" value={data.revenueGross} bold />
         </View>
+
+        {data.invoices && data.invoices.length > 0 && (
+          <>
+            <Text style={styles.sectionTitle}>Leistungsaufschlüsselung – Einnahmen</Text>
+            <View style={styles.bkTable}>
+              {/* Header */}
+              <View style={styles.bkHead}>
+                <Text style={[styles.bkCNr, styles.bkBold]}>Rechnungs-Nr.</Text>
+                <Text style={[styles.bkCClient, styles.bkBold]}>Kunde</Text>
+                <Text style={[styles.bkCDate, styles.bkBold]}>Datum</Text>
+                <Text style={[styles.bkCAmt, styles.bkBold]}>Brutto</Text>
+              </View>
+              {data.invoices.map((inv, i) => (
+                <View key={i} style={i === (data.invoices!.length - 1) ? styles.bkRowLast : styles.bkRow}>
+                  <Text style={styles.bkCNr}>{inv.doc_number}</Text>
+                  <Text style={styles.bkCClient}>{inv.client_name}</Text>
+                  <Text style={styles.bkCDate}>{fmtDate(inv.issue_date)}</Text>
+                  <Text style={styles.bkCAmt}>{fmtMoney(inv.amount_gross)}</Text>
+                </View>
+              ))}
+              {/* Total */}
+              <View style={styles.bkTotalRow}>
+                <Text style={[styles.bkCNr, styles.bkBold]}></Text>
+                <Text style={[styles.bkCClient, styles.bkBold]}>Gesamt</Text>
+                <Text style={styles.bkCDate}></Text>
+                <Text style={[styles.bkCAmt, styles.bkBold]}>{fmtMoney(data.revenueGross)}</Text>
+              </View>
+            </View>
+          </>
+        )}
 
         <Text style={styles.sectionTitle}>Ausgaben & Vorsteuer</Text>
         <View style={styles.table}>

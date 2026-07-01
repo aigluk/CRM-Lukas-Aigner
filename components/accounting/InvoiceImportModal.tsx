@@ -308,31 +308,45 @@ export function InvoiceImportModal({
                 /* Normal / loading state */
                 <div className="relative">
                   {isImage && preview ? (
-                    <img src={preview} alt="" className="w-full max-h-56 object-contain" />
+                    <>
+                      <img src={preview} alt="" className="w-full max-h-56 object-contain" />
+                      {!uploading && uploadedPath && (
+                        <div className="absolute bottom-2 right-2 flex gap-1.5">
+                          <button type="button" onClick={() => setLightbox(true)}
+                            className="flex items-center gap-1.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all">
+                            <Eye size={13} />Vorschau
+                          </button>
+                          <button type="button" onClick={triggerPicker}
+                            className="bg-panel-hover text-white/70 hover:text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all">
+                            Ändern
+                          </button>
+                        </div>
+                      )}
+                    </>
                   ) : (
-                    <div className="flex items-center gap-3 px-4 py-5">
-                      <span className="text-sm text-white/60 font-medium truncate min-w-0">{fileName}</span>
+                    /* PDF: inline row — filename truncates, buttons stay right */
+                    <div className="flex items-center gap-2 px-4 py-3.5">
+                      <span className="text-sm text-white/60 font-medium truncate min-w-0 flex-1">
+                        {fileName}
+                      </span>
+                      {!uploading && uploadedPath && (
+                        <div className="flex gap-1.5 shrink-0">
+                          <button type="button" onClick={() => setLightbox(true)}
+                            className="flex items-center gap-1.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all">
+                            <Eye size={13} />Vorschau
+                          </button>
+                          <button type="button" onClick={triggerPicker}
+                            className="bg-panel-hover text-white/70 hover:text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all">
+                            Ändern
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
 
                   {uploading && (
-                    <div className="absolute inset-0 bg-black/65 flex items-center justify-center gap-2 text-xs font-bold text-white">
+                    <div className="absolute inset-0 bg-black/65 flex items-center justify-center gap-2 text-xs font-bold text-white rounded-xl">
                       <Loader2 size={14} className="animate-spin" />Wird hochgeladen…
-                    </div>
-                  )}
-
-                  {!uploading && uploadedPath && (
-                    <div className="absolute bottom-2 right-2 flex gap-1.5">
-                      {preview && (
-                        <button type="button" onClick={() => setLightbox(true)}
-                          className="flex items-center gap-1.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all">
-                          <Eye size={13} />Vorschau
-                        </button>
-                      )}
-                      <button type="button" onClick={triggerPicker}
-                        className="bg-panel-hover text-white/70 hover:text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all">
-                        Ändern
-                      </button>
                     </div>
                   )}
                 </div>
