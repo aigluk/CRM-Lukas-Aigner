@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { X, Save, Camera, Loader2, Sparkles } from 'lucide-react'
+import { X, Save, Camera, Loader2 } from 'lucide-react'
 import type { AccountingReceipt, ReceiptType } from '@/lib/types'
 import { DatePicker } from './DatePicker'
 
@@ -160,16 +160,15 @@ export function ReceiptModal({
               className="w-full flex flex-col items-center justify-center gap-2 bg-dark border border-dashed border-white/15 rounded-xl py-8 text-white/40 hover:text-white hover:border-white/30 transition-all">
               <Camera size={22} />
               <span className="text-sm font-bold">Foto / PDF hinzufügen</span>
-              {!isEdit && <span className="text-xs text-white/25 flex items-center gap-1"><Sparkles size={11} />Betrag wird automatisch erkannt</span>}
             </button>
           )}
 
           {/* Type */}
-          <div className="flex gap-2">
+          <div className="flex bg-dark rounded-xl p-1">
             {(Object.keys(TYPE_LABELS) as Exclude<ReceiptType, 'income_other'>[]).map(t => (
               <button key={t} type="button" onClick={() => setReceiptType(t)}
-                className={`flex-1 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                  receiptType === t ? 'bg-accent text-white' : 'bg-panel-hover text-white/40 hover:text-white'
+                className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
+                  receiptType === t ? 'bg-accent text-white' : 'text-white/40 hover:text-white'
                 }`}>
                 {TYPE_LABELS[t]}
               </button>
