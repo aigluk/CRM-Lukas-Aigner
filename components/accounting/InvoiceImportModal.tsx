@@ -28,71 +28,54 @@ export function InvoiceImportModal({
   const [clientName, setClientName] = useState('')
   const [issueDate, setIssueDate] = useState(new Date().toISOString().slice(0, 10))
   const [amount, setAmount] = useState('')
-  const [taxRate, setTaxRate] = useState('0') // default 0 — overridden by company settings
+  const [taxRate, setTaxRate] = useState('0')
   const [status, setStatus] = useState<DocStatus>('paid')
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
-  // Buffer is eagerly read in the onChange handler to capture cloud-provider security scope
-  const [fileBuffer, setFileBuffer] = useState<ArrayBuffer | null>(null)
   const [ocrLoading, setOcrLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [lightbox, setLightbox] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  // Sync USt-Satz default with company Kleinunternehmer setting
   useEffect(() => {
     fetch('/api/company').then(r => r.json()).then(d => {
-      if (d.company?.small_business) setTaxRate('0')
-      else setTaxRate('20')
+      setTaxRate(d.company?.small_business ? '0' : '20')
     }).catch(() => {})
   }, [])
 
   function handleFile(f: File) {
     setError('')
     setFile(f)
-    setFileBuffer(null)
     setPreview(URL.createObjectURL(f))
 
-    // CRITICAL: start FileReader synchronously inside the onChange event handler.
-    // iOS gives cloud providers (OneDrive, Google Drive, iCloud) a security-scoped URL
-    // that expires once the event handler returns. Initiating the read HERE (even though
-    // it completes async) keeps the security scope alive long enough to finish.
-    const reader = new FileReader()
-    reader.onload = () => {
-      const buf = reader.result as ArrayBuffer
-      if (buf.byteLength > 0) {
-        setFileBuffer(buf)
-        // Fire OCR for images once buffer is ready
-        if (f.type.startsWith('image/')) runOcr(buf, f.type)
+    // Try OCR for images — best-effort, uses FileReader which may work for local files.
+    // Cloud-provider files may skip OCR silently; user can enter fields manually.
+    if (f.type.startsWith('image/')) {
+      setOcrLoading(true)
+      const reader = new FileReader()
+      reader.onload = async () => {
+        try {
+          const buf = reader.result as ArrayBuffer
+          if (!buf.byteLength) return
+          const base64 = bufferToBase64(buf)
+          const res = await fetch('/api/accounting/documents/ocr', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imageBase64: base64, mediaType: f.type }),
+          })
+          const data = await res.json()
+          if (res.ok) {
+            if (data.client_name) setClientName(data.client_name)
+            if (data.date) setIssueDate(data.date)
+            if (data.amount) setAmount(String(data.amount))
+            if (data.invoice_number) setDetectedNumber(data.invoice_number)
+          }
+        } catch { /* OCR best-effort */ }
+        finally { setOcrLoading(false) }
       }
-    }
-    reader.onerror = () => {
-      // Buffer stays null — will surface a clear error at save time
-    }
-    reader.readAsArrayBuffer(f) // ← synchronous initiation is the key
-  }
-
-  async function runOcr(buffer: ArrayBuffer, mimeType: string) {
-    setOcrLoading(true)
-    try {
-      const base64 = bufferToBase64(buffer)
-      const res = await fetch('/api/accounting/documents/ocr', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64: base64, mediaType: mimeType }),
-      })
-      const data = await res.json()
-      if (res.ok) {
-        if (data.client_name) setClientName(data.client_name)
-        if (data.date) setIssueDate(data.date)
-        if (data.amount) setAmount(String(data.amount))
-        if (data.invoice_number) setDetectedNumber(data.invoice_number)
-      }
-    } catch {
-      // OCR best-effort
-    } finally {
-      setOcrLoading(false)
+      reader.onerror = () => setOcrLoading(false)
+      reader.readAsArrayBuffer(f) // synchronous initiation
     }
   }
 
@@ -107,30 +90,17 @@ export function InvoiceImportModal({
     setError('')
 
     try {
-      // Use eagerly-read buffer if available; otherwise try a fresh read (works for local files)
-      let buffer = fileBuffer
-      if (!buffer) {
-        buffer = await new Promise<ArrayBuffer>((resolve, reject) => {
-          const reader = new FileReader()
-          reader.onload = () => resolve(reader.result as ArrayBuffer)
-          reader.onerror = () => reject(new Error('Datei konnte nicht gelesen werden. Bitte Datei erneut auswählen.'))
-          reader.readAsArrayBuffer(file)
-        })
-      }
-      if (!buffer || buffer.byteLength === 0) {
-        throw new Error('Datei ist leer — bitte erneut auswählen.')
-      }
-
-      const mimeType = file.type || 'application/octet-stream'
-      const blob = new Blob([buffer], { type: mimeType })
+      // Pass File object directly — iOS native HTTP can upload cloud-provider files
+      // (OneDrive, Google Drive, iCloud) even when FileReader/arrayBuffer() cannot
+      // read them, because the system uses a different file access code path for uploads.
       const formData = new FormData()
-      formData.append('file', blob, file.name)
+      formData.append('file', file, file.name)
       formData.append('doc_number', docNumber.trim())
       formData.append('client_name', clientName.trim())
       formData.append('issue_date', issueDate)
       formData.append('tax_rate', taxRate)
       formData.append('status', status)
-      formData.append('amount', amount)
+      formData.append('amount', String(amt))
 
       const res = await fetch('/api/accounting/documents/import', { method: 'POST', body: formData })
       if (!res.ok) {
