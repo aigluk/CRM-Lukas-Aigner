@@ -508,12 +508,14 @@ export function AccountingView() {
         kuTolerance: KU_TOLERANCE,
         invoiceCount: closing.invoiceCount,
         receiptCount: closing.receiptCount,
-        invoices: closing.periodInvoices.map(d => ({
-          doc_number: d.doc_number,
-          client_name: d.client_name,
-          issue_date: d.issue_date,
-          amount_gross: docTotal(d),
-        })),
+        invoices: [...closing.periodInvoices]
+          .sort((a, b) => a.issue_date.localeCompare(b.issue_date))
+          .map(d => ({
+            doc_number: d.doc_number,
+            client_name: d.client_name,
+            issue_date: d.issue_date,
+            amount_gross: docTotal(d),
+          })),
       }
       const res = await fetch('/api/accounting/closing-pdf', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
