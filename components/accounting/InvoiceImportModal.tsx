@@ -13,9 +13,14 @@ const STATUS_LABELS: Record<DocStatus, string> = {
   draft: 'Entwurf', sent: 'Versendet', paid: 'Bezahlt', overdue: 'Überfällig',
 }
 
-const ONEDRIVE_MSG =
-  'Datei nicht verfügbar — OneDrive hat sie nur in der Cloud. ' +
-  'Rechtsklick auf die Datei in OneDrive → „Immer auf diesem Gerät verfügbar" → erneut versuchen.'
+// macOS restricts Chrome from reading files managed by cloud providers
+// (OneDrive, iCloud) when the Desktop/Documents folder is cloud-synced.
+// Downloads folder always works because Chrome has an explicit sandbox entitlement for it.
+const CLOUD_FILE_MSG =
+  'Diese Datei kann nicht direkt gelesen werden (OneDrive/Cloud-Datei). ' +
+  'Bitte eine dieser Lösungen wählen:\n' +
+  '① Datei in den Downloads-Ordner kopieren → von dort erneut auswählen\n' +
+  '② In OneDrive: Rechtsklick auf die Datei → „Immer auf diesem Gerät verfügbar halten" → erneut versuchen'
 
 export function InvoiceImportModal({
   nextNumberHint, onClose, onSaved,
@@ -63,13 +68,20 @@ export function InvoiceImportModal({
     setUploadError('')
     setUploadedPath(null)
     try {
-      const buf = await Promise.race<ArrayBuffer>([
-        f.arrayBuffer(),
-        new Promise<never>((_, rej) =>
-          setTimeout(() => rej(new Error('timeout')), 25_000)
-        ),
-      ])
-      if (!buf.byteLength) throw new Error('empty')
+      let buf: ArrayBuffer
+      try {
+        buf = await Promise.race<ArrayBuffer>([
+          f.arrayBuffer(),
+          new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), 25_000)),
+        ])
+      } catch {
+        // arrayBuffer() fails for cloud-only files (OneDrive/iCloud Files-on-Demand)
+        // when macOS's File Provider Extension denies access to Chrome's sandbox.
+        // No browser JS API can bypass this — the user must use Downloads folder.
+        throw new Error(CLOUD_FILE_MSG)
+      }
+
+      if (!buf.byteLength) throw new Error(CLOUD_FILE_MSG)
 
       const fd = new FormData()
       fd.append('file', new Blob([buf], { type: f.type || 'application/octet-stream' }), f.name)
@@ -78,12 +90,7 @@ export function InvoiceImportModal({
       if (!res.ok) throw new Error(data.error ?? 'Upload fehlgeschlagen.')
       setUploadedPath(data.file_path)
     } catch (e: any) {
-      const msg = e.message
-      setUploadError(
-        msg === 'timeout' || msg === 'empty'
-          ? ONEDRIVE_MSG
-          : (msg || ONEDRIVE_MSG)
-      )
+      setUploadError(e.message || CLOUD_FILE_MSG)
     } finally {
       setUploading(false)
     }
@@ -117,7 +124,7 @@ export function InvoiceImportModal({
       setUploading(false)
     }
 
-    iframeTimeoutRef.current = setTimeout(() => finish(ONEDRIVE_MSG), 25_000)
+    iframeTimeoutRef.current = setTimeout(() => finish(CLOUD_FILE_MSG), 25_000)
 
     const handleLoad = () => {
       try {
@@ -131,12 +138,12 @@ export function InvoiceImportModal({
         catch { finish('Unerwartete Server-Antwort.'); return }
 
         if (data.file_path) finish(undefined, data.file_path)
-        else if (data.error === 'Datei fehlt.' || data.error === 'Datei leer.') finish(ONEDRIVE_MSG)
+        else if (data.error === 'Datei fehlt.' || data.error === 'Datei leer.') finish(CLOUD_FILE_MSG)
         else finish(data.error ?? 'Upload fehlgeschlagen.')
       } catch {
         // SecurityError: browser loaded an error page (cross-origin) instead
         // of our response — means the OS couldn't read the cloud-only file
-        finish(ONEDRIVE_MSG)
+        finish(CLOUD_FILE_MSG)
       }
     }
 
@@ -245,23 +252,27 @@ export function InvoiceImportModal({
           {showFileArea ? (
             <div className="rounded-xl bg-dark overflow-hidden">
 
-              {/* Error state: standalone block, no absolute overlay */}
+              {/* Error state: standalone block (no absolute overlay → never clips) */}
               {!uploading && uploadError ? (
                 <div className="p-4 flex flex-col gap-3">
                   <div className="flex items-center gap-2.5 text-xs text-white/40">
                     <span className="truncate min-w-0">{fileName}</span>
                     <button type="button" onClick={triggerPicker}
                       className="shrink-0 text-white/30 hover:text-white underline text-[11px] transition-all">
-                      Ändern
+                      Andere Datei
                     </button>
                   </div>
                   <div className="flex items-start gap-2 bg-accent/10 rounded-xl p-3">
                     <AlertCircle size={14} className="shrink-0 text-accent mt-0.5" />
-                    <p className="text-xs text-accent leading-relaxed font-medium">{uploadError}</p>
+                    <div className="text-xs text-accent leading-relaxed font-medium space-y-1.5">
+                      {uploadError.split('\n').map((line, i) => (
+                        <p key={i}>{line}</p>
+                      ))}
+                    </div>
                   </div>
-                  <button type="button" onClick={() => uploadViaIframe()}
+                  <button type="button" onClick={triggerPicker}
                     className="flex items-center justify-center gap-1.5 bg-panel-hover hover:bg-white/10 text-white text-xs font-bold px-3 py-2 rounded-xl transition-all">
-                    <RefreshCw size={12} />Nochmal versuchen (alternatives Verfahren)
+                    <RefreshCw size={12} />Datei erneut auswählen
                   </button>
                 </div>
               ) : (
