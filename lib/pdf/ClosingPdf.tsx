@@ -104,6 +104,13 @@ export interface ClosingExpenseItem {
   monthly?: number
 }
 
+export interface SalaryPdfItem {
+  employer_name: string
+  entry_type: 'employment' | 'gf_salary'
+  gross_amount: number
+  tax_withheld: number
+}
+
 export interface ClosingPdfData {
   label: string
   revenueNet: number
@@ -124,6 +131,9 @@ export interface ClosingPdfData {
   receiptCount: number
   invoices?: ClosingInvoiceItem[]
   expenseItems?: ClosingExpenseItem[]
+  salaryItems?: SalaryPdfItem[]
+  salaryGrossTotal?: number
+  salaryTaxWithheld?: number
 }
 
 export function ClosingPdf({ data, company }: { data: ClosingPdfData; company: CompanyInfo }) {
@@ -145,38 +155,48 @@ export function ClosingPdf({ data, company }: { data: ClosingPdfData; company: C
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <View style={styles.brandRow}>
-          <BrandLogo />
-          <Text style={styles.brandName}>{company.name || 'Lukas Aigner'}</Text>
+        {/* Brand header — always at top, never breaks */}
+        <View wrap={false}>
+          <View style={styles.brandRow}>
+            <BrandLogo />
+            <Text style={styles.brandName}>{company.name || 'Lukas Aigner'}</Text>
+          </View>
+          <View style={styles.brandRule} />
+          <View style={styles.titleRow}>
+            <Text style={styles.titleText}>Abschluss</Text>
+            <Text style={styles.titleText}>{data.label}</Text>
+          </View>
+          <Text style={styles.subtitle}>
+            Einnahmen-Überschuss-Rechnung (EÜR) - vorläufige Berechnung · {data.invoiceCount} bezahlte Rechnung(en) · {data.receiptCount} Ausgabenbeleg(e)
+          </Text>
         </View>
-        <View style={styles.brandRule} />
 
-        <View style={styles.titleRow}>
-          <Text style={styles.titleText}>Abschluss</Text>
-          <Text style={styles.titleText}>{data.label}</Text>
-        </View>
-        <Text style={styles.subtitle}>
-          Einnahmen-Überschuss-Rechnung (EÜR) - vorläufige Berechnung · {data.invoiceCount} bezahlte Rechnung(en) · {data.receiptCount} Ausgabenbeleg(e)
-        </Text>
-
-        <Text style={styles.sectionTitle}>Einnahmen & Umsatzsteuer</Text>
-        <View style={styles.table}>
-          <Row label="Umsatz netto" value={data.revenueNet} />
-          <Row label="Umsatzsteuer (USt.)" value={data.vatCollected} />
-          <Row label="Umsatz brutto" value={data.revenueGross} bold />
+        {/* Einnahmen summary — keep title + table together */}
+        <View wrap={false}>
+          <Text style={styles.sectionTitle}>Einnahmen & Umsatzsteuer</Text>
+          <View style={styles.table}>
+            <Row label="Umsatz netto" value={data.revenueNet} />
+            <Row label="Umsatzsteuer (USt.)" value={data.vatCollected} />
+            <Row label="Umsatz brutto" value={data.revenueGross} bold />
+          </View>
         </View>
 
         {data.invoices && data.invoices.length > 0 && (
           <>
-            <Text style={styles.sectionTitle}>Leistungsaufschlüsselung – Einnahmen</Text>
-            <View style={styles.bkTable}>
-              {/* Header */}
-              <View style={styles.bkHead}>
-                <Text style={[styles.bkCNr, styles.bkBold]}>Rechnungs-Nr.</Text>
-                <Text style={[styles.bkCClient, styles.bkBold]}>Kunde</Text>
-                <Text style={[styles.bkCDate, styles.bkBold]}>Datum</Text>
-                <Text style={[styles.bkCAmt, styles.bkBold]}>Brutto</Text>
+            {/* Breakdown header row kept with section title and at least first data row */}
+            <View wrap={false}>
+              <Text style={styles.sectionTitle}>Leistungsaufschlüsselung – Einnahmen</Text>
+              <View style={[styles.bkTable, { marginBottom: 0, borderBottomWidth: 0 }]}>
+                <View style={styles.bkHead}>
+                  <Text style={[styles.bkCNr, styles.bkBold]}>Rechnungs-Nr.</Text>
+                  <Text style={[styles.bkCClient, styles.bkBold]}>Kunde</Text>
+                  <Text style={[styles.bkCDate, styles.bkBold]}>Datum</Text>
+                  <Text style={[styles.bkCAmt, styles.bkBold]}>Brutto</Text>
+                </View>
               </View>
+            </View>
+            {/* Data rows — allowed to break across pages */}
+            <View style={[styles.bkTable, { marginTop: 0, borderTopWidth: 0 }]}>
               {data.invoices.map((inv, i) => (
                 <View key={i} style={i === (data.invoices!.length - 1) ? styles.bkRowLast : styles.bkRow}>
                   <Text style={styles.bkCNr}>{inv.doc_number}</Text>
@@ -185,8 +205,8 @@ export function ClosingPdf({ data, company }: { data: ClosingPdfData; company: C
                   <Text style={styles.bkCAmt}>{fmtMoney(inv.amount_gross)}</Text>
                 </View>
               ))}
-              {/* Total */}
-              <View style={styles.bkTotalRow}>
+              {/* Total row always kept with last data row */}
+              <View wrap={false} style={styles.bkTotalRow}>
                 <Text style={[{ flex: 1, fontSize: 7.5, paddingVertical: 5, paddingHorizontal: 6 }, styles.bkBold]}>Gesamt</Text>
                 <Text style={[styles.bkCAmt, styles.bkBold]}>{fmtMoney(data.revenueGross)}</Text>
               </View>
@@ -194,30 +214,37 @@ export function ClosingPdf({ data, company }: { data: ClosingPdfData; company: C
           </>
         )}
 
-        <Text style={styles.sectionTitle}>
-          {data.vorsteuer > 0 ? 'Ausgaben & Vorsteuer' : 'Ausgaben'}
-        </Text>
-        <View style={styles.table}>
-          {data.vorsteuer > 0 ? (
-            <>
-              <Row label="Ausgaben netto" value={-data.expensesNet} />
-              <Row label="Vorsteuer" value={-data.vorsteuer} />
-              <Row label="Ausgaben brutto" value={-data.expensesGross} bold />
-            </>
-          ) : (
-            <Row label="Ausgaben gesamt" value={-data.expensesGross} bold />
-          )}
+        {/* Ausgaben summary — keep title + table together */}
+        <View wrap={false}>
+          <Text style={styles.sectionTitle}>
+            {data.vorsteuer > 0 ? 'Ausgaben & Vorsteuer' : 'Ausgaben'}
+          </Text>
+          <View style={styles.table}>
+            {data.vorsteuer > 0 ? (
+              <>
+                <Row label="Ausgaben netto" value={-data.expensesNet} />
+                <Row label="Vorsteuer" value={-data.vorsteuer} />
+                <Row label="Ausgaben brutto" value={-data.expensesGross} bold />
+              </>
+            ) : (
+              <Row label="Ausgaben gesamt" value={-data.expensesGross} bold />
+            )}
+          </View>
         </View>
 
         {data.expenseItems && data.expenseItems.length > 0 && (
           <>
-            <Text style={styles.sectionTitle}>Ausgaben-Aufschlüsselung</Text>
-            <View style={styles.bkTable}>
-              <View style={styles.bkHead}>
-                <Text style={[styles.bkCClient, styles.bkBold]}>Beschreibung</Text>
-                <Text style={[styles.bkCDate, styles.bkBold]}>Datum / Zeitraum</Text>
-                <Text style={[styles.bkCAmt, styles.bkBold]}>Betrag</Text>
+            <View wrap={false}>
+              <Text style={styles.sectionTitle}>Ausgaben-Aufschlüsselung</Text>
+              <View style={[styles.bkTable, { marginBottom: 0, borderBottomWidth: 0 }]}>
+                <View style={styles.bkHead}>
+                  <Text style={[styles.bkCClient, styles.bkBold]}>Beschreibung</Text>
+                  <Text style={[styles.bkCDate, styles.bkBold]}>Datum / Zeitraum</Text>
+                  <Text style={[styles.bkCAmt, styles.bkBold]}>Betrag</Text>
+                </View>
               </View>
+            </View>
+            <View style={[styles.bkTable, { marginTop: 0, borderTopWidth: 0 }]}>
               {data.expenseItems.map((item, i) => {
                 const isLast = i === data.expenseItems!.length - 1
                 const dateOrPeriod = item.date
@@ -233,7 +260,7 @@ export function ClosingPdf({ data, company }: { data: ClosingPdfData; company: C
                   </View>
                 )
               })}
-              <View style={styles.bkTotalRow}>
+              <View wrap={false} style={styles.bkTotalRow}>
                 <Text style={[{ flex: 1, fontSize: 7.5, paddingVertical: 5, paddingHorizontal: 6 }, styles.bkBold]}>Gesamt</Text>
                 <Text style={[styles.bkCAmt, styles.bkBold]}>{fmtMoney(data.expensesGross)}</Text>
               </View>
@@ -241,19 +268,56 @@ export function ClosingPdf({ data, company }: { data: ClosingPdfData; company: C
           </>
         )}
 
-        <Text style={styles.sectionTitle}>Ergebnis</Text>
-        <View style={styles.table}>
-          <Row label="USt-Zahllast" value={data.vatPayable} bold />
-          <Row label="Gewinn vor Steuern" value={data.profitBeforeTax} bold />
-          <Row label="Geschätzte Einkommensteuer (hochgerechnet)" value={-data.estimatedIncomeTax} />
-          <View style={styles.tRowTotal}>
-            <Text style={styles.cLabelBold}>Gewinn nach geschätzter Steuer</Text>
-            <Text style={styles.cValBold}>{fmtMoney(data.profitAfterTax)}</Text>
+        {/* Ergebnis — always keep together, force onto new page if tight */}
+        <View wrap={false}>
+          <Text style={styles.sectionTitle}>Ergebnis</Text>
+          <View style={styles.table}>
+            <Row label="USt-Zahllast" value={data.vatPayable} bold />
+            <Row label="Gewinn vor Steuern" value={data.profitBeforeTax} bold />
+            <Row label="Geschätzte Einkommensteuer (hochgerechnet)" value={-data.estimatedIncomeTax} />
+            <View style={styles.tRowTotal}>
+              <Text style={styles.cLabelBold}>Gewinn nach geschätzter Steuer</Text>
+              <Text style={styles.cValBold}>{fmtMoney(data.profitAfterTax)}</Text>
+            </View>
           </View>
         </View>
 
-        <Text style={styles.noteStrong}>Kleinunternehmer-Status</Text>
-        <Text style={styles.note}>{kuStatusText}</Text>
+        {/* KU-Status note — keep together */}
+        <View wrap={false}>
+          <Text style={styles.noteStrong}>Kleinunternehmer-Status</Text>
+          <Text style={styles.note}>{kuStatusText}</Text>
+        </View>
+
+        {/* Lohneinkünfte — only shown when salary entries exist */}
+        {data.salaryItems && data.salaryItems.length > 0 && (
+          <View wrap={false}>
+            <Text style={[styles.sectionTitle, { marginTop: 18 }]}>Einkünfte aus nichtselbständiger Arbeit (Lohnzettel)</Text>
+            <View style={styles.bkTable}>
+              <View style={styles.bkHead}>
+                <Text style={[styles.bkCClient, styles.bkBold]}>Arbeitgeber</Text>
+                <Text style={[{ width: 64, fontSize: 7.5, paddingVertical: 5, paddingHorizontal: 6 }, styles.bkBold]}>Art</Text>
+                <Text style={[styles.bkCAmt, styles.bkBold]}>Bruttobezug</Text>
+                <Text style={[styles.bkCAmt, styles.bkBold]}>LSt einbeh.</Text>
+              </View>
+              {data.salaryItems.map((s, i) => (
+                <View key={i} style={i === data.salaryItems!.length - 1 ? styles.bkRowLast : styles.bkRow}>
+                  <Text style={styles.bkCClient}>{s.employer_name}</Text>
+                  <Text style={{ width: 64, fontSize: 7.5, paddingVertical: 5, paddingHorizontal: 6 }}>{s.entry_type === 'gf_salary' ? 'GF-Gehalt' : 'Anstellung'}</Text>
+                  <Text style={styles.bkCAmt}>{fmtMoney(s.gross_amount)}</Text>
+                  <Text style={styles.bkCAmt}>{fmtMoney(s.tax_withheld)}</Text>
+                </View>
+              ))}
+              <View style={styles.bkTotalRow}>
+                <Text style={[{ flex: 1, fontSize: 7.5, paddingVertical: 5, paddingHorizontal: 6 }, styles.bkBold]}>Gesamt</Text>
+                <Text style={[styles.bkCAmt, styles.bkBold]}>{fmtMoney(data.salaryGrossTotal ?? 0)}</Text>
+                <Text style={[styles.bkCAmt, styles.bkBold]}>{fmtMoney(data.salaryTaxWithheld ?? 0)}</Text>
+              </View>
+            </View>
+            <Text style={styles.note}>
+              Diese Lohnzettel-Einkünfte sind in der Einkommensteuererklärung (E1) zusätzlich zu den selbständigen Einkünften anzugeben. Die einbehaltene Lohnsteuer wird auf die Einkommensteuer angerechnet. Bitte alle Lohnzettel (L16) vollständig an den Steuerberater weitergeben.
+            </Text>
+          </View>
+        )}
 
         <View style={styles.footerNotes}>
           <Text style={styles.footerPara}>

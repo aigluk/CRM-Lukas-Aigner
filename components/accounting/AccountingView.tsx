@@ -6,7 +6,7 @@ import {
   Download, FileDown, Trash2, ChevronDown, ChevronLeft, ChevronRight, Image as ImageIcon, Eye, EyeOff,
   Loader2, Search, Upload, RefreshCw, Pencil,
 } from 'lucide-react'
-import type { AccountingDocument, AccountingReceipt, AccountingSubscription, AccountingContract, ContractType, DocType, DocStatus, ReceiptType, SubscriptionInterval } from '@/lib/types'
+import type { AccountingDocument, AccountingReceipt, AccountingSubscription, AccountingContract, AccountingSalaryEntry, ContractType, DocType, DocStatus, ReceiptType, SubscriptionInterval, SalaryEntryType } from '@/lib/types'
 import type { CompanyInfo } from '@/lib/pdf/DocumentPdf'
 import type { ClosingPdfData } from '@/lib/pdf/ClosingPdf'
 import { DocumentModal } from './DocumentModal'
@@ -16,13 +16,14 @@ import { PdfPreviewModal } from './PdfPreviewModal'
 import { InvoiceImportModal } from './InvoiceImportModal'
 import { ImportedInvoiceEditModal } from './ImportedInvoiceEditModal'
 import { SubscriptionModal } from './SubscriptionModal'
+import { SalaryModal } from './SalaryModal'
 import { ContractModal } from './ContractModal'
 import { ContractPreviewModal } from './ContractPreviewModal'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useClickOutside } from '@/lib/useClickOutside'
 import { useRef } from 'react'
 
-type Tab = 'overview' | 'invoices' | 'quotes' | 'receipts' | 'subscriptions' | 'closings' | 'service_contracts' | 'fulfillment' | 'sales_partners'
+type Tab = 'overview' | 'invoices' | 'quotes' | 'receipts' | 'subscriptions' | 'salaries' | 'closings' | 'service_contracts' | 'fulfillment' | 'sales_partners'
 
 const TAB_CONTRACT_TYPE: Record<'service_contracts' | 'fulfillment' | 'sales_partners', ContractType> = {
   service_contracts: 'service',
@@ -176,6 +177,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'sales_partners',     label: 'Vertriebspartner' },
   { id: 'receipts',           label: 'Zahlungen' },
   { id: 'subscriptions',      label: 'Abos' },
+  { id: 'salaries',           label: 'Gehälter' },
   { id: 'closings',           label: 'Abschlüsse' },
 ]
 
@@ -278,6 +280,7 @@ export function AccountingView() {
   const [receipts, setReceipts]   = useState<AccountingReceipt[]>([])
   const [subscriptions, setSubscriptions] = useState<AccountingSubscription[]>([])
   const [contracts, setContracts] = useState<AccountingContract[]>([])
+  const [salaries, setSalaries] = useState<AccountingSalaryEntry[]>([])
   const [loading, setLoading]     = useState(true)
   const [docModal, setDocModal]   = useState<{ type: DocType; doc?: AccountingDocument } | null>(null)
   const [receiptModal, setReceiptModal] = useState(false)
@@ -295,6 +298,7 @@ export function AccountingView() {
   const [importModal, setImportModal] = useState(false)
   const [importedEditDoc, setImportedEditDoc] = useState<AccountingDocument | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<{ message: string; action: () => Promise<void> } | null>(null)
+  const [salaryModal, setSalaryModal] = useState<{ entry?: AccountingSalaryEntry } | null>(null)
 
   const [periodMode, setPeriodMode] = useState<PeriodMode>('month')
   const now = new Date()
@@ -305,16 +309,18 @@ export function AccountingView() {
   async function loadAll() {
     setLoading(true)
     try {
-      const [docsRes, receiptsRes, subsRes, contractsRes] = await Promise.all([
+      const [docsRes, receiptsRes, subsRes, contractsRes, salariesRes] = await Promise.all([
         fetch('/api/accounting/documents').then(r => r.json()),
         fetch('/api/accounting/receipts').then(r => r.json()),
         fetch('/api/accounting/subscriptions').then(r => r.json()),
         fetch('/api/accounting/contracts').then(r => r.json()),
+        fetch('/api/accounting/salaries').then(r => r.json()),
       ])
       setDocuments(docsRes.documents ?? [])
       setReceipts(receiptsRes.receipts ?? [])
       setSubscriptions(subsRes.subscriptions ?? [])
       setContracts(contractsRes.contracts ?? [])
+      setSalaries(salariesRes.salaries ?? [])
     } finally {
       setLoading(false)
     }
@@ -530,6 +536,11 @@ export function AccountingView() {
 
     const profitAfterTax = profitBeforeTax - estimatedIncomeTax
 
+    // Salary entries for this year (always full-year context)
+    const periodSalaries = salaries.filter(s => s.period_year === periodYear)
+    const salaryGrossTotal = periodSalaries.reduce((s, e) => s + e.gross_amount, 0)
+    const salaryTaxWithheld = periodSalaries.reduce((s, e) => s + e.tax_withheld, 0)
+
     return {
       label, revenueGross, revenueNet, vatCollected,
       expensesGross, expensesNet, vorsteuer, vatPayable, profitBeforeTax,
@@ -538,8 +549,9 @@ export function AccountingView() {
       smallBusinessActive, ytdRevenueGross,
       estimatedIncomeTax, estimatedAnnualIncomeTax, estimatedQuarterlyPrepayment,
       profitAfterTax,
+      periodSalaries, salaryGrossTotal, salaryTaxWithheld,
     }
-  }, [invoices, receipts, subscriptions, periodMode, periodYear, periodMonth, periodQuarter, company])
+  }, [invoices, receipts, subscriptions, salaries, periodMode, periodYear, periodMonth, periodQuarter, company])
 
   async function exportClosingPdf() {
     setExportingPdf(true)
@@ -571,6 +583,14 @@ export function AccountingView() {
             amount_gross: docTotal(d),
           })),
         expenseItems: closing.expenseItems,
+        salaryItems: closing.periodSalaries.map(s => ({
+          employer_name: s.employer_name,
+          entry_type: s.entry_type as 'employment' | 'gf_salary',
+          gross_amount: s.gross_amount,
+          tax_withheld: s.tax_withheld,
+        })),
+        salaryGrossTotal: closing.salaryGrossTotal,
+        salaryTaxWithheld: closing.salaryTaxWithheld,
       }
       const res = await fetch('/api/accounting/closing-pdf', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
@@ -623,6 +643,22 @@ export function AccountingView() {
         setConfirmDelete(null)
       },
     })
+  }
+
+  function deleteSalary(id: string) {
+    setConfirmDelete({
+      message: 'Gehalt-Eintrag wirklich löschen?',
+      action: async () => {
+        setSalaries(prev => prev.filter(s => s.id !== id))
+        await fetch(`/api/accounting/salaries?id=${id}`, { method: 'DELETE' })
+        setConfirmDelete(null)
+      },
+    })
+  }
+
+  const SALARY_TYPE_LABELS: Record<SalaryEntryType, string> = {
+    employment: 'Anstellung',
+    gf_salary:  'GF-Gehalt',
   }
 
   function DocList({ docs, type, className }: { docs: AccountingDocument[]; type: DocType; className?: string }) {
@@ -779,6 +815,11 @@ export function AccountingView() {
             <Plus size={16} /><span className="hidden sm:inline">Neues Abo</span>
           </button>
         )}
+        {tab === 'salaries' && (
+          <button onClick={() => setSalaryModal({})} className="flex items-center gap-2 bg-accent hover:bg-accent-hover text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95">
+            <Plus size={16} /><span className="hidden sm:inline">Gehalt erfassen</span>
+          </button>
+        )}
         {(tab === 'service_contracts' || tab === 'fulfillment' || tab === 'sales_partners') && (
           <button
             onClick={() => setContractModal({ type: TAB_CONTRACT_TYPE[tab] })}
@@ -928,10 +969,55 @@ export function AccountingView() {
               </ul>
           </div>
         )
+      ) : tab === 'salaries' ? (
+        salaries.length === 0 ? (
+          <div className="bg-panel rounded-2xl py-16 text-center flex-1 min-h-0">
+            <p className="text-white/40 text-sm font-medium">Noch keine Gehälter erfasst.</p>
+            <p className="text-white/25 text-xs mt-1">Trage deine Lohnzettel (L16) hier ein.</p>
+          </div>
+        ) : (
+          <div className="bg-panel rounded-2xl flex-1 min-h-0 overflow-y-auto">
+            <ul>
+              {salaries.map((s, i) => (
+                <li key={s.id} className={`flex items-center gap-3 px-4 sm:px-5 py-3.5 ${i < salaries.length - 1 ? 'border-b border-panel-2' : ''}`}>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <p className="text-sm font-semibold text-white truncate">{s.employer_name}</p>
+                      <span className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-white/8 text-white/35">
+                        {SALARY_TYPE_LABELS[s.entry_type]}
+                      </span>
+                    </div>
+                    <p className="text-xs text-white/35 mt-0.5">{s.period_year}{s.notes ? ` · ${s.notes}` : ''}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-bold text-accent-green">{fmtMoney(s.gross_amount)}</p>
+                    {s.tax_withheld > 0 && (
+                      <p className="text-xs text-white/30 mt-0.5">LSt {fmtMoney(s.tax_withheld)}</p>
+                    )}
+                  </div>
+                  {s.file_path && (
+                    <a href={`/api/accounting/salaries/${s.id}/file`} target="_blank" rel="noopener noreferrer"
+                      title="Lohnzettel anzeigen"
+                      className="w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 flex items-center justify-center text-white/40 hover:text-white transition-all shrink-0">
+                      <Eye size={13} />
+                    </a>
+                  )}
+                  <button onClick={() => setSalaryModal({ entry: s })} title="Bearbeiten"
+                    className="w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 flex items-center justify-center text-white/40 hover:text-white transition-all shrink-0">
+                    <Pencil size={13} />
+                  </button>
+                  <button onClick={() => deleteSalary(s.id)} title="Löschen"
+                    className="w-8 h-8 rounded-full bg-white/6 hover:bg-accent/20 flex items-center justify-center text-white/30 hover:text-accent transition-all shrink-0">
+                    <Trash2 size={13} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )
       ) : tab === 'closings' ? (
-        <div className="flex-1 min-h-0 overflow-y-auto pb-4">
-          <div className="space-y-5">
-            <div className="bg-panel rounded-2xl p-5">
+        <div className="flex-1 min-h-0 flex flex-col gap-5">
+          <div className="bg-panel rounded-2xl p-5 shrink-0">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-black text-white">Zeitraum</h2>
               <button
@@ -979,11 +1065,9 @@ export function AccountingView() {
               <ListYearDropdown year={periodYear} isActive onSelect={setPeriodYear} />
             </div>
           </div>
-
-          <div>
-            <p className="text-xs text-white/30 mb-2 px-1">Abschluss · {closing.label} - {closing.invoiceCount} bezahlte Rechnung(en)</p>
-            <DocList docs={closing.periodInvoices} type="invoice" />
-          </div>
+          <div className="flex-1 min-h-0 flex flex-col">
+            <p className="shrink-0 text-xs text-white/30 mb-2 px-1">Abschluss · {closing.label} · {closing.invoiceCount} bezahlte Rechnung(en)</p>
+            <DocList docs={closing.periodInvoices} type="invoice" className="flex-1 min-h-0 overflow-y-auto" />
           </div>
         </div>
       ) : tab === 'invoices' ? (
@@ -1086,6 +1170,13 @@ export function AccountingView() {
           subscription={subscriptionModal.sub}
           onClose={() => setSubscriptionModal(null)}
           onSaved={() => { setSubscriptionModal(null); loadAll() }}
+        />
+      )}
+      {salaryModal && (
+        <SalaryModal
+          entry={salaryModal.entry}
+          onClose={() => setSalaryModal(null)}
+          onSaved={() => { setSalaryModal(null); loadAll() }}
         />
       )}
       {previewDoc && (

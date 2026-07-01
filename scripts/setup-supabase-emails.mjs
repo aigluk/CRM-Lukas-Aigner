@@ -35,7 +35,7 @@ const payload = {
   mailer_recovery_subject:   'Passwort zurücksetzen – LA CRM',
   recovery_template:         recoveryHtml,
   // Ensure production URL is in the redirect allowlist
-  uri_allow_list:            ['https://la-crm-one.vercel.app/**'],
+  uri_allow_list:            'https://la-crm-one.vercel.app/**',
 }
 
 const res = await fetch(`https://api.supabase.com/v1/projects/${PROJECT_REF}/config/auth`, {

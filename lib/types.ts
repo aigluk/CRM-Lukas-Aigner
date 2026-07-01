@@ -152,6 +152,21 @@ export interface AccountingDocument {
   updated_at: string
 }
 
+export type SalaryEntryType = 'employment' | 'gf_salary'
+
+export interface AccountingSalaryEntry {
+  id: string
+  user_id: string
+  employer_name: string
+  gross_amount: number
+  tax_withheld: number
+  period_year: number
+  entry_type: SalaryEntryType
+  notes?: string
+  file_path?: string
+  created_at: string
+}
+
 export type ReceiptType = 'expense' | 'cash' | 'income_other'
 
 export interface AccountingReceipt {
