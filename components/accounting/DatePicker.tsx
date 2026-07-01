@@ -11,6 +11,11 @@ const MONTHS = [
   'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember',
 ]
 
+const PANEL_W = 272
+const PANEL_H = 320
+const GAP = 8
+const EDGE_PAD = 8
+
 function parseDateInput(v: string): Date | null {
   if (!v) return null
   const [y, m, d] = v.split('-').map(Number)
@@ -30,6 +35,7 @@ export function DatePicker({
   className?: string
 }) {
   const [open, setOpen] = useState(false)
+  const [openUp, setOpenUp] = useState(false)
   const selected = parseDateInput(value)
   const [viewMonth, setViewMonth] = useState(() => selected ?? new Date())
   const [popStyle, setPopStyle] = useState<React.CSSProperties>({})
@@ -42,11 +48,22 @@ export function DatePicker({
     setViewMonth(selected ?? new Date())
     const rect = btnRef.current?.getBoundingClientRect()
     if (rect) {
-      const panelHeight = 360
-      const openUp = window.innerHeight - rect.bottom < panelHeight && rect.top > panelHeight
-      setPopStyle(openUp
-        ? { position: 'fixed', bottom: window.innerHeight - rect.top + 8, left: rect.left, width: 256 }
-        : { position: 'fixed', top: rect.bottom + 8, left: rect.left, width: 256 }
+      const vw = window.innerWidth
+      const vh = window.innerHeight
+
+      // Vertical: prefer below, flip above if not enough space
+      const shouldOpenUp = vh - rect.bottom < PANEL_H + GAP && rect.top > PANEL_H + GAP
+      setOpenUp(shouldOpenUp)
+
+      // Horizontal: left-align to button, clamp so it never goes off-screen
+      const rawLeft = rect.left
+      const clampedLeft = Math.min(rawLeft, vw - PANEL_W - EDGE_PAD)
+      const left = Math.max(EDGE_PAD, clampedLeft)
+
+      setPopStyle(
+        shouldOpenUp
+          ? { position: 'fixed', bottom: vh - rect.top + GAP, left, width: PANEL_W }
+          : { position: 'fixed', top: rect.bottom + GAP, left, width: PANEL_W }
       )
     }
     setOpen(true)
@@ -60,7 +77,7 @@ export function DatePicker({
   const year = viewMonth.getFullYear()
   const month = viewMonth.getMonth()
   const firstOfMonth = new Date(year, month, 1)
-  const startOffset = (firstOfMonth.getDay() + 6) % 7 // Monday = 0
+  const startOffset = (firstOfMonth.getDay() + 6) % 7
   const daysInMonth = new Date(year, month + 1, 0).getDate()
   const today = new Date()
 
@@ -77,14 +94,18 @@ export function DatePicker({
         className={`w-full flex items-center justify-between gap-2 ${className}`}
       >
         <span className={selected ? 'text-white' : 'text-white/30'}>
-          {selected ? selected.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' }) : placeholder}
+          {selected
+            ? selected.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' })
+            : placeholder}
         </span>
         <CalendarIcon size={15} className="text-accent shrink-0" />
       </button>
 
       {open && (
         <div
-          className="z-100 bg-panel-2 border border-white/10 rounded-2xl shadow-2xl p-3 animate-in fade-in slide-in-from-top-1 duration-150"
+          className={`z-[200] bg-panel-2 border border-white/10 rounded-2xl shadow-2xl p-3 animate-in fade-in duration-150 ${
+            openUp ? 'slide-in-from-bottom-1' : 'slide-in-from-top-1'
+          }`}
           style={popStyle}
         >
           <div className="flex items-center justify-between mb-2.5">
