@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import {
   Plus, FileText, TrendingUp, TrendingDown, Wallet,
-  Download, Trash2, ChevronDown, ChevronLeft, ChevronRight, Image as ImageIcon, Eye, EyeOff,
+  Download, FileDown, Trash2, ChevronDown, ChevronLeft, ChevronRight, Image as ImageIcon, Eye, EyeOff,
   Loader2, Search, Upload, RefreshCw, Pencil,
 } from 'lucide-react'
 import type { AccountingDocument, AccountingReceipt, AccountingSubscription, AccountingContract, ContractType, DocType, DocStatus, ReceiptType, SubscriptionInterval } from '@/lib/types'
@@ -867,9 +867,9 @@ export function AccountingView() {
               <button
                 onClick={exportClosingPdf}
                 disabled={exportingPdf}
-                className="flex items-center gap-1.5 bg-accent hover:bg-accent-hover text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all active:scale-95 disabled:opacity-50"
+                className="flex items-center gap-2 bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-xl text-xs font-bold tracking-wide transition-all active:scale-95 disabled:opacity-50"
               >
-                {exportingPdf ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
+                {exportingPdf ? <Loader2 size={13} className="animate-spin" /> : <FileDown size={13} strokeWidth={2.2} />}
                 PDF-Export
               </button>
             </div>
