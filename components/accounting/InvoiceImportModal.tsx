@@ -23,8 +23,9 @@ export function InvoiceImportModal({
   const [taxRate, setTaxRate] = useState('0')
   const [status, setStatus] = useState<DocStatus>('paid')
 
-  const [file, setFile] = useState<File | null>(null)
+  const [fileName, setFileName] = useState('')
   const [preview, setPreview] = useState<string | null>(null)
+  const [isImage, setIsImage] = useState(false)
   const [uploadedPath, setUploadedPath] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
@@ -32,7 +33,15 @@ export function InvoiceImportModal({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [lightbox, setLightbox] = useState(false)
-  const fileRef = useRef<HTMLInputElement>(null)
+
+  // Native form + iframe approach: bypasses JS file reading entirely.
+  // The browser submits the form using OS-level file access (same path as any
+  // native app upload), which works for OneDrive cloud-only files where
+  // FileReader and fetch(FormData) both fail due to JS sandbox restrictions.
+  const formRef = useRef<HTMLFormElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
+  const iframeListenerRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
     fetch('/api/company').then(r => r.json()).then(d => {
@@ -40,31 +49,65 @@ export function InvoiceImportModal({
     }).catch(() => {})
   }, [])
 
-  // Upload the file immediately when selected so the browser's native upload
-  // can run while the security scope for cloud-provider files is still active.
-  async function uploadFile(f: File) {
+  function submitUpload() {
+    const iframe = iframeRef.current
+    const form = formRef.current
+    if (!iframe || !form) return
+
+    // Clean up any previous listener
+    if (iframeListenerRef.current) {
+      iframe.removeEventListener('load', iframeListenerRef.current)
+    }
+
     setUploading(true)
     setUploadError('')
     setUploadedPath(null)
-    try {
-      const fd = new FormData()
-      fd.append('file', f, f.name)
-      const res = await fetch('/api/accounting/documents/import/upload', { method: 'POST', body: fd })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Upload fehlgeschlagen.')
-      setUploadedPath(data.file_path)
-    } catch (e: any) {
-      setUploadError(e.message || 'Datei konnte nicht hochgeladen werden.')
-    } finally {
+
+    const handleLoad = () => {
+      iframe.removeEventListener('load', handleLoad)
+      iframeListenerRef.current = null
+      try {
+        const text = iframe.contentDocument?.body?.innerText
+          || iframe.contentWindow?.document?.body?.innerText
+          || ''
+        const data = JSON.parse(text)
+        if (data.file_path) {
+          setUploadedPath(data.file_path)
+        } else {
+          setUploadError(data.error || 'Upload fehlgeschlagen.')
+        }
+      } catch {
+        setUploadError('Upload fehlgeschlagen. Bitte nochmal versuchen.')
+      }
       setUploading(false)
     }
+
+    iframeListenerRef.current = handleLoad
+    iframe.addEventListener('load', handleLoad)
+    form.submit()
   }
 
-  function handleFile(f: File) {
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0]
+    if (!f) return
+
+    setFileName(f.name)
+    setIsImage(f.type.startsWith('image/'))
+    setUploadedPath(null)
+    setUploadError('')
     setError('')
-    setFile(f)
+
+    // createObjectURL works even for cloud-only files (it's just a reference)
+    if (preview) URL.revokeObjectURL(preview)
     setPreview(URL.createObjectURL(f))
-    uploadFile(f)
+
+    submitUpload()
+  }
+
+  function triggerPicker() {
+    // Reset input so onChange fires even for the same file
+    if (fileInputRef.current) fileInputRef.current.value = ''
+    fileInputRef.current?.click()
   }
 
   async function save() {
@@ -72,14 +115,12 @@ export function InvoiceImportModal({
     if (!amt || amt <= 0) { setError('Betrag fehlt.'); return }
     if (!clientName.trim()) { setError('Kundenname fehlt.'); return }
     if (!docNumber.trim()) { setError('Rechnungsnummer fehlt.'); return }
-    if (!file) { setError('Bitte die Rechnungsdatei hochladen.'); return }
-    if (uploading) { setError('Datei wird noch hochgeladen, bitte warten…'); return }
-    if (uploadError) { setError('Datei-Upload fehlgeschlagen. Bitte Datei erneut auswählen.'); return }
-    if (!uploadedPath) { setError('Datei noch nicht bereit.'); return }
+    if (!fileName) { setError('Bitte die Rechnungsdatei hochladen.'); return }
+    if (uploading) { setError('Datei wird noch hochgeladen…'); return }
+    if (uploadError || !uploadedPath) { setError('Datei-Upload fehlgeschlagen. Bitte Datei erneut auswählen.'); return }
 
     setSaving(true)
     setError('')
-
     try {
       const formData = new FormData()
       formData.append('uploaded_path', uploadedPath)
@@ -101,12 +142,31 @@ export function InvoiceImportModal({
     }
   }
 
-  const isImage = file?.type.startsWith('image/')
-
   return (
     <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-60 flex items-end sm:items-center justify-center px-3 sm:p-4"
       style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
     >
+      {/* Hidden iframe receives the form submission response */}
+      <iframe ref={iframeRef} name="upload-target" title="upload" className="hidden" />
+
+      {/* Hidden form — file input lives here so native form submit carries the file */}
+      <form
+        ref={formRef}
+        method="POST"
+        action="/api/accounting/documents/import/upload"
+        encType="multipart/form-data"
+        target="upload-target"
+        className="hidden"
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
+          name="file"
+          accept="image/*,application/pdf"
+          onChange={handleFileChange}
+        />
+      </form>
+
       <div className="bg-panel w-full sm:max-w-md rounded-2xl overflow-y-auto shadow-2xl overscroll-contain"
         style={{ maxHeight: 'calc(94dvh - env(safe-area-inset-bottom))', WebkitOverflowScrolling: 'touch' }}
       >
@@ -118,43 +178,45 @@ export function InvoiceImportModal({
         </div>
 
         <div className="px-5 py-5 space-y-4">
-          <input ref={fileRef} type="file" accept="image/*,application/pdf" className="hidden"
-            onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
 
-          {file ? (
-            <div className="relative rounded-xl overflow-hidden">
-              {isImage ? (
-                <img src={preview ?? ''} alt="" className="w-full max-h-56 object-contain bg-dark" />
+          {/* File upload area */}
+          {fileName ? (
+            <div className="relative rounded-xl overflow-hidden bg-dark">
+              {isImage && preview ? (
+                <img src={preview} alt="" className="w-full max-h-56 object-contain" />
               ) : (
-                <div className="bg-dark px-4 py-3 flex items-center gap-3">
-                  <span className="text-sm text-white/60 font-medium truncate min-w-0">{file.name}</span>
+                <div className="px-4 py-4 flex items-center gap-3">
+                  <span className="text-sm text-white/60 font-medium truncate min-w-0">{fileName}</span>
                 </div>
               )}
 
-              {/* Upload status overlay */}
               {uploading && (
-                <div className="absolute inset-0 bg-black/60 flex items-center justify-center gap-2 text-xs font-bold text-white">
-                  <Loader2 size={14} className="animate-spin" /> Wird hochgeladen…
+                <div className="absolute inset-0 bg-black/65 flex items-center justify-center gap-2 text-xs font-bold text-white">
+                  <Loader2 size={14} className="animate-spin" />Wird hochgeladen…
                 </div>
               )}
-              {uploadError && !uploading && (
-                <div className="absolute inset-0 bg-black/75 flex flex-col items-center justify-center gap-2 p-4">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-accent">
-                    <AlertCircle size={13} />{uploadError}
+
+              {!uploading && uploadError && (
+                <div className="absolute inset-0 bg-black/75 flex flex-col items-center justify-center gap-2.5 p-4">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-accent text-center">
+                    <AlertCircle size={13} className="shrink-0" />{uploadError}
                   </div>
-                  <button type="button" onClick={() => uploadFile(file)}
+                  <button type="button" onClick={submitUpload}
                     className="flex items-center gap-1.5 bg-panel-hover text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all">
-                    <RefreshCw size={12} /> Nochmal versuchen
+                    <RefreshCw size={12} />Nochmal versuchen
                   </button>
                 </div>
               )}
+
               {!uploading && !uploadError && uploadedPath && (
                 <div className="absolute bottom-2 right-2 flex gap-1.5">
-                  <button type="button" onClick={() => setLightbox(true)}
-                    className="flex items-center gap-1.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all">
-                    <Eye size={13} />Vorschau
-                  </button>
-                  <button type="button" onClick={() => fileRef.current?.click()}
+                  {preview && (
+                    <button type="button" onClick={() => setLightbox(true)}
+                      className="flex items-center gap-1.5 bg-accent hover:bg-accent-hover text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all">
+                      <Eye size={13} />Vorschau
+                    </button>
+                  )}
+                  <button type="button" onClick={triggerPicker}
                     className="bg-panel-hover text-white/70 hover:text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all">
                     Ändern
                   </button>
@@ -162,7 +224,7 @@ export function InvoiceImportModal({
               )}
             </div>
           ) : (
-            <button type="button" onClick={() => fileRef.current?.click()}
+            <button type="button" onClick={triggerPicker}
               className="w-full flex flex-col items-center justify-center gap-2 bg-dark border border-dashed border-white/15 rounded-xl py-8 text-white/40 hover:text-white hover:border-white/30 transition-all">
               <Upload size={22} />
               <span className="text-sm font-bold">Bestehende Rechnung hochladen</span>
@@ -219,9 +281,8 @@ export function InvoiceImportModal({
             {uploading
               ? <><Loader2 size={14} className="animate-spin" />Wird hochgeladen…</>
               : saving
-                ? <><Save size={14} />Importieren…</>
-                : <><Save size={14} />Rechnung importieren</>
-            }
+                ? <><Loader2 size={14} className="animate-spin" />Importieren…</>
+                : <><Save size={14} />Rechnung importieren</>}
           </button>
 
           <div style={{ height: 'max(1rem, env(safe-area-inset-bottom))' }} />
@@ -238,8 +299,9 @@ export function InvoiceImportModal({
           {isImage ? (
             <img src={preview} alt="" className="max-w-full max-h-full rounded-xl" onClick={e => e.stopPropagation()} />
           ) : (
-            <iframe src={preview} title="Rechnungsvorschau" onClick={e => e.stopPropagation()}
-              className="w-full h-full max-w-4xl bg-white rounded-xl border-0" />
+            <iframe src={preview} title="Rechnungsvorschau"
+              className="w-full h-full max-w-4xl bg-white rounded-xl border-0"
+              onClick={e => e.stopPropagation()} />
           )}
         </div>
       )}
