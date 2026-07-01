@@ -30,8 +30,9 @@ export async function POST(req: NextRequest) {
     const form = await req.formData()
     const file = form.get('file') as File | null
 
-    const docNumber  = (form.get('doc_number') as string)?.trim() || ''
-    const clientName = (form.get('client_name') as string)?.trim() || ''
+    const docNumber   = (form.get('doc_number') as string)?.trim() || ''
+    const clientName  = (form.get('client_name') as string)?.trim() || ''
+    const customerId  = (form.get('customer_id') as string | null)?.trim() || null
     const issueDate   = (form.get('issue_date') as string) || new Date().toISOString().slice(0, 10)
     const taxRate     = parseFloat((form.get('tax_rate') as string) || '0')
     const status      = (form.get('status') as string) || 'paid'
@@ -80,6 +81,7 @@ export async function POST(req: NextRequest) {
       line_items:  [{ description: 'Leistung', qty: 1, unit_price: unitPrice }],
       pdf_path:    filePath,
       is_imported: true,
+      ...(customerId ? { customer_id: customerId } : {}),
     }
 
     const { data, error } = await db().from('accounting_documents').insert(row).select().single()

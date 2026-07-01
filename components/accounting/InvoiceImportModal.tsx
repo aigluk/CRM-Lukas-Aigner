@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { X, Save, Upload, Loader2, Eye, AlertCircle, RefreshCw } from 'lucide-react'
-import type { DocStatus } from '@/lib/types'
+import type { DocStatus, AccountingCustomer } from '@/lib/types'
 import { DatePicker } from './DatePicker'
 
 const numberInputCls = '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
@@ -27,10 +27,17 @@ export function InvoiceImportModal({
 }: { nextNumberHint: string; onClose: () => void; onSaved: () => void }) {
   const [docNumber, setDocNumber] = useState(nextNumberHint)
   const [clientName, setClientName] = useState('')
+  const [customerId, setCustomerId] = useState<string | null>(null)
   const [issueDate, setIssueDate] = useState(new Date().toISOString().slice(0, 10))
   const [amount, setAmount] = useState('')
   const [taxRate, setTaxRate] = useState('0')
   const [status, setStatus] = useState<DocStatus>('paid')
+
+  // Customer autocomplete
+  const [customers, setCustomers] = useState<AccountingCustomer[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const clientInputRef = useRef<HTMLInputElement>(null)
+  const suggestionsRef = useRef<HTMLDivElement>(null)
 
   const [fileName, setFileName] = useState('')
   const [preview, setPreview] = useState<string | null>(null)
@@ -54,10 +61,31 @@ export function InvoiceImportModal({
     fetch('/api/company').then(r => r.json()).then(d => {
       setTaxRate(d.company?.small_business ? '0' : '20')
     }).catch(() => {})
+    fetch('/api/accounting/customers').then(r => r.json()).then(d => {
+      setCustomers(d.customers ?? [])
+    }).catch(() => {})
     return () => {
       if (iframeTimeoutRef.current) clearTimeout(iframeTimeoutRef.current)
     }
   }, [])
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    function handle(e: MouseEvent) {
+      if (
+        !clientInputRef.current?.contains(e.target as Node) &&
+        !suggestionsRef.current?.contains(e.target as Node)
+      ) setShowSuggestions(false)
+    }
+    document.addEventListener('mousedown', handle)
+    return () => document.removeEventListener('mousedown', handle)
+  }, [])
+
+  const filteredCustomers = useCallback(() => {
+    if (!clientName.trim()) return customers.slice(0, 8)
+    const q = clientName.toLowerCase()
+    return customers.filter(c => c.name.toLowerCase().includes(q)).slice(0, 8)
+  }, [customers, clientName])
 
   // ─── Primary upload: File System Access API + arrayBuffer + fetch ──────────
   // Chrome/Edge support showOpenFilePicker which uses proper macOS file
@@ -207,6 +235,7 @@ export function InvoiceImportModal({
       fd.append('uploaded_path', uploadedPath)
       fd.append('doc_number', docNumber.trim())
       fd.append('client_name', clientName.trim())
+      if (customerId) fd.append('customer_id', customerId)
       fd.append('issue_date', issueDate)
       fd.append('tax_rate', taxRate)
       fd.append('status', status)
@@ -322,9 +351,43 @@ export function InvoiceImportModal({
             <input type="text" value={docNumber} onChange={e => setDocNumber(e.target.value)} className={inputCls} />
           </div>
 
-          <div>
+          <div className="relative">
             <label className={labelCls}>Kunde</label>
-            <input type="text" value={clientName} onChange={e => setClientName(e.target.value)} placeholder="Name des Kunden" className={inputCls} />
+            <input
+              ref={clientInputRef}
+              type="text"
+              value={clientName}
+              onChange={e => { setClientName(e.target.value); setCustomerId(null); setShowSuggestions(true) }}
+              onFocus={() => setShowSuggestions(true)}
+              placeholder="Name des Kunden oder tippen zum Suchen…"
+              className={inputCls}
+              autoComplete="off"
+            />
+            {showSuggestions && filteredCustomers().length > 0 && (
+              <div
+                ref={suggestionsRef}
+                className="absolute left-0 right-0 top-full mt-1 bg-panel border border-rim-subtle rounded-xl shadow-2xl z-50 overflow-hidden"
+              >
+                {filteredCustomers().map(c => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onMouseDown={e => {
+                      e.preventDefault() // prevent input blur before click registers
+                      setClientName(c.name)
+                      setCustomerId(c.id)
+                      setShowSuggestions(false)
+                    }}
+                    className="w-full flex flex-col px-3.5 py-2.5 text-left hover:bg-panel-hover transition-colors group"
+                  >
+                    <span className="text-sm font-bold text-white group-hover:text-white">{c.name}</span>
+                    {c.address && (
+                      <span className="text-xs text-white/30 truncate">{c.address}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
