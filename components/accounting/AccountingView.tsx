@@ -584,6 +584,7 @@ export function AccountingView() {
           })),
         expenseItems: closing.expenseItems,
         salaryItems: closing.periodSalaries.map(s => ({
+          reference_number: s.reference_number,
           employer_name: s.employer_name,
           entry_type: s.entry_type as 'employment' | 'gf_salary',
           gross_amount: s.gross_amount,
@@ -670,11 +671,11 @@ export function AccountingView() {
       )
     }
     const sorted = [...docs].sort((a, b) => {
-      const dateDiff = new Date(b.issue_date).getTime() - new Date(a.issue_date).getTime()
-      if (dateDiff !== 0) return dateDiff
+      // Primary: doc_number numerically descending — numbering defines the order
       const numA = parseInt(a.doc_number.split('-').pop() || '0', 10)
       const numB = parseInt(b.doc_number.split('-').pop() || '0', 10)
-      return numB - numA
+      if (numA !== numB) return numB - numA
+      return new Date(b.issue_date).getTime() - new Date(a.issue_date).getTime()
     })
     return (
       <div className={`bg-panel rounded-2xl ${className ?? ''}`}>
@@ -734,11 +735,17 @@ export function AccountingView() {
         </div>
       )
     }
+    const sortedItems = [...items].sort((a, b) => {
+      const numA = parseInt(a.contract_number.split('-').pop() || '0', 10)
+      const numB = parseInt(b.contract_number.split('-').pop() || '0', 10)
+      if (numA !== numB) return numB - numA
+      return new Date(b.start_date ?? 0).getTime() - new Date(a.start_date ?? 0).getTime()
+    })
     return (
       <div className={`bg-panel rounded-2xl ${className ?? ''}`}>
         <ul>
-          {items.map((c, i) => (
-            <li key={c.id} className={`flex items-center gap-3 px-4 sm:px-5 py-3.5 ${i < items.length - 1 ? 'border-b border-panel-2' : ''}`}>
+          {sortedItems.map((c, i) => (
+            <li key={c.id} className={`flex items-center gap-3 px-4 sm:px-5 py-3.5 ${i < sortedItems.length - 1 ? 'border-b border-panel-2' : ''}`}>
               <button
                 onClick={() => setPreviewContract(c)}
                 className="min-w-0 flex-1 text-left"
@@ -987,7 +994,9 @@ export function AccountingView() {
                         {SALARY_TYPE_LABELS[s.entry_type]}
                       </span>
                     </div>
-                    <p className="text-xs text-white/35 mt-0.5">{s.period_year}{s.notes ? ` · ${s.notes}` : ''}</p>
+                    <p className="text-xs text-white/35 mt-0.5">
+                      {s.reference_number ?? `GH-${s.period_year}`} · {s.period_year}{s.notes ? ` · ${s.notes}` : ''}
+                    </p>
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-sm font-bold text-accent-green">{fmtMoney(s.gross_amount)}</p>

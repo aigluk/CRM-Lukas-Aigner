@@ -80,7 +80,12 @@ export function SalaryModal({
       >
         {/* Header */}
         <div className="sticky top-0 bg-panel z-10 px-5 pt-4 pb-3 border-b border-rim-subtle flex items-center justify-between gap-3">
-          <h2 className="text-base font-black text-white">{isEdit ? 'Gehalt bearbeiten' : 'Gehalt / Lohnzettel erfassen'}</h2>
+          <div>
+            <h2 className="text-base font-black text-white">{isEdit ? 'Gehalt bearbeiten' : 'Gehalt / Lohnzettel erfassen'}</h2>
+            {isEdit && entry.reference_number && (
+              <p className="text-xs text-white/30 mt-0.5">{entry.reference_number}</p>
+            )}
+          </div>
           <button onClick={onClose} className="p-1.5 rounded-xl bg-panel-hover text-white/30 hover:text-white transition-all shrink-0">
             <X size={16} />
           </button>
@@ -118,6 +123,12 @@ export function SalaryModal({
               <input type="number" value={taxWithheld} onChange={e => setTaxWithheld(e.target.value)}
                 step="any" placeholder="0.00" className={`${inputCls} ${numberInputCls}`} />
             </div>
+          </div>
+          <div className="bg-dark rounded-xl px-3.5 py-2.5">
+            <p className="text-xs text-white/45 leading-relaxed">
+              <span className="font-bold text-white/60">Was ist Lohnsteuer einbehalten?</span>
+              {' '}Dein Arbeitgeber zieht die Einkommensteuer direkt vom Bruttogehalt ab und überweist sie für dich ans Finanzamt. Diesen Betrag findest du auf dem Lohnzettel (L16) unter „Lohnsteuer". Bei der jährlichen Steuererklärung (E1) wird die bereits einbehaltene Lohnsteuer von deiner Gesamtsteuer abgezogen — du zahlst nur die Differenz.
+            </p>
           </div>
 
           {/* Jahr */}

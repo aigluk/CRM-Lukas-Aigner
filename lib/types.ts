@@ -157,6 +157,7 @@ export type SalaryEntryType = 'employment' | 'gf_salary'
 export interface AccountingSalaryEntry {
   id: string
   user_id: string
+  reference_number?: string
   employer_name: string
   gross_amount: number
   tax_withheld: number

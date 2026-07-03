@@ -105,6 +105,7 @@ export interface ClosingExpenseItem {
 }
 
 export interface SalaryPdfItem {
+  reference_number?: string
   employer_name: string
   entry_type: 'employment' | 'gf_salary'
   gross_amount: number
@@ -294,15 +295,17 @@ export function ClosingPdf({ data, company }: { data: ClosingPdfData; company: C
             <Text style={[styles.sectionTitle, { marginTop: 18 }]}>Einkünfte aus nichtselbständiger Arbeit (Lohnzettel)</Text>
             <View style={styles.bkTable}>
               <View style={styles.bkHead}>
+                <Text style={[styles.bkCNr, styles.bkBold]}>Nr.</Text>
                 <Text style={[styles.bkCClient, styles.bkBold]}>Arbeitgeber</Text>
-                <Text style={[{ width: 64, fontSize: 7.5, paddingVertical: 5, paddingHorizontal: 6 }, styles.bkBold]}>Art</Text>
+                <Text style={[{ width: 56, fontSize: 7.5, paddingVertical: 5, paddingHorizontal: 6 }, styles.bkBold]}>Art</Text>
                 <Text style={[styles.bkCAmt, styles.bkBold]}>Bruttobezug</Text>
                 <Text style={[styles.bkCAmt, styles.bkBold]}>LSt einbeh.</Text>
               </View>
               {data.salaryItems.map((s, i) => (
                 <View key={i} style={i === data.salaryItems!.length - 1 ? styles.bkRowLast : styles.bkRow}>
+                  <Text style={styles.bkCNr}>{s.reference_number ?? ''}</Text>
                   <Text style={styles.bkCClient}>{s.employer_name}</Text>
-                  <Text style={{ width: 64, fontSize: 7.5, paddingVertical: 5, paddingHorizontal: 6 }}>{s.entry_type === 'gf_salary' ? 'GF-Gehalt' : 'Anstellung'}</Text>
+                  <Text style={{ width: 56, fontSize: 7.5, paddingVertical: 5, paddingHorizontal: 6 }}>{s.entry_type === 'gf_salary' ? 'GF-Gehalt' : 'Anstellung'}</Text>
                   <Text style={styles.bkCAmt}>{fmtMoney(s.gross_amount)}</Text>
                   <Text style={styles.bkCAmt}>{fmtMoney(s.tax_withheld)}</Text>
                 </View>

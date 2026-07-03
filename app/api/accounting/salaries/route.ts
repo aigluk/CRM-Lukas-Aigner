@@ -64,15 +64,30 @@ export async function POST(req: NextRequest) {
       if (uploadError) return NextResponse.json({ error: uploadError.message }, { status: 500 })
     }
 
+    const periodYear = parseInt((form.get('period_year') as string) || String(new Date().getFullYear()), 10)
+
+    // Auto-generate GH-YYYY-NNN reference number
+    const { data: existing } = await db()
+      .from('accounting_salary_entries')
+      .select('reference_number')
+      .eq('user_id', ownerId)
+      .like('reference_number', `GH-${periodYear}-%`)
+    const maxSeq = (existing ?? []).reduce((m, e) => {
+      const n = parseInt((e.reference_number ?? '').split('-').pop() || '0', 10)
+      return Math.max(m, n)
+    }, 0)
+    const referenceNumber = `GH-${periodYear}-${String(maxSeq + 1).padStart(3, '0')}`
+
     const row = {
-      user_id:       ownerId,
-      employer_name: (form.get('employer_name') as string) || '',
-      gross_amount:  parseFloat((form.get('gross_amount') as string) || '0'),
-      tax_withheld:  parseFloat((form.get('tax_withheld') as string) || '0'),
-      period_year:   parseInt((form.get('period_year') as string) || String(new Date().getFullYear()), 10),
-      entry_type:    (form.get('entry_type') as string) || 'employment',
-      notes:         (form.get('notes') as string) || null,
-      file_path:     filePath,
+      user_id:          ownerId,
+      reference_number: referenceNumber,
+      employer_name:    (form.get('employer_name') as string) || '',
+      gross_amount:     parseFloat((form.get('gross_amount') as string) || '0'),
+      tax_withheld:     parseFloat((form.get('tax_withheld') as string) || '0'),
+      period_year:      periodYear,
+      entry_type:       (form.get('entry_type') as string) || 'employment',
+      notes:            (form.get('notes') as string) || null,
+      file_path:        filePath,
     }
 
     const { data, error } = await db().from('accounting_salary_entries').insert(row).select().single()
