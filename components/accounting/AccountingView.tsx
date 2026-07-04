@@ -17,6 +17,7 @@ import { InvoiceImportModal } from './InvoiceImportModal'
 import { ImportedInvoiceEditModal } from './ImportedInvoiceEditModal'
 import { SubscriptionModal } from './SubscriptionModal'
 import { SalaryModal } from './SalaryModal'
+import { SalaryPreviewModal } from './SalaryPreviewModal'
 import { ContractModal } from './ContractModal'
 import { ContractPreviewModal } from './ContractPreviewModal'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
@@ -299,6 +300,7 @@ export function AccountingView() {
   const [importedEditDoc, setImportedEditDoc] = useState<AccountingDocument | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<{ message: string; action: () => Promise<void> } | null>(null)
   const [salaryModal, setSalaryModal] = useState<{ entry?: AccountingSalaryEntry } | null>(null)
+  const [salaryPreview, setSalaryPreview] = useState<AccountingSalaryEntry | null>(null)
 
   const [periodMode, setPeriodMode] = useState<PeriodMode>('month')
   const now = new Date()
@@ -995,7 +997,7 @@ export function AccountingView() {
                       </span>
                     </div>
                     <p className="text-xs text-white/35 mt-0.5">
-                      {s.reference_number ?? `GH-${s.period_year}`} · {s.period_year}{s.notes ? ` · ${s.notes}` : ''}
+                      {s.reference_number ?? `GH-${s.period_year}`} · {s.issue_date ? new Date(s.issue_date).toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' }) : s.period_year}{s.notes ? ` · ${s.notes}` : ''}
                     </p>
                   </div>
                   <div className="text-right shrink-0">
@@ -1005,11 +1007,10 @@ export function AccountingView() {
                     )}
                   </div>
                   {s.file_path && (
-                    <a href={`/api/accounting/salaries/${s.id}/file`} target="_blank" rel="noopener noreferrer"
-                      title="Lohnzettel anzeigen"
+                    <button onClick={() => setSalaryPreview(s)} title="Lohnzettel ansehen"
                       className="w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 flex items-center justify-center text-white/40 hover:text-white transition-all shrink-0">
                       <Eye size={13} />
-                    </a>
+                    </button>
                   )}
                   <button onClick={() => setSalaryModal({ entry: s })} title="Bearbeiten"
                     className="w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 flex items-center justify-center text-white/40 hover:text-white transition-all shrink-0">
@@ -1186,7 +1187,11 @@ export function AccountingView() {
           entry={salaryModal.entry}
           onClose={() => setSalaryModal(null)}
           onSaved={() => { setSalaryModal(null); loadAll() }}
+          onPreview={salaryModal.entry?.file_path ? () => setSalaryPreview(salaryModal.entry!) : undefined}
         />
+      )}
+      {salaryPreview && (
+        <SalaryPreviewModal entry={salaryPreview} onClose={() => setSalaryPreview(null)} />
       )}
       {previewDoc && (
         <PdfPreviewModal doc={previewDoc} onClose={() => setPreviewDoc(null)} />

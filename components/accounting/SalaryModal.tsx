@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { X, Save, FileUp, Eye } from 'lucide-react'
+import { X, Save, FileUp, Eye, FileText } from 'lucide-react'
 import type { AccountingSalaryEntry, SalaryEntryType } from '@/lib/types'
+import { DatePicker } from './DatePicker'
 
 const inputCls = 'w-full bg-dark rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all'
 const labelCls = 'block text-xs font-bold text-white/30 mb-1.5'
@@ -17,16 +18,20 @@ export function SalaryModal({
   entry,
   onClose,
   onSaved,
+  onPreview,
 }: {
   entry?: AccountingSalaryEntry
   onClose: () => void
   onSaved: () => void
+  onPreview?: () => void
 }) {
   const isEdit = !!entry
   const [employerName, setEmployerName] = useState(entry?.employer_name ?? '')
   const [grossAmount, setGrossAmount]   = useState(entry ? String(entry.gross_amount) : '')
   const [taxWithheld, setTaxWithheld]   = useState(entry ? String(entry.tax_withheld) : '')
-  const [periodYear, setPeriodYear]     = useState(entry?.period_year ?? new Date().getFullYear())
+  const [issueDate, setIssueDate]       = useState(
+    entry?.issue_date ?? new Date().toISOString().slice(0, 10)
+  )
   const [entryType, setEntryType]       = useState<SalaryEntryType>(entry?.entry_type ?? 'employment')
   const [notes, setNotes]               = useState(entry?.notes ?? '')
   const [file, setFile]                 = useState<File | null>(null)
@@ -34,9 +39,7 @@ export function SalaryModal({
   const [error, setError]               = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
 
-  const existingFileUrl = isEdit && entry.file_path
-    ? `/api/accounting/salaries/${entry.id}/file`
-    : null
+  const hasExistingFile = isEdit && !!entry.file_path
 
   async function save() {
     if (!employerName.trim()) { setError('Arbeitgeber fehlt.'); return }
@@ -46,6 +49,7 @@ export function SalaryModal({
     setSaving(true)
     setError('')
     try {
+      const periodYear = new Date(issueDate).getFullYear()
       const form = new FormData()
       if (isEdit) form.append('id', entry!.id)
       if (file) form.append('file', file)
@@ -53,6 +57,7 @@ export function SalaryModal({
       form.append('gross_amount', String(gross))
       form.append('tax_withheld', String(parseFloat(taxWithheld) || 0))
       form.append('period_year', String(periodYear))
+      form.append('issue_date', issueDate)
       form.append('entry_type', entryType)
       form.append('notes', notes)
 
@@ -125,11 +130,15 @@ export function SalaryModal({
             </div>
           </div>
 
-          {/* Jahr */}
+          {/* Datum */}
           <div>
-            <label className={labelCls}>Jahr</label>
-            <input type="number" value={periodYear} onChange={e => setPeriodYear(parseInt(e.target.value) || new Date().getFullYear())}
-              min={2020} max={2099} className={`${inputCls} ${numberInputCls}`} />
+            <label className={labelCls}>Datum des Lohnzettels</label>
+            <DatePicker
+              value={issueDate}
+              onChange={setIssueDate}
+              placeholder="Datum wählen"
+              className={inputCls}
+            />
           </div>
 
           {/* Notizen */}
@@ -139,11 +148,12 @@ export function SalaryModal({
               placeholder="z. B. Zeitraum Jan–Dez, Lohnzettel L16..." className={`${inputCls} resize-none`} />
           </div>
 
-          {/* Lohnzettel Upload */}
+          {/* Lohnzettel Upload / Vorschau */}
           <div>
             <label className={labelCls}>Lohnzettel (L16) als PDF oder Bild</label>
             <input ref={fileRef} type="file" accept="image/*,application/pdf" className="hidden"
               onChange={e => e.target.files?.[0] && setFile(e.target.files[0])} />
+
             {file ? (
               <div className="flex items-center gap-3 bg-dark rounded-xl px-3.5 py-2.5">
                 <FileUp size={14} className="text-accent shrink-0" />
@@ -152,9 +162,20 @@ export function SalaryModal({
                   <X size={14} />
                 </button>
               </div>
-            ) : existingFileUrl ? (
-              <div className="overflow-hidden bg-dark" style={{ height: 180 }}>
-                <iframe src={existingFileUrl} className="w-full h-full border-0" title="Lohnzettel Vorschau" />
+            ) : hasExistingFile ? (
+              <div className="flex items-center gap-3 bg-dark rounded-xl px-3.5 py-2.5">
+                <FileText size={14} className="text-white/40 shrink-0" />
+                <span className="text-sm text-white/55 truncate flex-1">Lohnzettel hochgeladen</span>
+                {onPreview && (
+                  <button type="button" onClick={onPreview}
+                    className="flex items-center gap-1 text-xs text-accent hover:opacity-75 transition-all shrink-0 font-bold">
+                    <Eye size={12} /> Ansehen
+                  </button>
+                )}
+                <button type="button" onClick={() => fileRef.current?.click()}
+                  className="text-xs text-white/30 hover:text-white transition-all shrink-0">
+                  Ersetzen
+                </button>
               </div>
             ) : (
               <button type="button" onClick={() => fileRef.current?.click()}
@@ -162,18 +183,6 @@ export function SalaryModal({
                 <FileUp size={18} />
                 <span className="text-sm font-bold">Lohnzettel hochladen</span>
               </button>
-            )}
-            {isEdit && entry.file_path && !file && (
-              <button type="button" onClick={() => fileRef.current?.click()}
-                className="mt-2 text-xs text-white/30 hover:text-white transition-all">
-                Datei ersetzen
-              </button>
-            )}
-            {isEdit && entry.file_path && (
-              <a href={`/api/accounting/salaries/${entry.id}/file`} target="_blank" rel="noopener noreferrer"
-                className="mt-2 ml-3 inline-flex items-center gap-1 text-xs text-white/30 hover:text-white transition-all">
-                <Eye size={12} /> Vorschau
-              </a>
             )}
           </div>
 

@@ -78,6 +78,8 @@ export async function POST(req: NextRequest) {
     }, 0)
     const referenceNumber = `GH-${periodYear}-${String(maxSeq + 1).padStart(3, '0')}`
 
+    const issueDateRaw = (form.get('issue_date') as string) || null
+
     const row = {
       user_id:          ownerId,
       reference_number: referenceNumber,
@@ -85,6 +87,7 @@ export async function POST(req: NextRequest) {
       gross_amount:     parseFloat((form.get('gross_amount') as string) || '0'),
       tax_withheld:     parseFloat((form.get('tax_withheld') as string) || '0'),
       period_year:      periodYear,
+      issue_date:       issueDateRaw || null,
       entry_type:       (form.get('entry_type') as string) || 'employment',
       notes:            (form.get('notes') as string) || null,
       file_path:        filePath,
@@ -111,11 +114,13 @@ export async function PATCH(req: NextRequest) {
     const id = form.get('id') as string | null
     if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })
 
+    const issueDatePatch = (form.get('issue_date') as string) || null
     const updates: Record<string, any> = {
       employer_name: (form.get('employer_name') as string) || '',
       gross_amount:  parseFloat((form.get('gross_amount') as string) || '0'),
       tax_withheld:  parseFloat((form.get('tax_withheld') as string) || '0'),
       period_year:   parseInt((form.get('period_year') as string) || String(new Date().getFullYear()), 10),
+      issue_date:    issueDatePatch || null,
       entry_type:    (form.get('entry_type') as string) || 'employment',
       notes:         (form.get('notes') as string) || null,
     }

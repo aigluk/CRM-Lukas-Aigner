@@ -162,6 +162,7 @@ export interface AccountingSalaryEntry {
   gross_amount: number
   tax_withheld: number
   period_year: number
+  issue_date?: string
   entry_type: SalaryEntryType
   notes?: string
   file_path?: string
