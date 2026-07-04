@@ -124,12 +124,6 @@ export function SalaryModal({
                 step="any" placeholder="0.00" className={`${inputCls} ${numberInputCls}`} />
             </div>
           </div>
-          <div className="bg-dark rounded-xl px-3.5 py-2.5">
-            <p className="text-xs text-white/45 leading-relaxed">
-              <span className="font-bold text-white/60">Was ist Lohnsteuer einbehalten?</span>
-              {' '}Dein Arbeitgeber zieht die Einkommensteuer direkt vom Bruttogehalt ab und überweist sie für dich ans Finanzamt. Diesen Betrag findest du auf dem Lohnzettel (L16) unter „Lohnsteuer". Bei der jährlichen Steuererklärung (E1) wird die bereits einbehaltene Lohnsteuer von deiner Gesamtsteuer abgezogen — du zahlst nur die Differenz.
-            </p>
-          </div>
 
           {/* Jahr */}
           <div>
