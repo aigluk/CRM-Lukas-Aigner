@@ -183,36 +183,29 @@ export function ClosingPdf({ data, company }: { data: ClosingPdfData; company: C
         </View>
 
         {data.invoices && data.invoices.length > 0 && (
-          <>
-            {/* Breakdown header row kept with section title and at least first data row */}
-            <View wrap={false}>
-              <Text style={styles.sectionTitle}>Leistungsaufschlüsselung – Einnahmen</Text>
-              <View style={[styles.bkTable, { marginBottom: 0, borderBottomWidth: 0 }]}>
-                <View style={styles.bkHead}>
-                  <Text style={[styles.bkCNr, styles.bkBold]}>Rechnungs-Nr.</Text>
-                  <Text style={[styles.bkCClient, styles.bkBold]}>Kunde</Text>
-                  <Text style={[styles.bkCDate, styles.bkBold]}>Datum</Text>
-                  <Text style={[styles.bkCAmt, styles.bkBold]}>Brutto</Text>
-                </View>
+          <View wrap={false}>
+            <Text style={styles.sectionTitle}>Leistungsaufschlüsselung – Einnahmen</Text>
+            <View style={styles.bkTable}>
+              <View style={styles.bkHead}>
+                <Text style={[styles.bkCNr, styles.bkBold]}>Rechnungs-Nr.</Text>
+                <Text style={[styles.bkCClient, styles.bkBold]}>Kunde</Text>
+                <Text style={[styles.bkCDate, styles.bkBold]}>Datum</Text>
+                <Text style={[styles.bkCAmt, styles.bkBold]}>Brutto</Text>
               </View>
-            </View>
-            {/* Data rows — allowed to break across pages */}
-            <View style={[styles.bkTable, { marginTop: 0, borderTopWidth: 0 }]}>
               {data.invoices.map((inv, i) => (
-                <View key={i} style={i === (data.invoices!.length - 1) ? styles.bkRowLast : styles.bkRow}>
+                <View key={i} style={i === data.invoices!.length - 1 ? styles.bkRowLast : styles.bkRow}>
                   <Text style={styles.bkCNr}>{inv.doc_number}</Text>
                   <Text style={styles.bkCClient}>{inv.client_name}</Text>
                   <Text style={styles.bkCDate}>{fmtDate(inv.issue_date)}</Text>
                   <Text style={styles.bkCAmt}>{fmtMoney(inv.amount_gross)}</Text>
                 </View>
               ))}
-              {/* Total row always kept with last data row */}
-              <View wrap={false} style={styles.bkTotalRow}>
+              <View style={styles.bkTotalRow}>
                 <Text style={[{ flex: 1, fontSize: 7.5, paddingVertical: 5, paddingHorizontal: 6 }, styles.bkBold]}>Gesamt</Text>
                 <Text style={[styles.bkCAmt, styles.bkBold]}>{fmtMoney(data.revenueGross)}</Text>
               </View>
             </View>
-          </>
+          </View>
         )}
 
         {/* Ausgaben summary — keep title + table together */}
@@ -234,18 +227,14 @@ export function ClosingPdf({ data, company }: { data: ClosingPdfData; company: C
         </View>
 
         {data.expenseItems && data.expenseItems.length > 0 && (
-          <>
-            <View wrap={false}>
-              <Text style={styles.sectionTitle}>Ausgaben-Aufschlüsselung</Text>
-              <View style={[styles.bkTable, { marginBottom: 0, borderBottomWidth: 0 }]}>
-                <View style={styles.bkHead}>
-                  <Text style={[styles.bkCClient, styles.bkBold]}>Beschreibung</Text>
-                  <Text style={[styles.bkCDate, styles.bkBold]}>Datum / Zeitraum</Text>
-                  <Text style={[styles.bkCAmt, styles.bkBold]}>Betrag</Text>
-                </View>
+          <View wrap={false}>
+            <Text style={styles.sectionTitle}>Ausgaben-Aufschlüsselung</Text>
+            <View style={styles.bkTable}>
+              <View style={styles.bkHead}>
+                <Text style={[styles.bkCClient, styles.bkBold]}>Beschreibung</Text>
+                <Text style={[styles.bkCDate, styles.bkBold]}>Datum / Zeitraum</Text>
+                <Text style={[styles.bkCAmt, styles.bkBold]}>Betrag</Text>
               </View>
-            </View>
-            <View style={[styles.bkTable, { marginTop: 0, borderTopWidth: 0 }]}>
               {data.expenseItems.map((item, i) => {
                 const isLast = i === data.expenseItems!.length - 1
                 const dateOrPeriod = item.date
@@ -261,12 +250,12 @@ export function ClosingPdf({ data, company }: { data: ClosingPdfData; company: C
                   </View>
                 )
               })}
-              <View wrap={false} style={styles.bkTotalRow}>
+              <View style={styles.bkTotalRow}>
                 <Text style={[{ flex: 1, fontSize: 7.5, paddingVertical: 5, paddingHorizontal: 6 }, styles.bkBold]}>Gesamt</Text>
                 <Text style={[styles.bkCAmt, styles.bkBold]}>{fmtMoney(data.expensesGross)}</Text>
               </View>
             </View>
-          </>
+          </View>
         )}
 
         {/* Ergebnis — always keep together, force onto new page if tight */}
