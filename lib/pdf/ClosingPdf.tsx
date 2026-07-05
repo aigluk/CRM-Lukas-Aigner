@@ -279,9 +279,11 @@ export function ClosingPdf({ data, company }: { data: ClosingPdfData; company: C
         </View>
 
         {/* Lohneinkünfte — only shown when salary entries exist */}
-        {data.salaryItems && data.salaryItems.length > 0 && (
+        {data.salaryItems && data.salaryItems.length > 0 && (() => {
+          const hasGfSalary = data.salaryItems!.some(s => s.entry_type === 'gf_salary')
+          return (
           <View wrap={false}>
-            <Text style={[styles.sectionTitle, { marginTop: 18 }]}>Einkünfte aus nichtselbständiger Arbeit (Lohnzettel)</Text>
+            <Text style={[styles.sectionTitle, { marginTop: 18 }]}>Einkünfte aus nichtselbständiger Arbeit · §25 EStG (Lohnzettel)</Text>
             <View style={styles.bkTable}>
               <View style={styles.bkHead}>
                 <Text style={[styles.bkCNr, styles.bkBold]}>Nr.</Text>
@@ -306,10 +308,12 @@ export function ClosingPdf({ data, company }: { data: ClosingPdfData; company: C
               </View>
             </View>
             <Text style={styles.note}>
-              Diese Lohnzettel-Einkünfte sind in der Einkommensteuererklärung (E1) zusätzlich zu den selbständigen Einkünften anzugeben. Die einbehaltene Lohnsteuer wird auf die Einkommensteuer angerechnet. Bitte alle Lohnzettel (L16) vollständig an den Steuerberater weitergeben.
+              GF-Gehalt und Anstellungsbezüge sind beide Einkünfte aus nichtselbständiger Arbeit (§25 EStG) und auf dem E1 unter KZ 245 anzugeben. Die einbehaltene Lohnsteuer wird auf die Einkommensteuer angerechnet.
+              {hasGfSalary ? ' Hinweis GF-Gehalt: Bei wesentlicher Beteiligung (>25 % an der GmbH) besteht GSVG-Pflicht statt ASVG — SVS-Beiträge sind separat abzuführen und nicht in der Lohnsteuer enthalten. Bitte mit dem Steuerberater abstimmen.' : ' Bitte alle Lohnzettel (L16) vollständig an den Steuerberater weitergeben.'}
             </Text>
           </View>
-        )}
+          )
+        })()}
 
         <View style={styles.footerNotes}>
           <Text style={styles.footerPara}>
