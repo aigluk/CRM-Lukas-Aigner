@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getWorkspaceOwnerId } from '@/lib/workspace'
 import { NextResponse } from 'next/server'
-import { generateCalendarToken } from '../ics/route'
+import { generateCalendarToken } from '@/lib/calendarToken'
 
 export const runtime = 'nodejs'
 

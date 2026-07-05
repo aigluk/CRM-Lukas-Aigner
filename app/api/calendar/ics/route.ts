@@ -1,30 +1,8 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { NextRequest, NextResponse } from 'next/server'
-import crypto from 'crypto'
+import { verifyCalendarToken } from '@/lib/calendarToken'
 
 export const runtime = 'nodejs'
-
-function hmacSecret() {
-  return process.env.SUPABASE_SERVICE_ROLE_KEY || 'la-crm-calendar-secret'
-}
-
-export function generateCalendarToken(ownerId: string): string {
-  const mac = crypto.createHmac('sha256', hmacSecret()).update(ownerId).digest('hex').slice(0, 24)
-  return Buffer.from(`${ownerId}:${mac}`).toString('base64url')
-}
-
-function verifyToken(token: string): string | null {
-  try {
-    const decoded = Buffer.from(token, 'base64url').toString()
-    const sep = decoded.lastIndexOf(':')
-    const ownerId = decoded.slice(0, sep)
-    const mac = decoded.slice(sep + 1)
-    const expected = crypto.createHmac('sha256', hmacSecret()).update(ownerId).digest('hex').slice(0, 24)
-    return mac === expected ? ownerId : null
-  } catch {
-    return null
-  }
-}
 
 function esc(s: string): string {
   return s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n')
@@ -75,7 +53,7 @@ export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get('token')
   if (!token) return new NextResponse('Token fehlt', { status: 400 })
 
-  const ownerId = verifyToken(token)
+  const ownerId = verifyCalendarToken(token)
   if (!ownerId) return new NextResponse('Ungültiger Token', { status: 401 })
 
   const db = createAdminClient()
