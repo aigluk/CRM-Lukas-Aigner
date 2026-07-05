@@ -4,11 +4,12 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Lead, LeadStatus } from '@/lib/types'
 import { isSameDay, toDateInput } from '@/lib/utils'
 import { STATUSES, STATUS_LABELS } from '@/lib/constants'
-import { ChevronLeft, ChevronRight, ChevronDown, Phone, Plus, X, Loader2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronDown, Phone, Plus, X, Loader2, CalendarDays } from 'lucide-react'
 import { DatePicker, TimePicker } from '@/components/ui/DateTimePicker'
 import { AppointmentEditModal } from '@/components/ui/AppointmentEditModal'
 import { TodayPanel } from '@/components/dashboard/TodayPanel'
 import { ReminderWidget } from '@/components/dashboard/ReminderWidget'
+import { CalendarSyncModal } from './CalendarSyncModal'
 
 type View = 'month' | 'week' | 'day'
 
@@ -261,6 +262,7 @@ export function CalendarView({ leads: initialLeads }: { leads: Lead[] }) {
   const [current, setCurrent] = useState(new Date())
   const [modal, setModal]     = useState<{ date: string; from?: string; to?: string } | null>(null)
   const [editLead, setEditLead] = useState<Lead | null>(null)
+  const [syncModal, setSyncModal] = useState(false)
   const appointments          = useMemo(() => getAppointments(leads), [leads])
 
   function handleCreated(lead: Lead) {
@@ -320,6 +322,8 @@ export function CalendarView({ leads: initialLeads }: { leads: Lead[] }) {
         />
       )}
 
+      {syncModal && <CalendarSyncModal onClose={() => setSyncModal(false)} />}
+
       {/* Header */}
       <div className="flex items-start justify-between mb-8 flex-wrap gap-3">
         <div>
@@ -327,6 +331,13 @@ export function CalendarView({ leads: initialLeads }: { leads: Lead[] }) {
           <p className="text-sm text-white/30 mt-2 font-medium capitalize">{title}</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setSyncModal(true)}
+            className="flex items-center gap-2 bg-panel hover:bg-panel-hover text-white/60 hover:text-white font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all active:scale-[0.98]"
+          >
+            <CalendarDays size={14} />
+            Kalender verbinden
+          </button>
           <button
             onClick={() => setModal({ date: toDateInput(current) })}
             className="flex items-center gap-2 bg-accent hover:opacity-90 text-white font-black text-xs px-4 py-2.5 rounded-xl transition-all active:scale-[0.98]"
