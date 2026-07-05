@@ -308,8 +308,9 @@ export function ClosingPdf({ data, company }: { data: ClosingPdfData; company: C
               </View>
             </View>
             <Text style={styles.note}>
-              GF-Gehalt und Anstellungsbezüge sind beide Einkünfte aus nichtselbständiger Arbeit (§25 EStG) und auf dem E1 unter KZ 245 anzugeben. Die einbehaltene Lohnsteuer wird auf die Einkommensteuer angerechnet.
-              {hasGfSalary ? ' Hinweis GF-Gehalt: Bei wesentlicher Beteiligung (>25 % an der GmbH) besteht GSVG-Pflicht statt ASVG — SVS-Beiträge sind separat abzuführen und nicht in der Lohnsteuer enthalten. Bitte mit dem Steuerberater abstimmen.' : ' Bitte alle Lohnzettel (L16) vollständig an den Steuerberater weitergeben.'}
+              {hasGfSalary
+                ? 'GF-Gehalt und Anstellung sind beide §25 EStG (KZ 245 auf E1). Bei wesentlicher Beteiligung (>25 % GmbH-Anteil) gilt GSVG statt ASVG. SVS-Beitrage separat abfuhren. Lohnsteuer wird auf ESt angerechnet. Bitte mit Steuerberater abstimmen.'
+                : 'Einkünfte aus nichtselbständiger Arbeit gemäß §25 EStG, KZ 245 auf E1. Einbehaltene Lohnsteuer wird auf ESt angerechnet. Alle L16 an den Steuerberater weitergeben.'}
             </Text>
           </View>
           )
