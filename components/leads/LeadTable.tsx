@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Lead } from '@/lib/types'
 import { STATUS_COLORS, STATUS_LABELS } from '@/lib/constants'
-import { Phone, ChevronRight, Share2, StickyNote, User } from 'lucide-react'
+import { Phone, ChevronRight, Share2, StickyNote, User, Globe } from 'lucide-react'
 
 export type TeamUser = { id: string; username: string }
 
@@ -77,19 +77,18 @@ function Circle({
   )
 }
 
-// Mobile: circle | company | phone | share | chevron  (5 cols)
-// SM:     circle | company | status+handler (auto) | phone | share | note | chevron  (7 cols)
-const ROW_GRID = 'grid grid-cols-[36px_1fr_32px_32px_16px] sm:grid-cols-[36px_1fr_auto_32px_32px_32px_16px] gap-3 items-center px-4 sm:px-5 min-h-16'
+// Mobile: circle | company | phone | share | website | chevron  (6 cols)
+// SM:     circle | company | status+handler (auto) | phone | share | website | note | chevron  (8 cols)
+const ROW_GRID = 'grid grid-cols-[36px_1fr_32px_32px_32px_16px] sm:grid-cols-[36px_1fr_auto_32px_32px_32px_32px_16px] gap-3 items-center px-4 sm:px-5 min-h-16'
 
 export function LeadTableHeader({
   allSelected, someSelected, onToggleAll,
 }: { allSelected: boolean; someSelected: boolean; onToggleAll: () => void }) {
   return (
-    <div className={`${ROW_GRID} bg-accent rounded-t-2xl shrink-0`}>
+    <div className="flex items-center gap-3 bg-accent rounded-t-2xl px-4 sm:px-5 py-3.5 shrink-0">
       <Circle selected={allSelected} partial={someSelected} onAccent onClick={e => { e.stopPropagation(); onToggleAll() }} />
-      <span className="text-sm font-bold text-white">Unternehmen</span>
-      <span className="hidden sm:block text-xs font-bold text-white/70">Status / Bearbeiter</span>
-      <span /><span /><span /><span />
+      <span className="flex-1 text-sm font-bold text-white">Unternehmen</span>
+      <span className="hidden sm:block text-xs font-bold text-white/70 mr-2">Status / Bearbeiter</span>
     </div>
   )
 }
@@ -269,6 +268,26 @@ export function LeadTable({
                 ) : (
                   <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
                     <Share2 size={12} className="text-white/12" />
+                  </div>
+                )}
+              </div>
+
+              {/* Website */}
+              <div className="flex items-center justify-center">
+                {lead.website ? (
+                  <a
+                    href={lead.website.startsWith('http') ? lead.website : `https://${lead.website}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={e => e.stopPropagation()}
+                    title={lead.website}
+                    className="w-8 h-8 rounded-full bg-white/12 flex items-center justify-center hover:bg-white/20 transition-all active:scale-90"
+                  >
+                    <Globe size={13} className="text-white" strokeWidth={2.5} />
+                  </a>
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
+                    <Globe size={13} className="text-white/12" />
                   </div>
                 )}
               </div>

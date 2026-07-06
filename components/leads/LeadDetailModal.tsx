@@ -471,7 +471,8 @@ export function LeadDetailModal({
               value={form.address ?? form.region ?? ''} editing={editing} onChange={v => set('address', v)} />
             <Field label="Website" icon={<Globe size={11} />}
               value={form.website ?? ''} editing={editing} onChange={v => set('website', v)}
-              href={lead.website} type="url" />
+              href={lead.website ? (lead.website.startsWith('http') ? lead.website : `https://${lead.website}`) : undefined}
+              type="url" />
 
             {/* Branche — editable with datalist suggestions */}
             <div>

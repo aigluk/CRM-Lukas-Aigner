@@ -1,61 +1,140 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Users, Calendar, Search, Settings, Calculator, Contact } from 'lucide-react'
+import { usePathname, useRouter } from 'next/navigation'
+import {
+  LayoutDashboard, Users, Calendar, Search, Settings, Calculator, Contact,
+  Briefcase, BarChart3, MoreHorizontal, LogOut,
+} from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 import { usePermissions } from '@/lib/usePermissions'
 import { hasAccess } from '@/lib/permissions'
 
-const NAV = [
-  { href: '/',           label: 'Dashboard',   icon: LayoutDashboard, solid: true },
-  { href: '/leads',      label: 'Leads',       icon: Users,      solid: false },
-  { href: '/customers',  label: 'Kunden',      icon: Contact,    solid: false },
-  { href: '/generator',  label: 'Generator',   icon: Search,     solid: false },
-  { href: '/calendar',   label: 'Kalender',    icon: Calendar,   solid: false },
-  { href: '/accounting', label: 'Buchhaltung', icon: Calculator, solid: false },
-  { href: '/settings',   label: 'Profil',      icon: Settings,   solid: false },
+const PRIMARY = [
+  { href: '/',           label: 'Dashboard',   icon: LayoutDashboard },
+  { href: '/leads',      label: 'Leads',       icon: Users },
+  { href: '/customers',  label: 'Kunden',      icon: Contact },
+  { href: '/calendar',   label: 'Kalender',    icon: Calendar },
+  { href: '/accounting', label: 'Buchhaltung', icon: Calculator },
+]
+
+const SECONDARY = [
+  { href: '/generator', label: 'Generator',      icon: Search },
+  { href: '/partners',  label: 'Partner',        icon: Briefcase },
+  { href: '/sales',     label: 'Vertrieb',       icon: BarChart3 },
+  { href: '/settings',  label: 'Einstellungen',  icon: Settings },
 ]
 
 export function MobileNav() {
   const pathname = usePathname()
+  const router   = useRouter()
+  const supabase = createClient()
   const { permissions } = usePermissions()
-  const nav = NAV.filter(item => item.href === '/settings' || hasAccess(permissions, item.href))
+  const [moreOpen, setMoreOpen] = useState(false)
+
+  const primary   = PRIMARY.filter(item => hasAccess(permissions, item.href))
+  const secondary = SECONDARY.filter(item => item.href === '/settings' || hasAccess(permissions, item.href))
 
   function isActive(href: string) {
     if (href === '/') return pathname === '/'
     return pathname.startsWith(href)
   }
 
+  const moreActive = secondary.some(item => isActive(item.href))
+
+  async function logout() {
+    setMoreOpen(false)
+    await supabase.auth.signOut()
+    router.push('/login')
+    router.refresh()
+  }
+
   return (
-    <nav
-      className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-panel border-t border-rim-subtle"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-    >
-      <div className="flex items-stretch h-18 overflow-x-auto">
-        {nav.map(({ href, label, icon: Icon, solid }) => {
-          const active = isActive(href)
-          return (
-            <Link
-              key={href}
-              href={href}
-              className="flex-1 min-w-16 flex flex-col items-center justify-center gap-1 relative transition-all active:opacity-60"
-            >
-              {active && (
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-b-full bg-accent" />
-              )}
-              <Icon
-                size={22}
-                strokeWidth={solid ? 1.5 : (active ? 2.75 : 2.3)}
-                fill={solid ? 'currentColor' : 'none'}
-                className={active ? 'text-accent' : 'text-white/30'}
-              />
-              <span className={`text-[9px] font-black tracking-wide ${active ? 'text-accent' : 'text-white/25'}`}>
-                {label}
-              </span>
-            </Link>
-          )
-        })}
-      </div>
-    </nav>
+    <>
+      {/* "Mehr"-Sheet */}
+      {moreOpen && (
+        <div className="lg:hidden">
+          <div
+            className="fixed inset-0 bg-black/50 z-59"
+            onClick={() => setMoreOpen(false)}
+          />
+          <div
+            className="fixed bottom-0 left-0 right-0 bg-dark border-t-2 border-accent rounded-t-3xl pt-5 px-4 z-60"
+            style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 4.5rem + 1rem)' }}
+          >
+            {secondary.map(({ href, label, icon: Icon }) => {
+              const active = isActive(href)
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={() => setMoreOpen(false)}
+                  className={`min-h-14 flex items-center gap-4 px-2 text-base font-bold transition-colors active:opacity-60 ${
+                    active ? 'text-accent' : 'text-white'
+                  }`}
+                >
+                  <Icon size={22} strokeWidth={active ? 2.5 : 2} />
+                  {label}
+                </Link>
+              )
+            })}
+            <div className="border-t border-white/10 mt-2 pt-2">
+              <button
+                onClick={logout}
+                className="min-h-14 w-full flex items-center gap-4 px-2 text-base font-bold text-white/40 transition-colors active:opacity-60"
+              >
+                <LogOut size={22} strokeWidth={2} />
+                Abmelden
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bottombar */}
+      <nav
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-dark border-t-2 border-accent"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
+        <div className="flex items-stretch h-18">
+          {primary.map(({ href, label, icon: Icon }) => {
+            const active = isActive(href) && !moreOpen
+            return (
+              <Link
+                key={href}
+                href={href}
+                onClick={() => setMoreOpen(false)}
+                className="flex-1 min-w-0 flex flex-col items-center justify-center gap-1 relative transition-all active:opacity-60"
+              >
+                <Icon
+                  size={22}
+                  strokeWidth={active ? 2.6 : 2.1}
+                  className={active ? 'text-accent' : 'text-white/60'}
+                />
+                <span className={`text-[10px] font-bold tracking-wide truncate max-w-full px-0.5 ${active ? 'text-accent' : 'text-white/50'}`}>
+                  {label}
+                </span>
+              </Link>
+            )
+          })}
+
+          {/* Mehr */}
+          <button
+            onClick={() => setMoreOpen(o => !o)}
+            className="flex-1 min-w-0 flex flex-col items-center justify-center gap-1 relative transition-all active:opacity-60"
+          >
+            <MoreHorizontal
+              size={22}
+              strokeWidth={moreActive || moreOpen ? 2.6 : 2.1}
+              className={moreActive || moreOpen ? 'text-accent' : 'text-white/60'}
+            />
+            <span className={`text-[10px] font-bold tracking-wide ${moreActive || moreOpen ? 'text-accent' : 'text-white/50'}`}>
+              Mehr
+            </span>
+          </button>
+        </div>
+      </nav>
+    </>
   )
 }

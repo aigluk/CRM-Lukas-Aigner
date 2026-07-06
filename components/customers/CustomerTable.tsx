@@ -1,7 +1,7 @@
 'use client'
 
 import type { AccountingCustomer } from '@/lib/types'
-import { Phone, ChevronRight, Share2 } from 'lucide-react'
+import { Phone, ChevronRight, Share2, Globe } from 'lucide-react'
 
 function Circle({
   selected, partial, onClick, onAccent,
@@ -41,7 +41,7 @@ function handleShare(c: AccountingCustomer, e: React.MouseEvent) {
   window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
 }
 
-const ROW_GRID = 'grid grid-cols-[36px_1fr_32px_32px_16px] gap-3 items-center px-4 sm:px-5 min-h-16'
+const ROW_GRID = 'grid grid-cols-[36px_1fr_32px_32px_32px_16px] gap-3 items-center px-4 sm:px-5 min-h-16'
 
 export function CustomerTableHeader({
   allSelected, someSelected, onToggleAll,
@@ -50,7 +50,7 @@ export function CustomerTableHeader({
     <div className={`${ROW_GRID} bg-accent rounded-t-2xl shrink-0`}>
       <Circle selected={allSelected} partial={someSelected} onAccent onClick={e => { e.stopPropagation(); onToggleAll() }} />
       <span className="text-sm font-bold text-white">Kundenstamm &amp; Stammdaten</span>
-      <span /><span /><span />
+      <span /><span /><span /><span />
     </div>
   )
 }
@@ -133,6 +133,25 @@ export function CustomerTable({
                 ) : (
                   <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
                     <Share2 size={12} className="text-white/12" />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-center">
+                {c.website ? (
+                  <a
+                    href={c.website.startsWith('http') ? c.website : `https://${c.website}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={e => e.stopPropagation()}
+                    title={c.website}
+                    className="w-8 h-8 rounded-full bg-white/12 flex items-center justify-center hover:bg-white/20 transition-all active:scale-90"
+                  >
+                    <Globe size={13} className="text-white" strokeWidth={2.5} />
+                  </a>
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
+                    <Globe size={13} className="text-white/12" />
                   </div>
                 )}
               </div>
