@@ -85,10 +85,13 @@ export function LeadTableHeader({
   allSelected, someSelected, onToggleAll,
 }: { allSelected: boolean; someSelected: boolean; onToggleAll: () => void }) {
   return (
-    <div className="flex items-center gap-3 bg-accent rounded-t-2xl px-4 sm:px-5 py-3.5 shrink-0">
+    <div className="grid grid-cols-[36px_1fr_32px_32px_32px_16px] sm:grid-cols-[36px_1fr_auto_32px_32px_32px_32px_16px] gap-3 items-center px-4 sm:px-5 py-3.5 bg-accent rounded-t-2xl shrink-0">
       <Circle selected={allSelected} partial={someSelected} onAccent onClick={e => { e.stopPropagation(); onToggleAll() }} />
-      <span className="flex-1 text-sm font-bold text-white">Unternehmen</span>
-      <span className="hidden sm:block text-xs font-bold text-white/70 mr-2">Status / Bearbeiter</span>
+      <span className="text-sm font-bold text-white">Unternehmen</span>
+      <span className="hidden sm:block text-xs font-bold text-white/70">Status / Bearbeiter</span>
+      <span /><span /><span />
+      <span className="hidden sm:block" />
+      <span />
     </div>
   )
 }

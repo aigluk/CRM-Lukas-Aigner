@@ -60,8 +60,8 @@ export function MobileNav() {
             onClick={() => setMoreOpen(false)}
           />
           <div
-            className="fixed bottom-0 left-0 right-0 bg-dark border-t-2 border-accent rounded-t-3xl pt-5 px-4 z-60"
-            style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 4.5rem + 1rem)' }}
+            className="fixed bottom-0 left-0 right-0 border-t-2 border-accent rounded-t-3xl pt-5 px-4 z-60"
+            style={{ background: '#1A1A1A', paddingBottom: 'calc(env(safe-area-inset-bottom) + 4.5rem + 1rem)' }}
           >
             {secondary.map(({ href, label, icon: Icon }) => {
               const active = isActive(href)
@@ -94,8 +94,8 @@ export function MobileNav() {
 
       {/* Bottombar */}
       <nav
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-dark border-t-2 border-accent"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-50 border-t-2 border-accent"
+        style={{ background: '#1A1A1A', paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         <div className="flex items-stretch h-18">
           {primary.map(({ href, label, icon: Icon }) => {

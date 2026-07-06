@@ -704,14 +704,14 @@ export function AccountingView() {
               <a
                 href={`/api/accounting/documents/${doc.id}/pdf?dl=1`}
                 title="PDF herunterladen"
-                className="w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 flex items-center justify-center text-white/40 hover:text-white transition-all shrink-0"
+                className="hidden sm:flex w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 items-center justify-center text-white/40 hover:text-white transition-all shrink-0"
               >
                 <Download size={13} />
               </a>
               <button
                 onClick={() => doc.is_imported ? setImportedEditDoc(doc) : setDocModal({ type, doc })}
                 title="Bearbeiten"
-                className="w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 flex items-center justify-center text-white/40 hover:text-white transition-all shrink-0"
+                className="hidden sm:flex w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 items-center justify-center text-white/40 hover:text-white transition-all shrink-0"
               >
                 <FileText size={13} />
               </button>
