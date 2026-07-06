@@ -14,16 +14,16 @@ import { hasAccess } from '@/lib/permissions'
 const PRIMARY = [
   { href: '/',           label: 'Dashboard',   icon: LayoutDashboard },
   { href: '/leads',      label: 'Leads',       icon: Users },
-  { href: '/customers',  label: 'Kunden',      icon: Contact },
   { href: '/calendar',   label: 'Kalender',    icon: Calendar },
   { href: '/accounting', label: 'Buchhaltung', icon: Calculator },
 ]
 
 const SECONDARY = [
-  { href: '/generator', label: 'Generator',      icon: Search },
-  { href: '/partners',  label: 'Partner',        icon: Briefcase },
-  { href: '/sales',     label: 'Vertrieb',       icon: BarChart3 },
-  { href: '/settings',  label: 'Einstellungen',  icon: Settings },
+  { href: '/customers',  label: 'Kunden',       icon: Contact },
+  { href: '/generator',  label: 'Generator',    icon: Search },
+  { href: '/partners',   label: 'Partner',      icon: Briefcase },
+  { href: '/sales',      label: 'Vertrieb',     icon: BarChart3 },
+  { href: '/settings',   label: 'Einstellungen', icon: Settings },
 ]
 
 export function MobileNav() {
@@ -109,10 +109,10 @@ export function MobileNav() {
               >
                 <Icon
                   size={22}
-                  strokeWidth={active ? 2.6 : 2.1}
-                  className={active ? 'text-accent' : 'text-white/60'}
+                  strokeWidth={active ? 2.6 : 2}
+                  className={active ? 'text-accent' : 'text-white'}
                 />
-                <span className={`text-[10px] font-bold tracking-wide truncate max-w-full px-0.5 ${active ? 'text-accent' : 'text-white/50'}`}>
+                <span className={`text-[10px] font-bold tracking-wide truncate max-w-full px-0.5 ${active ? 'text-accent' : 'text-white/70'}`}>
                   {label}
                 </span>
               </Link>
@@ -126,10 +126,10 @@ export function MobileNav() {
           >
             <MoreHorizontal
               size={22}
-              strokeWidth={moreActive || moreOpen ? 2.6 : 2.1}
-              className={moreActive || moreOpen ? 'text-accent' : 'text-white/60'}
+              strokeWidth={moreActive || moreOpen ? 2.6 : 2}
+              className={moreActive || moreOpen ? 'text-accent' : 'text-white'}
             />
-            <span className={`text-[10px] font-bold tracking-wide ${moreActive || moreOpen ? 'text-accent' : 'text-white/50'}`}>
+            <span className={`text-[10px] font-bold tracking-wide ${moreActive || moreOpen ? 'text-accent' : 'text-white/70'}`}>
               Mehr
             </span>
           </button>

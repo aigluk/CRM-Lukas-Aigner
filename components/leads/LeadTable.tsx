@@ -85,7 +85,7 @@ export function LeadTableHeader({
   allSelected, someSelected, onToggleAll,
 }: { allSelected: boolean; someSelected: boolean; onToggleAll: () => void }) {
   return (
-    <div className="grid grid-cols-[36px_1fr_32px_32px_32px_16px] sm:grid-cols-[36px_1fr_auto_32px_32px_32px_32px_16px] gap-3 items-center px-4 sm:px-5 py-3.5 bg-accent rounded-t-2xl shrink-0">
+    <div className="grid grid-cols-[36px_1fr_32px_32px_32px_16px] sm:grid-cols-[36px_1fr_auto_32px_32px_32px_32px_16px] gap-3 items-center px-4 sm:px-5 min-h-16 bg-accent rounded-t-2xl shrink-0">
       <Circle selected={allSelected} partial={someSelected} onAccent onClick={e => { e.stopPropagation(); onToggleAll() }} />
       <span className="text-sm font-bold text-white">Unternehmen</span>
       <span className="hidden sm:block text-xs font-bold text-white/70">Status / Bearbeiter</span>
