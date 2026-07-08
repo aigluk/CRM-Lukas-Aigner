@@ -19,6 +19,7 @@ export interface Lead {
   city?: string
   address?: string
   phone?: string
+  phone_direct?: string
   email?: string
   email_general?: string
   email_ceo?: string

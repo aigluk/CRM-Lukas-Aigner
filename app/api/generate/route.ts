@@ -82,6 +82,85 @@ async function lookupFirmenbuch(companyName: string, apiKey: string): Promise<an
   } catch { return null }
 }
 
+function extractText(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 2000)
+}
+
+function normalizePhone(phone: string): string {
+  return phone.replace(/[\s\-/().]/g, '')
+}
+
+function isAustrianMobile(phone: string): boolean {
+  const n = normalizePhone(phone)
+  return /^(06|\+436|00436)/.test(n)
+}
+
+async function enrichWithWebsite(website: string | null): Promise<{ phone: string | null; ceo: string | null } | null> {
+  const anthropicKey = process.env.ANTHROPIC_API_KEY
+  if (!website || !anthropicKey) return null
+  try {
+    // Fetch website HTML (follows redirects by default)
+    const siteRes = await fetch(website, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; LeadBot/1.0)', Accept: 'text/html' },
+      signal: AbortSignal.timeout(4000),
+    })
+    if (!siteRes.ok) return null
+    const html = await siteRes.text()
+    const websiteText = extractText(html)
+    if (websiteText.length < 100) return null
+
+    // Extract CEO name + direct phone via Claude
+    const prompt = `Analysiere diese Firmenwebsite und extrahiere NUR:
+1. Die direkte Telefonnummer oder Mobilnummer des Geschäftsführers/Inhabers/CEO (NICHT die allgemeine Firmennummer)
+2. Den vollständigen Namen des Geschäftsführers/Inhabers/CEO (nur wenn klar erkennbar)
+
+Antworte im Format:
+PHONE: [Nummer oder leer]
+CEO: [Name oder leer]
+
+Wenn keine Direktnummer gefunden, lass PHONE leer. Nur echte persönliche Nummern angeben.
+
+Website-Inhalt:
+${websiteText}`
+
+    const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': anthropicKey,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 150,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+      signal: AbortSignal.timeout(10000),
+    })
+    if (!aiRes.ok) return null
+    const aiData = await aiRes.json()
+    const text: string = aiData.content?.[0]?.text ?? ''
+
+    const phoneMatch = text.match(/PHONE:\s*(.+)/i)
+    const ceoMatch   = text.match(/CEO:\s*(.+)/i)
+
+    let phone = phoneMatch?.[1]?.trim() || null
+    if (phone && phone.replace(/\D/g, '').length < 6) phone = null
+
+    let ceo = ceoMatch?.[1]?.trim() || null
+    if (ceo && (/^(leer|none|keine|n\/a)/i.test(ceo) || ceo.split(/\s+/).length < 2)) ceo = null
+
+    if (!phone && !ceo) return null
+    return { phone, ceo }
+  } catch { return null }
+}
+
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -168,12 +247,29 @@ export async function POST(req: NextRequest) {
       }
     })
 
-  // Parallel enrichment: Firmenbuch
+  // Parallel enrichment: Firmenbuch + Website (Claude) laufen pro Lead gleichzeitig
   await Promise.all(leads.map(async (lead: any) => {
-    const fb = await lookupFirmenbuch(lead.name, opendataKey)
+    const [fb, web] = await Promise.all([
+      lookupFirmenbuch(lead.name, opendataKey),
+      enrichWithWebsite(lead.website),
+    ])
     if (fb) {
       if (fb.address) lead.region = fb.address
       if (fb.ceo && fb.ceo.split(/\s+/).length >= 2 && !lead.ceos) lead.ceos = fb.ceo
+    }
+    if (web) {
+      if (web.ceo && !lead.ceos) lead.ceos = web.ceo
+      if (web.phone) {
+        const samePhone = lead.phone && normalizePhone(web.phone) === normalizePhone(lead.phone)
+        if (!samePhone) {
+          if (isAustrianMobile(web.phone)) {
+            // Österreichische Mobilnummer = sehr wahrscheinlich Direktnummer des Inhabers
+            lead.phone = web.phone
+          } else {
+            lead.notes = `Direktnummer: ${web.phone}${lead.notes ? `\n${lead.notes}` : ''}`
+          }
+        }
+      }
     }
   }))
 
