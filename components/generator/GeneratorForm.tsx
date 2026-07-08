@@ -280,7 +280,7 @@ export function GeneratorForm() {
     try {
       const res  = await fetch('/api/generate', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ branches: branche, custom: locationStr, radius }),
+        body: JSON.stringify({ branches: branche, custom: locationStr, radius, countryCode: country.code }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Fehler beim Generieren.')

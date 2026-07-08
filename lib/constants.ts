@@ -46,18 +46,28 @@ export const BRANCHES = [
   'Logistik',
 ]
 
-export const BRANCH_SEARCH_MAP: Record<string, string> = {
-  'Immobilien / Makler':         'Immobilienmakler',
-  'Bauträger':                   'Bauträger Immobilien',
-  'Architekten':                 'Architekturbüro',
-  'Developer / Projektentwicklung': 'Projektentwicklung Immobilien',
-  'Hotels':                      'Hotels',
-  'Gastronomie':                 'Restaurants Gastronomie',
-  'Events / Eventlocations':     'Eventlocation Veranstaltung',
-  'Wellness/Spa':                'Wellness Spa',
-  'IT/Software':                 'IT Software Unternehmen',
-  'Finanzen/Versicherung':       'Finanzberatung Versicherung',
-  'Gesundheit/Pflege':           'Arztpraxis Pflegeheim',
-  'Handel':                      'Einzelhandel',
-  'Logistik':                    'Logistik Spedition',
+// Multi-term search map: each category maps to the search terms an experienced
+// salesperson would actually type into Google Maps to find these businesses.
+// Categories not in this map (custom user categories) use their name as the single term.
+export const BRANCH_SEARCH_MAP: Record<string, string[]> = {
+  'Immobilien/Makler':        ['Immobilienmakler', 'Immobilienbüro', 'Hausverwaltung', 'Liegenschaftsverwaltung'],
+  'Real Estate':              ['Real Estate Agency', 'Property Management', 'Immobilien International'],
+  'Bauträger':                ['Bauträger', 'Wohnbaugesellschaft', 'Immobilienentwickler', 'Projektentwicklung Bau'],
+  'Developer':                ['Immobilien Developer', 'Projektentwicklung', 'Bauträger Wohnen'],
+  'Projektentwicklung':       ['Projektentwicklung Immobilien', 'Bauträger', 'Immobilienentwicklung'],
+  'Hotels':                   ['Hotel', 'Boutique Hotel', 'Wellness Hotel', 'Resort'],
+  'Events/Eventlocations':    ['Eventlocation', 'Veranstaltungssaal', 'Hochzeitslocation', 'Seminarhotel'],
+  'Vermietung':               ['Ferienwohnung Vermietung', 'Apartmentvermietung', 'Kurzzeitvermietung'],
+  'Gastronomie':              ['Restaurant', 'Gasthof', 'Bistro', 'Wirtshaus'],
+  'Wellness/Spa':             ['Wellnesshotel', 'Spa', 'Therme', 'Beauty Salon'],
+  'Architekten':              ['Architekturbüro', 'Planungsbüro', 'Innenarchitekt'],
+  'IT/Software':              ['IT Unternehmen', 'Softwareentwicklung', 'Digitalagentur', 'IT Beratung'],
+  'Finanzen/Versicherung':    ['Finanzberatung', 'Versicherungsmakler', 'Steuerberater', 'Vermögensverwaltung'],
+  'Gesundheit/Pflege':        ['Arztpraxis', 'Zahnarzt', 'Pflegeheim', 'Physiotherapie'],
+  'Handel':                   ['Einzelhandel', 'Fachhandel', 'Modegeschäft', 'Einrichtungshaus'],
+  'Logistik':                 ['Spedition', 'Logistik', 'Transportfirma', 'Kurierdienst'],
+  // Legacy label aliases (older stored searches / BRANCHES list with spaces)
+  'Immobilien / Makler':         ['Immobilienmakler', 'Immobilienbüro', 'Hausverwaltung', 'Liegenschaftsverwaltung'],
+  'Events / Eventlocations':     ['Eventlocation', 'Veranstaltungssaal', 'Hochzeitslocation', 'Seminarhotel'],
+  'Developer / Projektentwicklung': ['Immobilien Developer', 'Projektentwicklung', 'Bauträger Wohnen'],
 }

@@ -161,6 +161,103 @@ ${websiteText}`
   } catch { return null }
 }
 
+// Country code to German country name for precise Google Maps locations
+const COUNTRY_NAMES: Record<string, string> = {
+  AT: 'Österreich',
+  DE: 'Deutschland',
+  CH: 'Schweiz',
+  AE: 'Vereinigte Arabische Emirate',
+  CY: 'Zypern',
+  ES: 'Spanien',
+  US: 'USA',
+}
+
+async function expandCategoryWithAI(category: string): Promise<string[]> {
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) return [category]
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 60,
+        messages: [{
+          role: 'user',
+          content: `Du bist ein erfahrener Vertriebler der Firmen auf Google Maps sucht. Für die Kategorie "${category}" gib mir genau 2-3 präzise deutsche Google Maps Suchbegriffe die ein Vertriebler verwenden würde um solche Firmen zu finden. Nur die Begriffe kommagetrennt, keine Erklärung, kein Satz.`,
+        }],
+      }),
+      signal: AbortSignal.timeout(5000),
+    })
+    if (!res.ok) return [category]
+    const data = await res.json()
+    const text: string = data.content?.[0]?.text ?? ''
+    const terms = text.split(',').map((t: string) => t.trim()).filter((t: string) => t.length > 1).slice(0, 3)
+    return terms.length > 0 ? terms : [category]
+  } catch { return [category] }
+}
+
+class OutscraperError extends Error {
+  status: number
+  constructor(message: string, status: number) {
+    super(message)
+    this.status = status
+  }
+}
+
+async function queryOutscraper(
+  searchTerm: string,
+  location: string,
+  radius: string,
+  countryCode: string,
+  apiKey: string
+): Promise<any[]> {
+  const query = `${searchTerm}, ${location}`
+  const params = new URLSearchParams({
+    query,
+    limit: '10',
+    language: 'de',
+    region: countryCode,
+    async: 'false',
+  })
+  // Radius applies to ALL locations (predefined cities and custom input)
+  if (radius && radius !== '0') {
+    params.append('radius', String(Number(radius) * 1000))
+  }
+  params.append('enrichment', 'domains_service')
+
+  const apiRes = await fetch(`https://api.outscraper.com/google-maps-search?${params}`, {
+    headers: { 'X-API-KEY': apiKey, Accept: 'application/json' },
+  })
+  const rawText = await apiRes.text()
+  let apiData: any
+  try { apiData = JSON.parse(rawText) } catch {
+    if (/insufficient|credit|quota|limit|balance/i.test(rawText))
+      throw new OutscraperError('Outscraper Credits aufgebraucht. Bitte Guthaben aufladen.', 402)
+    throw new OutscraperError(`Outscraper Fehler: ${rawText.slice(0, 120)}`, 502)
+  }
+  if (!apiRes.ok) {
+    if (apiRes.status === 402 || /insufficient|credit|quota|limit|balance/i.test(rawText))
+      throw new OutscraperError('Outscraper Credits aufgebraucht. Bitte Guthaben aufladen.', 402)
+    throw new OutscraperError(`Outscraper Fehler (${apiRes.status})`, apiRes.status)
+  }
+  return Array.isArray(apiData.data?.[0]) ? apiData.data[0] : (apiData.data ?? [])
+}
+
+function deduplicatePlaces(places: any[]): any[] {
+  const seen = new Set<string>()
+  return places.filter(p => {
+    const key = p.place_id || `${p.name?.toLowerCase().trim()}|${p.city?.toLowerCase().trim()}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -171,41 +268,43 @@ export async function POST(req: NextRequest) {
 
   if (!outscraperKey) return NextResponse.json({ error: 'Outscraper API Key fehlt.' }, { status: 500 })
 
-  const { branches, custom, radius } = await req.json()
+  const { branches, custom, radius, countryCode } = await req.json()
   if (!branches) return NextResponse.json({ error: 'Branches Parameter fehlt.' }, { status: 400 })
 
-  const branchList  = (branches as string).split(',').map(b => b.trim())
-  const searchTerms = branchList.map(b => BRANCH_SEARCH_MAP[b] ?? b).join(', ')
-  const location    = custom || 'Österreich'
-  // Append radius hint to query so Outscraper biases results geographically
-  const radiusHint  = radius && radius !== '0' ? ` ${radius}km` : ''
-  const query       = `${searchTerms}, ${location}${radiusHint}`
+  const branchList = (branches as string).split(',').map(b => b.trim())
 
-  const params = new URLSearchParams({ query, limit: '15', language: 'de', region: 'AT', async: 'false' })
-  // Pass radius in meters to Outscraper when a city-level search is active
-  if (radius && radius !== '0' && custom) params.append('radius', String(Number(radius) * 1000))
-  params.append('enrichment', 'domains_service')
+  // Build the term pool like a salesperson: multiple related Google Maps searches
+  // per category. For known categories use predefined terms; for custom ones
+  // expand intelligently via Claude AI. Max 2 parallel queries (cost control).
+  const termArrays = await Promise.all(
+    branchList.map(b => BRANCH_SEARCH_MAP[b] ? Promise.resolve(BRANCH_SEARCH_MAP[b]) : expandCategoryWithAI(b))
+  )
+  const termPool = termArrays.flat()
+  const searchTerms = Array.from(new Set(termPool)).slice(0, 2)
 
-  // Outscraper Google Maps
+  const cc = typeof countryCode === 'string' && countryCode.trim()
+    ? countryCode.trim().toUpperCase()
+    : 'AT'
+  const countryName = COUNTRY_NAMES[cc]
+
+  // Precise location: "München, Deutschland" instead of just "München"
+  const baseLocation = custom || countryName || 'Österreich'
+  const location = countryName && baseLocation !== countryName
+    ? `${baseLocation}, ${countryName}`
+    : baseLocation
+
+  const query = searchTerms.map(t => `${t}, ${location}`).join(' | ')
+
+  // Up to 2 parallel Outscraper queries, combined + deduplicated
   let places: any[] = []
   try {
-    const apiRes = await fetch(`https://api.outscraper.com/google-maps-search?${params}`, {
-      headers: { 'X-API-KEY': outscraperKey, Accept: 'application/json' },
-    })
-    const rawText = await apiRes.text()
-    let apiData: any
-    try { apiData = JSON.parse(rawText) } catch {
-      if (/insufficient|credit|quota|limit|balance/i.test(rawText))
-        return NextResponse.json({ error: 'Outscraper Credits aufgebraucht.' }, { status: 402 })
-      return NextResponse.json({ error: `Outscraper Fehler: ${rawText.slice(0, 120)}` }, { status: 502 })
-    }
-    if (!apiRes.ok) {
-      if (apiRes.status === 402)
-        return NextResponse.json({ error: 'Outscraper Credits aufgebraucht.' }, { status: 402 })
-      return NextResponse.json({ error: `Outscraper Fehler (${apiRes.status})` }, { status: apiRes.status })
-    }
-    places = Array.isArray(apiData.data?.[0]) ? apiData.data[0] : (apiData.data ?? [])
+    const results = await Promise.all(
+      searchTerms.map(term => queryOutscraper(term, location, radius, cc, outscraperKey))
+    )
+    places = deduplicatePlaces(results.flat())
   } catch (err: any) {
+    if (err instanceof OutscraperError)
+      return NextResponse.json({ error: err.message }, { status: err.status })
     return NextResponse.json({ error: `Netzwerk-Fehler: ${err.message}` }, { status: 500 })
   }
 
