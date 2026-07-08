@@ -268,8 +268,11 @@ export async function POST(req: NextRequest) {
 
   if (!outscraperKey) return NextResponse.json({ error: 'Outscraper API Key fehlt.' }, { status: 500 })
 
-  const { branches, custom, radius, countryCode } = await req.json()
+  const { branches, custom, radius, countryCode, excludedNames } = await req.json()
   if (!branches) return NextResponse.json({ error: 'Branches Parameter fehlt.' }, { status: 400 })
+  const excludedSet = new Set<string>(
+    Array.isArray(excludedNames) ? excludedNames.map((n: string) => n.toLowerCase().trim()) : []
+  )
 
   const branchList = (branches as string).split(',').map(b => b.trim())
 
@@ -306,6 +309,11 @@ export async function POST(req: NextRequest) {
     if (err instanceof OutscraperError)
       return NextResponse.json({ error: err.message }, { status: err.status })
     return NextResponse.json({ error: `Netzwerk-Fehler: ${err.message}` }, { status: 500 })
+  }
+
+  // Filter out already-seen places (re-generate with same criteria returns new leads)
+  if (excludedSet.size > 0) {
+    places = places.filter(p => !excludedSet.has((p.name ?? '').toLowerCase().trim()))
   }
 
   if (!places.length) return NextResponse.json({ leads: [], total: 0, ceoFound: 0, emailFound: 0, query })

@@ -105,8 +105,10 @@ export function GeneratorForm() {
   const [loading, setLoading]           = useState(false)
   const [result, setResult]             = useState<GenResult | null>(null)
   const [error, setError]               = useState('')
-  const [saved, setSaved]               = useState(false)
+  const [saveResult, setSaveResult]     = useState<{ inserted: number; updated: number } | null>(null)
   const [saving, setSaving]             = useState(false)
+  const [seenNames, setSeenNames]       = useState<Set<string>>(new Set())
+  const [lastCriteria, setLastCriteria] = useState('')
 
   // Branch management
   const [branches, setBranches]         = useState<BranchItem[]>([])
@@ -267,7 +269,8 @@ export function GeneratorForm() {
   function applyRecent(r: RecentSearch) {
     setBranche(r.branche); setCountryId(r.countryId)
     setCity(r.city); setCustomCity(r.customCity); setRadius(r.radius)
-    setResult(null); setSaved(false); setSelectedIdx(new Set())
+    setResult(null); setSaveResult(null); setSelectedIdx(new Set())
+    setSeenNames(new Set()); setLastCriteria('')
   }
 
   // ── API calls ──────────────────────────────────────────────────────────────
@@ -276,17 +279,33 @@ export function GeneratorForm() {
     e.preventDefault()
     if (!branche) return
     setLoading(true); setError(''); setResult(null)
-    setSaved(false); setSelectedIdx(new Set()); setFilterMode('all')
+    setSaveResult(null); setSelectedIdx(new Set()); setFilterMode('all')
+
+    // Reset seen names when criteria changes, accumulate when same criteria
+    const criteria = `${branche}|${locationStr}|${radius}`
+    const currentSeen = criteria === lastCriteria ? seenNames : new Set<string>()
+    if (criteria !== lastCriteria) { setSeenNames(new Set()); setLastCriteria(criteria) }
+
     try {
-      const res  = await fetch('/api/generate', {
+      const res = await fetch('/api/generate', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ branches: branche, custom: locationStr, radius, countryCode: country.code }),
+        body: JSON.stringify({
+          branches: branche,
+          custom: locationStr,
+          radius,
+          countryCode: country.code,
+          excludedNames: Array.from(currentSeen),
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Fehler beim Generieren.')
       setResult(data)
       saveRecent(data)
-      // Pre-select all leads
+      // Track seen names to avoid duplicates on next generate with same criteria
+      const newSeen = new Set(currentSeen)
+      ;(data.leads as any[]).forEach((l: any) => { if (l.name) newSeen.add(l.name.toLowerCase().trim()) })
+      setSeenNames(newSeen)
+      setLastCriteria(criteria)
       setSelectedIdx(new Set(Array.from({ length: data.leads.length }, (_, i) => i)))
     } catch (err: any) {
       setError(err.message)
@@ -301,13 +320,13 @@ export function GeneratorForm() {
     if (!toSave.length) return
     setSaving(true)
     try {
-      const res  = await fetch('/api/leads', {
+      const res = await fetch('/api/leads', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ leads: toSave }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Fehler beim Speichern.')
-      setSaved(true)
+      setSaveResult({ inserted: data.inserted ?? toSave.length, updated: data.updated ?? 0 })
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -570,7 +589,7 @@ export function GeneratorForm() {
         </form>
 
         {/* ── RIGHT PANEL ──────────────────────────────────────────────── */}
-        <div className="lg:col-span-3 flex flex-col gap-4 lg:overflow-y-auto">
+        <div className="lg:col-span-3 flex flex-col gap-4 lg:overflow-y-auto lg:min-h-0">
 
           {error && (
             <div className="bg-accent/10 border border-accent/20 rounded-2xl px-5 py-4">
@@ -694,9 +713,13 @@ export function GeneratorForm() {
                   <span className="text-xs text-white/30 font-medium">
                     <span className="text-white font-bold">{selectedIdx.size}</span> von {result.total} ausgewählt
                   </span>
-                  {saved ? (
+                  {saveResult ? (
                     <div className="flex items-center gap-2 text-accent-green text-sm font-black">
-                      <CheckCircle size={14} />Gespeichert
+                      <CheckCircle size={14} />
+                      {saveResult.inserted > 0 ? `${saveResult.inserted} neu` : ''}
+                      {saveResult.inserted > 0 && saveResult.updated > 0 ? ' · ' : ''}
+                      {saveResult.updated > 0 ? `${saveResult.updated} vorhanden` : ''}
+                      {saveResult.inserted === 0 && saveResult.updated === 0 ? 'Gespeichert' : ''}
                     </div>
                   ) : (
                     <button
