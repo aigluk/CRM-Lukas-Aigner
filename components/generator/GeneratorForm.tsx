@@ -306,7 +306,10 @@ export function GeneratorForm() {
       ;(data.leads as any[]).forEach((l: any) => { if (l.name) newSeen.add(l.name.toLowerCase().trim()) })
       setSeenNames(newSeen)
       setLastCriteria(criteria)
-      setSelectedIdx(new Set(Array.from({ length: data.leads.length }, (_, i) => i)))
+      // Pre-select only non-duplicates
+      setSelectedIdx(new Set(
+        (data.leads as any[]).map((_: any, i: number) => i).filter((i: number) => !(data.leads[i] as any).isDuplicate)
+      ))
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -345,7 +348,7 @@ export function GeneratorForm() {
   const hasDefaultCountriesHidden = !DEFAULT_COUNTRIES.every(dc => countries.some(c => c.id === dc.id))
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col flex-1 min-h-0">
 
       {/* Header */}
       <div className="mb-5 shrink-0">
@@ -761,9 +764,14 @@ export function GeneratorForm() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start gap-2 justify-between">
                           <p className="text-sm font-bold text-white leading-snug truncate">{lead.name}</p>
-                          {email && (
-                            <span className="text-[10px] font-black bg-accent-green/12 text-accent-green px-2 py-0.5 rounded-lg shrink-0">E-Mail</span>
-                          )}
+                          <div className="flex items-center gap-1 shrink-0">
+                            {(lead as any).isDuplicate && (
+                              <span className="text-[10px] font-black bg-white/8 text-white/35 px-2 py-0.5 rounded-lg">Vorhanden</span>
+                            )}
+                            {email && (
+                              <span className="text-[10px] font-black bg-accent-green/12 text-accent-green px-2 py-0.5 rounded-lg">E-Mail</span>
+                            )}
+                          </div>
                         </div>
                         {(lead.city || lead.region) && (
                           <p className="text-xs text-white/30 mt-0.5 flex items-center gap-1">

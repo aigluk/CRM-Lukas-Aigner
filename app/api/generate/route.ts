@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { BRANCH_SEARCH_MAP } from '@/lib/constants'
 import { stripEmoji } from '@/lib/utils'
+import { getWorkspaceOwnerId } from '@/lib/workspace'
 
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/
 const GENERIC_PREFIX = /^(info|office|kontakt|contact|hello|hallo|support|service|mail|team|post|anfrage|booking|reservation|sales|hr|buchhaltung|verwaltung|sekretariat|empfang|reception|marketing|noreply|no-reply|jobs|karriere)@/i
@@ -382,6 +383,27 @@ export async function POST(req: NextRequest) {
 
   const ceoFound   = leads.filter((l: any) => l.ceos).length
   const emailFound = leads.filter((l: any) => l.email).length
+
+  // Mark duplicates: check which leads already exist in DB
+  try {
+    const ownerId = await getWorkspaceOwnerId(user.id)
+    const { data: existing } = await supabase
+      .from('leads')
+      .select('name, website')
+      .eq('user_id', ownerId)
+    if (existing?.length) {
+      const existingKeys = new Set(existing.map((e: any) => {
+        const name = (e.name ?? '').toLowerCase().trim()
+        const web  = (e.website ?? '').replace(/^https?:\/\/(www\.)?/, '').split('/')[0].toLowerCase().trim()
+        return web ? `${name}|${web}` : name
+      }))
+      leads.forEach((l: any) => {
+        const name = (l.name ?? '').toLowerCase().trim()
+        const web  = (l.website ?? '').replace(/^https?:\/\/(www\.)?/, '').split('/')[0].toLowerCase().trim()
+        l.isDuplicate = existingKeys.has(web ? `${name}|${web}` : name)
+      })
+    }
+  } catch { /* non-fatal, skip duplicate marking */ }
 
   return NextResponse.json({ leads, total: leads.length, ceoFound, emailFound, query })
 }
