@@ -39,9 +39,10 @@ export async function GET() {
   const isAdmin = sorted[0]?.id === userId
   const me = data.users.find(u => u.id === userId)
   const myPermissions = ((me?.user_metadata as Record<string, unknown>)?.permissions as string[] | undefined) ?? null
+  const myHiddenNav   = ((me?.user_metadata as Record<string, unknown>)?.hidden_nav  as string[] | undefined) ?? []
 
   if (!isAdmin) {
-    return NextResponse.json({ users: [], isAdmin: false, myPermissions })
+    return NextResponse.json({ users: [], isAdmin: false, myPermissions, myHiddenNav })
   }
 
   const users = data.users.map(u => ({
@@ -52,7 +53,7 @@ export async function GET() {
     last_sign_in_at: u.last_sign_in_at ?? null,
     permissions: ((u.user_metadata as Record<string, unknown>)?.permissions as string[] | undefined) ?? null,
   }))
-  return NextResponse.json({ users, isAdmin: true, myPermissions: null })
+  return NextResponse.json({ users, isAdmin: true, myPermissions: null, myHiddenNav })
 }
 
 export async function POST(req: NextRequest) {

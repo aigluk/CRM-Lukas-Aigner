@@ -25,8 +25,8 @@ export function Sidebar() {
   const pathname = usePathname()
   const router   = useRouter()
   const supabase = createClient()
-  const { permissions } = usePermissions()
-  const nav = NAV.filter(item => hasAccess(permissions, item.href))
+  const { permissions, hiddenNav } = usePermissions()
+  const nav = NAV.filter(item => hasAccess(permissions, item.href) && !hiddenNav.includes(item.href))
 
   async function logout() {
     await supabase.auth.signOut()

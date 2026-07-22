@@ -30,11 +30,11 @@ export function MobileNav() {
   const pathname = usePathname()
   const router   = useRouter()
   const supabase = createClient()
-  const { permissions } = usePermissions()
+  const { permissions, hiddenNav } = usePermissions()
   const [moreOpen, setMoreOpen] = useState(false)
 
-  const primary   = PRIMARY.filter(item => hasAccess(permissions, item.href))
-  const secondary = SECONDARY.filter(item => item.href === '/settings' || hasAccess(permissions, item.href))
+  const primary   = PRIMARY.filter(item => hasAccess(permissions, item.href) && !hiddenNav.includes(item.href))
+  const secondary = SECONDARY.filter(item => item.href === '/settings' || (hasAccess(permissions, item.href) && !hiddenNav.includes(item.href)))
 
   function isActive(href: string) {
     if (href === '/') return pathname === '/'

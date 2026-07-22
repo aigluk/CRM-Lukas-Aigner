@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Mail, Lock, Users, Plus, Loader2, Check, Trash2, AtSign, User, LogOut, Building2, Send } from 'lucide-react'
+import { Mail, Lock, Users, Plus, Loader2, Check, Trash2, AtSign, User, LogOut, Building2, Send, LayoutDashboard, Contact, Briefcase, BarChart3, Search, Calendar, Calculator } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { formatDate } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
@@ -49,6 +49,8 @@ export function SettingsView() {
   const [companySaving, setCompanySaving] = useState(false)
   const [companyMsg, setCompanyMsg]     = useState('')
 
+  const [hiddenNav, setHiddenNav]       = useState<string[]>([])
+  const [navSaving, setNavSaving]       = useState(false)
   const [isAdmin, setIsAdmin]           = useState(false)
   const [users, setUsers]               = useState<AdminUser[]>([])
   const [loadingUsers, setLoadingUsers] = useState(true)
@@ -75,6 +77,31 @@ export function SettingsView() {
     loadUsers()
   }, [])
 
+  const NAV_ITEMS = [
+    { href: '/',           label: 'Dashboard',   icon: LayoutDashboard, required: true },
+    { href: '/leads',      label: 'Leads',       icon: Users,           required: true },
+    { href: '/customers',  label: 'Kunden',      icon: Contact,         required: false },
+    { href: '/partners',   label: 'Partner',     icon: Briefcase,       required: false },
+    { href: '/sales',      label: 'Vertrieb',    icon: BarChart3,       required: false },
+    { href: '/generator',  label: 'Generator',   icon: Search,          required: false },
+    { href: '/calendar',   label: 'Kalender',    icon: Calendar,        required: false },
+    { href: '/accounting', label: 'Buchhaltung', icon: Calculator,      required: false },
+  ]
+
+  async function toggleNavItem(href: string) {
+    const next = hiddenNav.includes(href)
+      ? hiddenNav.filter(h => h !== href)
+      : [...hiddenNav, href]
+    setHiddenNav(next)
+    setNavSaving(true)
+    await fetch('/api/users/nav-prefs', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hiddenNav: next }),
+    })
+    setNavSaving(false)
+  }
+
   async function loadUsers() {
     setLoadingUsers(true)
     const res = await fetch('/api/admin/users')
@@ -82,6 +109,7 @@ export function SettingsView() {
     if (res.ok) {
       setUsers(data.users)
       setIsAdmin(!!data.isAdmin)
+      setHiddenNav(data.myHiddenNav ?? [])
     }
     setLoadingUsers(false)
   }
@@ -446,6 +474,40 @@ export function SettingsView() {
             )}
           </div>
         </div>}
+      </div>
+
+      {/* Menü anpassen */}
+      <div className="bg-panel rounded-2xl p-6 mt-5">
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2">
+            <LayoutDashboard size={14} className="text-accent" />
+            <h3 className="text-sm font-black text-white">Menü anpassen</h3>
+          </div>
+          {navSaving && <Loader2 size={13} className="text-white/30 animate-spin" />}
+        </div>
+        <p className="text-xs text-white/30 mb-5">Wähle welche Menüpunkte links in der Sidebar sichtbar sind. Daten bleiben immer erhalten.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {NAV_ITEMS.map(({ href, label, icon: Icon, required }) => {
+            const visible = !hiddenNav.includes(href)
+            return (
+              <button
+                key={href}
+                onClick={() => !required && toggleNavItem(href)}
+                disabled={required}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left ${
+                  required ? 'opacity-40 cursor-not-allowed' :
+                  visible ? 'bg-accent/10 hover:bg-accent/15' : 'bg-dark hover:bg-panel-hover'
+                }`}
+              >
+                <Icon size={15} className={visible ? 'text-accent' : 'text-white/25'} strokeWidth={2.2} />
+                <span className={`text-sm font-bold flex-1 ${visible ? 'text-white' : 'text-white/35'}`}>{label}</span>
+                <div className={`w-8 h-5 rounded-full transition-all relative shrink-0 ${visible ? 'bg-accent' : 'bg-white/10'}`}>
+                  <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${visible ? 'left-3.5' : 'left-0.5'}`} />
+                </div>
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {editingUser && (
