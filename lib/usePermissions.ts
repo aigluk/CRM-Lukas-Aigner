@@ -17,6 +17,13 @@ export function usePermissions() {
         setHiddenNav(data.myHiddenNav ?? [])
       })
       .finally(() => setLoading(false))
+
+    function onNavPrefsChanged(e: Event) {
+      const detail = (e as CustomEvent).detail
+      if (Array.isArray(detail?.hiddenNav)) setHiddenNav(detail.hiddenNav)
+    }
+    window.addEventListener('nav-prefs-changed', onNavPrefsChanged)
+    return () => window.removeEventListener('nav-prefs-changed', onNavPrefsChanged)
   }, [])
 
   return { isAdmin, permissions, hiddenNav, loading }
