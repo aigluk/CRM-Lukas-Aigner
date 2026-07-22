@@ -478,7 +478,7 @@ export function SettingsView() {
       </div>
 
       {/* Menü anpassen */}
-      <div className="bg-panel rounded-2xl p-6 mt-5 mb-2">
+      <div className="bg-panel rounded-2xl p-6 mt-5 mb-8">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
             <LayoutDashboard size={14} className="text-accent" />

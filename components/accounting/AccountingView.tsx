@@ -921,7 +921,7 @@ export function AccountingView() {
                     </p>
                     <p className="text-xs text-white/30 mt-0.5">{fmtDate(item._isReceipt ? item.date : item.issue_date)}</p>
                   </div>
-                  <p className={`text-sm font-bold shrink-0 ${item._isReceipt ? 'text-accent' : 'text-accent-green'}`}>
+                  <p className={`text-sm font-bold shrink-0 transition-all ${item._isReceipt ? 'text-accent' : 'text-accent-green'} ${!kpiVisible ? 'blur-sm select-none' : ''}`}>
                     {item._isReceipt ? '−' : '+'}{fmtMoney(item._isReceipt ? item.amount : docTotal(item))}
                   </p>
                 </button>
