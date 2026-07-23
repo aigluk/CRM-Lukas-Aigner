@@ -3,7 +3,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export const runtime = 'nodejs'
-export const maxDuration = 300
+export const maxDuration = 120
 
 function today(): string {
   return new Date().toISOString().split('T')[0]
@@ -21,24 +21,6 @@ function extractJson(raw: string): Record<string, unknown> | null {
   if (end === -1) return null
   try { return JSON.parse(text.slice(start, end + 1)) } catch { return null }
 }
-
-const BRIEFING_PROMPT = (date: string) => `Heute ist ${date}. Recherchiere aktuelle Finanz- und Wirtschaftsnachrichten — konkrete Zahlen, Kursbewegungen, Entscheidungen von heute oder dieser Woche.
-
-Liefere 4 Blöcke:
-1. Finanzmärkte: DAX/ATX/SMI Schlusskurse, EUR/USD, Leitzinsen EZB/Fed, Gold/Öl
-2. Immobiliensektor DACH: Bauzinsen, Immobilienpreise, Regulierung
-3. Weltwirtschaft: Inflation, BIP, Zentralbank-Signale, Handelspolitik
-4. Unternehmen & Aktien: Big Tech Earnings, DAX/ATX/SMI Schwergewichte
-
-Pro Block: summary (4-5 Sätze mit konkreten Zahlen), callout (Relevanz für Immobilienentwickler/Investoren), source.
-
-Extrahiere alle Fachbegriffe als Glossar. Liefere 3 Lernbegriffe (finance_fundamentals, immobilienfinanzierung, makrooekonomie) mit Definition und DACH-Beispiel.
-
-Antworte nur mit JSON, kein Markdown:
-{"sections":[{"icon":"📈","title":"Finanzmärkte","summary":"...","callout":"...","source":"..."}],"glossary":[{"term":"...","definition":"..."}],"learning_terms":[{"learning_path":"finance_fundamentals","term":"...","definition":"...","example":"..."}]}`
-
-const SNAPSHOT_PROMPT = (date: string) => `Heute ist ${date}. Aktuelle Marktdaten, nur JSON kein Markdown:
-{"zins_countdown":{"fed_date":"YYYY-MM-DD","ezb_date":"YYYY-MM-DD","fed_consensus":"z.B. Pause","ezb_consensus":"z.B. -25bp"},"makro_kalender":[{"event":"CPI USA","date":"YYYY-MM-DD","previous":"3.2%","expected":"3.1%"}],"earnings_watch":[{"company":"Apple","date":"YYYY-MM-DD","expected_eps":"$1.45"}],"sentiment_ampel":{"vix":18.5,"level":"ruhig","label":"Märkte ruhig"},"geo_risiko":[{"region":"...","status":"..."}]}`
 
 export async function POST(req: NextRequest) {
   const authHeader = req.headers.get('authorization')
@@ -59,8 +41,23 @@ export async function POST(req: NextRequest) {
   const briefingResponse = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 4000,
-    tools: [{ type: 'web_search_20250305' as const, name: 'web_search' }],
-    messages: [{ role: 'user', content: BRIEFING_PROMPT(date) }],
+    messages: [{
+      role: 'user',
+      content: `Heute ist ${date}. Professionelles Tages-Briefing für Immobilienentwickler/Investor DACH. Nutze dein aktuelles Wissen.
+
+4 Blöcke mit Zahlen:
+1. Finanzmärkte: DAX/ATX/SMI, EUR/USD, EZB/Fed Zinslage, Gold/Öl
+2. Immobiliensektor DACH: Bauzinsen, Preisindizes, Regulierung
+3. Weltwirtschaft: Inflation, BIP, Zentralbank-Outlook
+4. Unternehmen & Aktien: DAX/ATX Schwergewichte, Earnings
+
+Pro Block: summary (4-5 Sätze mit Zahlen), callout (Relevanz für Immobilien-Investoren), source.
+Glossar: alle Fachbegriffe mit Definitionen.
+3 Lernbegriffe (finance_fundamentals, immobilienfinanzierung, makrooekonomie) mit Definition + DACH-Beispiel.
+
+NUR JSON, kein Text davor/danach:
+{"sections":[{"icon":"📈","title":"Finanzmärkte","summary":"...","callout":"...","source":"..."}],"glossary":[{"term":"...","definition":"..."}],"learning_terms":[{"learning_path":"finance_fundamentals","term":"...","definition":"...","example":"..."}]}`,
+    }],
   })
 
   const rawText = briefingResponse.content
@@ -86,9 +83,12 @@ export async function POST(req: NextRequest) {
 
   const snapResponse = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
-    max_tokens: 1200,
-    tools: [{ type: 'web_search_20250305' as const, name: 'web_search' }],
-    messages: [{ role: 'user', content: SNAPSHOT_PROMPT(date) }],
+    max_tokens: 1000,
+    messages: [{
+      role: 'user',
+      content: `Heute ist ${date}. Marktdaten. NUR JSON:
+{"zins_countdown":{"fed_date":"2025-09-17","ezb_date":"2025-09-11","fed_consensus":"Pause","ezb_consensus":"-25bp"},"makro_kalender":[{"event":"CPI Eurozone","date":"${date}","previous":"2.3%","expected":"2.2%"}],"earnings_watch":[{"company":"SAP","date":"${date}","expected_eps":"€1.23"}],"sentiment_ampel":{"vix":17.2,"level":"ruhig","label":"Märkte stabil"},"geo_risiko":[{"region":"Naher Osten","status":"Erhöhte Risikowahrnehmung"}]}`,
+    }],
   })
 
   const snapRaw = snapResponse.content

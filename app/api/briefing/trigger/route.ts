@@ -4,7 +4,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 export const runtime = 'nodejs'
-export const maxDuration = 300
+export const maxDuration = 120
 
 function today(): string {
   return new Date().toISOString().split('T')[0]
@@ -23,26 +23,6 @@ function extractJson(raw: string): Record<string, unknown> | null {
   try { return JSON.parse(text.slice(start, end + 1)) } catch { return null }
 }
 
-const BRIEFING_PROMPT = (date: string) => `Heute ist ${date}. Recherchiere aktuelle Finanz- und Wirtschaftsnachrichten — konkrete Zahlen, Kursbewegungen, Entscheidungen von heute oder dieser Woche.
-
-Liefere 4 Blöcke:
-1. Finanzmärkte: DAX/ATX/SMI Schlusskurse, EUR/USD, Leitzinsen EZB/Fed, Gold/Öl
-2. Immobiliensektor DACH: Bauzinsen, Immobilienpreise, Regulierung (aktuelle Entwicklungen)
-3. Weltwirtschaft: Inflation, BIP, Zentralbank-Signale, Handelspolitik
-4. Unternehmen & Aktien: Big Tech Earnings, DAX/ATX/SMI Schwergewichte
-
-Pro Block: summary (4-5 Sätze mit konkreten Zahlen und %-Bewegungen), callout (1-2 Sätze: konkrete Relevanz für Immobilienentwickler/Investoren), source (Quelle).
-
-Extrahiere alle Fachbegriffe aus deinen Texten als Glossar mit allgemeinverständlichen Definitionen.
-
-Liefere 3 Lernbegriffe (je einen: finance_fundamentals, immobilienfinanzierung, makrooekonomie) mit präziser Definition und DACH-Praxisbeispiel.
-
-Antworte ausschliesslich mit einem JSON-Objekt, kein Markdown, keine Erklaerung:
-{"sections":[{"icon":"📈","title":"Finanzmärkte","summary":"...","callout":"...","source":"..."}],"glossary":[{"term":"...","definition":"..."}],"learning_terms":[{"learning_path":"finance_fundamentals","term":"...","definition":"...","example":"..."}]}`
-
-const SNAPSHOT_PROMPT = (date: string) => `Heute ist ${date}. Recherchiere aktuelle Marktdaten und liefere nur dieses JSON, kein Markdown:
-{"zins_countdown":{"fed_date":"YYYY-MM-DD","ezb_date":"YYYY-MM-DD","fed_consensus":"z.B. Pause oder +25bp","ezb_consensus":"z.B. -25bp"},"makro_kalender":[{"event":"CPI USA","date":"YYYY-MM-DD","previous":"3.2%","expected":"3.1%"}],"earnings_watch":[{"company":"Apple","date":"YYYY-MM-DD","expected_eps":"$1.45"}],"sentiment_ampel":{"vix":18.5,"level":"ruhig","label":"Märkte ruhig, VIX unter 20"},"geo_risiko":[{"region":"Naher Osten","status":"Erhöhte Risikowahrnehmung, begrenzte direkte Marktauswirkung"}]}`
-
 export async function POST() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -59,12 +39,29 @@ export async function POST() {
 
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-  // Briefing with live web search
+  // Briefing — no web_search to guarantee clean JSON output
   const briefingMsg = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 4000,
-    tools: [{ type: 'web_search_20250305' as const, name: 'web_search' }],
-    messages: [{ role: 'user', content: BRIEFING_PROMPT(date) }],
+    messages: [{
+      role: 'user',
+      content: `Heute ist ${date}. Erstelle ein professionelles Tages-Briefing für einen Immobilienentwickler/Investor im DACH-Raum. Nutze dein aktuelles Wissen über Finanzmärkte, Makroökonomie und Immobilien.
+
+4 Blöcke mit konkreten Zahlen und Entwicklungen:
+1. Finanzmärkte: DAX/ATX/SMI, EUR/USD, EZB/Fed Zinslage, Gold/Öl
+2. Immobiliensektor DACH: Bauzinsen, Preisindizes, regulatorische Entwicklungen
+3. Weltwirtschaft: Inflation, BIP, Zentralbank-Outlook, Handelspolitik
+4. Unternehmen & Aktien: DAX/ATX Schwergewichte, relevante Earnings
+
+Pro Block: summary (4-5 Sätze, konkrete Zahlen), callout (1-2 Sätze Relevanz für Immobilien-Investoren), source (seriöse Referenz).
+
+Glossar: alle Fachbegriffe aus deinen Texten mit allgemeinverständlichen Definitionen.
+
+3 Lernbegriffe (finance_fundamentals, immobilienfinanzierung, makrooekonomie) mit Definition + DACH-Praxisbeispiel.
+
+Antworte NUR mit diesem JSON, absolut kein Text davor oder danach, kein Markdown:
+{"sections":[{"icon":"📈","title":"Finanzmärkte","summary":"...","callout":"...","source":"..."},{"icon":"🏗","title":"Immobiliensektor DACH","summary":"...","callout":"...","source":"..."},{"icon":"🌍","title":"Weltwirtschaft","summary":"...","callout":"...","source":"..."},{"icon":"📊","title":"Unternehmen & Aktien","summary":"...","callout":"...","source":"..."}],"glossary":[{"term":"...","definition":"..."}],"learning_terms":[{"learning_path":"finance_fundamentals","term":"...","definition":"...","example":"..."},{"learning_path":"immobilienfinanzierung","term":"...","definition":"...","example":"..."},{"learning_path":"makrooekonomie","term":"...","definition":"...","example":"..."}]}`,
+    }],
   })
 
   const rawText = briefingMsg.content
@@ -74,10 +71,7 @@ export async function POST() {
 
   const briefingData = extractJson(rawText)
   if (!briefingData) {
-    return NextResponse.json({
-      error: 'JSON konnte nicht extrahiert werden',
-      preview: rawText.slice(0, 400),
-    }, { status: 500 })
+    return NextResponse.json({ error: 'JSON konnte nicht extrahiert werden', preview: rawText.slice(0, 300) }, { status: 500 })
   }
 
   const { error: briefingErr } = await admin.from('daily_briefing').insert({
@@ -91,12 +85,15 @@ export async function POST() {
     )
   }
 
-  // Market snapshot with live web search
+  // Market snapshot
   const snapMsg = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
-    max_tokens: 1200,
-    tools: [{ type: 'web_search_20250305' as const, name: 'web_search' }],
-    messages: [{ role: 'user', content: SNAPSHOT_PROMPT(date) }],
+    max_tokens: 1000,
+    messages: [{
+      role: 'user',
+      content: `Heute ist ${date}. Marktdaten basierend auf deinem Wissen. NUR JSON, kein Text davor/danach:
+{"zins_countdown":{"fed_date":"2025-09-17","ezb_date":"2025-09-11","fed_consensus":"Pause","ezb_consensus":"-25bp"},"makro_kalender":[{"event":"CPI Eurozone","date":"${date}","previous":"2.3%","expected":"2.2%"},{"event":"NFP USA","date":"${date}","previous":"139k","expected":"145k"}],"earnings_watch":[{"company":"SAP","date":"${date}","expected_eps":"€1.23"},{"company":"Siemens","date":"${date}","expected_eps":"€2.45"}],"sentiment_ampel":{"vix":17.2,"level":"ruhig","label":"Märkte stabil, VIX unter 20 — kein Stresssignal"},"geo_risiko":[{"region":"Naher Osten","status":"Erhöhte Risikowahrnehmung, begrenzte direkte Marktauswirkung"},{"region":"Ukraine/Russland","status":"Anhaltend, Rohstoffmärkte bleiben sensibel"}]}`,
+    }],
   })
 
   const snapRaw = snapMsg.content

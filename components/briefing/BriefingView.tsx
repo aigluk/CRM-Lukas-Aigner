@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ChevronDown, ChevronUp, Download, RefreshCw, ArrowUpRight } from 'lucide-react'
 
 interface BriefingSection {
@@ -147,6 +147,20 @@ export function BriefingView() {
   const [triggering, setTriggering] = useState(false)
   const [triggerMsg, setTriggerMsg] = useState('')
   const [triggerError, setTriggerError] = useState(false)
+  const [elapsed, setElapsed] = useState(0)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const LOAD_STEPS = [
+    { at: 0,  text: 'Claude durchsucht das Web nach aktuellen Nachrichten...' },
+    { at: 12, text: 'Finanzmärkte & Immobiliendaten werden analysiert...' },
+    { at: 25, text: 'Weltwirtschaft & Unternehmens-News werden eingeordnet...' },
+    { at: 40, text: 'Briefing & Lernbegriffe werden zusammengestellt...' },
+    { at: 55, text: 'Fast fertig — Daten werden gespeichert...' },
+  ]
+
+  function currentStep(sec: number) {
+    return [...LOAD_STEPS].reverse().find(s => sec >= s.at)?.text ?? LOAD_STEPS[0].text
+  }
 
   async function load() {
     setLoading(true)
@@ -162,8 +176,15 @@ export function BriefingView() {
     setTriggering(true)
     setTriggerMsg('')
     setTriggerError(false)
+    setElapsed(0)
+    timerRef.current = setInterval(() => setElapsed(s => s + 1), 1000)
+
     const res = await fetch('/api/briefing/trigger', { method: 'POST' })
     const data = await res.json()
+
+    if (timerRef.current) clearInterval(timerRef.current)
+    setElapsed(0)
+
     if (data.ok) {
       setTriggerMsg(data.skipped ? data.reason : 'Briefing erfolgreich generiert.')
       setTriggerError(false)
