@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { GraduationCap, ChevronRight, Check, BookOpen, TrendingUp, Building2 } from 'lucide-react'
+import { Check, TrendingUp, Building2 } from 'lucide-react'
 
 type LearningPath = 'finance_fundamentals' | 'immobilienfinanzierung' | 'makrooekonomie'
 type TermStatus = 'new' | 'learning' | 'mastered'
@@ -20,10 +20,16 @@ interface Term {
   }
 }
 
+const PATH_EMOJIS: Record<LearningPath, string> = {
+  finance_fundamentals:   '📈',
+  immobilienfinanzierung: '🏗️',
+  makrooekonomie:         '🌍',
+}
+
 const PATHS: { id: LearningPath; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
   { id: 'finance_fundamentals',   label: 'Finance Fundamentals',    icon: TrendingUp },
   { id: 'immobilienfinanzierung', label: 'Immobilienfinanzierung', icon: Building2 },
-  { id: 'makrooekonomie',         label: 'Makroökonomie',          icon: BookOpen },
+  { id: 'makrooekonomie',         label: 'Makroökonomie',          icon: TrendingUp },
 ]
 
 const STATUS_LABELS: Record<TermStatus, string> = {
@@ -147,7 +153,7 @@ export function AcademyView() {
 
       {/* Path tabs */}
       <div className="shrink-0 flex gap-2 overflow-x-auto scrollbar-none">
-        {PATHS.map(({ id, label, icon: Icon }) => {
+        {PATHS.map(({ id, label }) => {
           const active = id === activePath
           return (
             <button
@@ -157,7 +163,7 @@ export function AcademyView() {
                 active ? 'bg-accent text-white' : 'bg-panel text-white/50 hover:text-white hover:bg-panel-hover'
               }`}
             >
-              <Icon size={14} />
+              <span className="text-sm leading-none">{PATH_EMOJIS[id]}</span>
               {label}
             </button>
           )
@@ -187,10 +193,12 @@ export function AcademyView() {
             <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
           </div>
         ) : terms.length === 0 ? (
-          <div className="bg-panel rounded-2xl py-16 text-center">
-            <GraduationCap size={32} className="text-white/15 mx-auto mb-3" />
-            <p className="text-sm font-bold text-white/40 mb-1">Noch keine Begriffe</p>
-            <p className="text-xs text-white/25">Neue Begriffe werden täglich um 06:00 Uhr generiert.</p>
+          <div className="bg-panel rounded-2xl py-16 text-center px-6">
+            <div className="w-14 h-14 rounded-2xl bg-accent/15 flex items-center justify-center mx-auto mb-4">
+              <span className="text-2xl">{PATH_EMOJIS[activePath]}</span>
+            </div>
+            <p className="text-sm font-bold text-white mb-1">Noch keine Begriffe</p>
+            <p className="text-xs text-white/35">Neue Begriffe werden täglich um 06:00 Uhr generiert.<br />Starte zuerst ein Briefing um Begriffe zu laden.</p>
           </div>
         ) : (
           <>

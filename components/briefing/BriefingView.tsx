@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ChevronDown, ChevronUp, BookOpen, Download, RefreshCw, AlertCircle } from 'lucide-react'
+import { ChevronDown, ChevronUp, Download, RefreshCw } from 'lucide-react'
 
 interface BriefingSection {
   icon: string
@@ -38,7 +38,9 @@ function BriefingCard({ briefing, defaultOpen }: { briefing: Briefing; defaultOp
         className="w-full flex items-center justify-between px-5 py-4 hover:bg-panel-hover transition-colors"
       >
         <div className="flex items-center gap-3 min-w-0">
-          <BookOpen size={16} className="text-accent shrink-0" />
+          <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center shrink-0">
+            <span className="text-sm">📰</span>
+          </div>
           <div className="text-left min-w-0">
             <p className="text-sm font-black text-white">Tages-Briefing</p>
             <p className="text-xs text-white/40 mt-0.5">{fmtDate(briefing.date)}</p>
@@ -57,7 +59,10 @@ function BriefingCard({ briefing, defaultOpen }: { briefing: Briefing; defaultOp
               <Download size={13} />
             </a>
           )}
-          {open ? <ChevronUp size={16} className="text-white/40" /> : <ChevronDown size={16} className="text-white/40" />}
+          {open
+            ? <ChevronUp size={16} className="text-white/40" />
+            : <ChevronDown size={16} className="text-white/40" />
+          }
         </div>
       </button>
 
@@ -66,7 +71,7 @@ function BriefingCard({ briefing, defaultOpen }: { briefing: Briefing; defaultOp
           {briefing.sections.map((s, i) => (
             <div key={i} className="bg-panel-2 rounded-xl p-4">
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-base">{s.icon}</span>
+                <span className="text-base leading-none">{s.icon}</span>
                 <h3 className="text-sm font-black text-white">{s.title}</h3>
               </div>
               <p className="text-sm text-white/70 leading-relaxed mb-3">{s.summary}</p>
@@ -104,6 +109,7 @@ export function BriefingView() {
   const [loading, setLoading] = useState(true)
   const [triggering, setTriggering] = useState(false)
   const [triggerMsg, setTriggerMsg] = useState('')
+  const [triggerError, setTriggerError] = useState(false)
 
   async function load() {
     setLoading(true)
@@ -118,34 +124,42 @@ export function BriefingView() {
   async function triggerNow() {
     setTriggering(true)
     setTriggerMsg('')
-    const secret = process.env.NEXT_PUBLIC_CRON_TRIGGER_TOKEN
-    const res = await fetch('/api/cron/daily-briefing', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${secret ?? ''}` },
-    })
+    setTriggerError(false)
+    const res = await fetch('/api/briefing/trigger', { method: 'POST' })
     const data = await res.json()
     if (data.ok) {
-      setTriggerMsg(data.skipped ? 'Briefing wurde heute bereits generiert.' : 'Briefing generiert!')
-      await load()
+      setTriggerMsg(data.skipped ? data.reason : 'Briefing erfolgreich generiert!')
+      setTriggerError(false)
+      if (!data.skipped) await load()
     } else {
       setTriggerMsg('Fehler: ' + (data.error ?? 'Unbekannt'))
+      setTriggerError(true)
     }
     setTriggering(false)
   }
 
   return (
     <div className="h-full flex flex-col gap-5">
-      <div className="shrink-0 flex items-center justify-between">
+      <div className="shrink-0 flex items-start justify-between">
         <div>
           <h1 className="text-3xl font-black text-white tracking-tight leading-none">Briefing</h1>
           <p className="text-sm text-white/40 mt-1">Tagesaktuelle Einordnung zu Finanzmärkten & Immobilien</p>
         </div>
+        {briefings.length > 0 && (
+          <button
+            onClick={triggerNow}
+            disabled={triggering}
+            className="flex items-center gap-2 bg-white/6 hover:bg-white/10 disabled:opacity-40 text-white/60 hover:text-white font-bold text-sm px-4 py-2 rounded-xl transition-all shrink-0"
+          >
+            <RefreshCw size={14} className={triggering ? 'animate-spin' : ''} />
+            {triggering ? 'Generiere...' : 'Neu generieren'}
+          </button>
+        )}
       </div>
 
       {triggerMsg && (
-        <div className="shrink-0 flex items-center gap-2 bg-accent/10 border border-accent/20 rounded-xl px-4 py-3">
-          <AlertCircle size={14} className="text-accent shrink-0" />
-          <p className="text-sm text-white/80">{triggerMsg}</p>
+        <div className={`shrink-0 px-4 py-3 rounded-xl text-sm font-medium ${triggerError ? 'bg-accent/10 text-accent' : 'bg-accent-green/10 text-accent-green'}`}>
+          {triggerMsg}
         </div>
       )}
 
@@ -155,10 +169,12 @@ export function BriefingView() {
             <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
           </div>
         ) : briefings.length === 0 ? (
-          <div className="bg-panel rounded-2xl py-16 text-center">
-            <BookOpen size={32} className="text-white/15 mx-auto mb-3" />
-            <p className="text-sm font-bold text-white/40 mb-1">Noch kein Briefing vorhanden</p>
-            <p className="text-xs text-white/25 mb-5">Das erste Briefing wird um 06:00 Uhr automatisch generiert.</p>
+          <div className="bg-panel rounded-2xl py-16 text-center px-6">
+            <div className="w-14 h-14 rounded-2xl bg-accent/15 flex items-center justify-center mx-auto mb-4">
+              <span className="text-2xl">📰</span>
+            </div>
+            <p className="text-sm font-bold text-white mb-1">Noch kein Briefing vorhanden</p>
+            <p className="text-xs text-white/35 mb-6">Das erste Briefing wird um 06:00 Uhr automatisch generiert.<br />Oder starte es jetzt manuell.</p>
             <button
               onClick={triggerNow}
               disabled={triggering}
