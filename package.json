@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.113.0",
     "@react-pdf/renderer": "^4.5.1",
     "@supabase/ssr": "^0.6.0",
     "@supabase/supabase-js": "^2.50.0",

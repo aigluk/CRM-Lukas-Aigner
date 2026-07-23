@@ -9,6 +9,7 @@ import { ReminderWidget } from '@/components/dashboard/ReminderWidget'
 import { ReminderBanner } from '@/components/dashboard/ReminderBanner'
 import { DbSetupBanner } from '@/components/dashboard/DbSetupBanner'
 import { ClientDate } from '@/components/dashboard/ClientDate'
+import { MarketRadarWidget } from '@/components/dashboard/MarketRadarWidget'
 import type { Lead } from '@/lib/types'
 
 export default async function DashboardPage() {
@@ -50,10 +51,11 @@ export default async function DashboardPage() {
       </div>
 
       {/* Bottom row — fills remaining height on desktop so it never gets clipped or pushed off */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 lg:grid-rows-1 gap-5 flex-1 min-h-100 lg:min-h-0 overflow-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-4 lg:grid-rows-1 gap-5 flex-1 min-h-100 lg:min-h-0 overflow-hidden">
         <TodayPanel leads={all} />
         <ReminderWidget />
         <ActivityFeed leads={all} compact />
+        <MarketRadarWidget />
       </div>
     </div>
   )

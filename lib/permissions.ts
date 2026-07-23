@@ -7,6 +7,8 @@ export const PERMISSION_ITEMS = [
   { href: '/generator',  label: 'Generator',   default: true },
   { href: '/calendar',   label: 'Kalender',    default: true },
   { href: '/accounting', label: 'Buchhaltung', default: true },
+  { href: '/briefing',   label: 'Briefing',    default: true },
+  { href: '/academy',    label: 'Academy',     default: true },
 ] as const
 
 export type PermissionHref = typeof PERMISSION_ITEMS[number]['href']

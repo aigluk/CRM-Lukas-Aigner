@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard, Users, Calendar, Search, Settings, Calculator, Contact,
-  Briefcase, BarChart3, MoreHorizontal, LogOut,
+  Briefcase, BarChart3, MoreHorizontal, LogOut, Newspaper, GraduationCap,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { usePermissions } from '@/lib/usePermissions'
@@ -19,10 +19,12 @@ const PRIMARY = [
 ]
 
 const SECONDARY = [
-  { href: '/customers',  label: 'Kunden',       icon: Contact },
-  { href: '/generator',  label: 'Generator',    icon: Search },
-  { href: '/partners',   label: 'Partner',      icon: Briefcase },
-  { href: '/sales',      label: 'Vertrieb',     icon: BarChart3 },
+  { href: '/customers',  label: 'Kunden',        icon: Contact },
+  { href: '/generator',  label: 'Generator',     icon: Search },
+  { href: '/partners',   label: 'Partner',       icon: Briefcase },
+  { href: '/sales',      label: 'Vertrieb',      icon: BarChart3 },
+  { href: '/briefing',   label: 'Briefing',      icon: Newspaper },
+  { href: '/academy',    label: 'Academy',       icon: GraduationCap },
   { href: '/settings',   label: 'Einstellungen', icon: Settings },
 ]
 

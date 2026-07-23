@@ -1,5 +1,12 @@
 {
   "functions": {
-    "app/api/generate/route.ts": { "maxDuration": 60 }
-  }
+    "app/api/generate/route.ts": { "maxDuration": 60 },
+    "app/api/cron/daily-briefing/route.ts": { "maxDuration": 300 }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/daily-briefing",
+      "schedule": "0 6 * * *"
+    }
+  ]
 }

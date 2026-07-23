@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Mail, Lock, Users, Plus, Loader2, Check, Trash2, AtSign, User, LogOut, Building2, Send, LayoutDashboard, Contact, Briefcase, BarChart3, Search, Calendar, Calculator } from 'lucide-react'
+import { Mail, Lock, Users, Plus, Loader2, Check, Trash2, AtSign, User, LogOut, Building2, Send, LayoutDashboard, Contact, Briefcase, BarChart3, Search, Calendar, Calculator, Newspaper, GraduationCap } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { formatDate } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
@@ -85,7 +85,9 @@ export function SettingsView() {
     { href: '/sales',      label: 'Vertrieb',    icon: BarChart3,       required: false },
     { href: '/generator',  label: 'Generator',   icon: Search,          required: false },
     { href: '/calendar',   label: 'Kalender',    icon: Calendar,        required: false },
-    { href: '/accounting', label: 'Buchhaltung', icon: Calculator,      required: false },
+    { href: '/accounting', label: 'Buchhaltung', icon: Calculator,    required: false },
+    { href: '/briefing',   label: 'Briefing',    icon: Newspaper,     required: false },
+    { href: '/academy',    label: 'Academy',     icon: GraduationCap, required: false },
   ]
 
   async function toggleNavItem(href: string) {
