@@ -31,7 +31,8 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="h-full flex flex-col gap-5">
+    <div className="flex flex-col gap-5">
+      {/* Header */}
       <div className="shrink-0">
         <h1 className="text-3xl font-black text-white tracking-tight leading-none">Dashboard</h1>
         <ClientDate />
@@ -42,6 +43,7 @@ export default async function DashboardPage() {
         <ReminderBanner />
       </div>
 
+      {/* Stats */}
       <div className="shrink-0">
         <StatTiles leads={all} />
       </div>
@@ -50,12 +52,12 @@ export default async function DashboardPage() {
         <KPICards leads={all} />
       </div>
 
-      {/* Bottom row — fills remaining height on desktop so it never gets clipped or pushed off */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 lg:grid-rows-1 gap-5 flex-1 min-h-100 lg:min-h-0 overflow-hidden">
-        <TodayPanel leads={all} />
-        <ReminderWidget />
-        <ActivityFeed leads={all} compact />
-        <MarketRadarWidget />
+      {/* Bottom panels — 2-col on tablet, 4-col on desktop, stacked on mobile */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="min-h-72 lg:min-h-0 lg:h-80"><TodayPanel leads={all} /></div>
+        <div className="min-h-72 lg:min-h-0 lg:h-80"><ReminderWidget /></div>
+        <div className="min-h-72 lg:min-h-0 lg:h-80"><ActivityFeed leads={all} compact /></div>
+        <div className="min-h-72 lg:min-h-0 lg:h-80"><MarketRadarWidget /></div>
       </div>
     </div>
   )

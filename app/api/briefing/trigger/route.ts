@@ -10,10 +10,31 @@ function today(): string {
   return new Date().toISOString().split('T')[0]
 }
 
-function parseJsonFromText(text: string): Record<string, unknown> | null {
-  const match = text.match(/\{[\s\S]*\}/)
-  if (!match) return null
-  try { return JSON.parse(match[0]) } catch { return null }
+// Robust JSON extraction: strips markdown fences, finds balanced braces
+function extractJson(raw: string): Record<string, unknown> | null {
+  // Strip ```json ... ``` or ``` ... ``` wrappers
+  let text = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '')
+
+  // Find first { and match balanced braces
+  const start = text.indexOf('{')
+  if (start === -1) return null
+
+  let depth = 0
+  let end = -1
+  for (let i = start; i < text.length; i++) {
+    if (text[i] === '{') depth++
+    else if (text[i] === '}') {
+      depth--
+      if (depth === 0) { end = i; break }
+    }
+  }
+  if (end === -1) return null
+
+  try {
+    return JSON.parse(text.slice(start, end + 1))
+  } catch {
+    return null
+  }
 }
 
 export async function POST() {
@@ -35,43 +56,42 @@ export async function POST() {
 
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-  const briefingResponse = await anthropic.messages.create({
+  // --- Briefing + Learning Terms (no web_search for reliability; uses training knowledge) ---
+  const briefingMsg = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 4000,
-    tools: [{ type: 'web_search_20250305' as const, name: 'web_search' }],
     messages: [{
       role: 'user',
-      content: `Heute ist ${date}. Recherchiere aktuelle Finanz- und Wirtschaftsnachrichten auf WSJ/NYT/Handelsblatt/FuW-Niveau — konkrete Zahlen (Umsatz, Marge, Kursbewegung in %), nicht nur Schlagzeilen.
+      content: `Heute ist ${date}. Erstelle ein professionelles Tages-Briefing für einen Immobilienentwickler und Investor im DACH-Raum.
 
-Liefere 4 Blöcke:
-1. Finanzmärkte (Indizes, Rohstoffe, Währungen)
-2. Immobiliensektor DACH (Zinsen, Preise, Regulierung)
-3. Weltwirtschaft (Makrodaten, Zentralbanken, Handel)
-4. Unternehmen & Aktien (Big Tech / DAX/ATX/SMI-Schwergewichte, relevante Quartalszahlen)
+Liefere 4 Blöcke mit dem aktuellsten Wissensstand (nutze dein Training-Wissen, konkrete Zahlen wo bekannt):
+1. Finanzmärkte: DAX/ATX/SMI, EUR/USD, Leitzinsen EZB/Fed, Rohstoffe
+2. Immobiliensektor DACH: Zinsen, Preisindizes, regulatorische Entwicklungen
+3. Weltwirtschaft: Inflation, BIP-Trends, Zentralbank-Signale, Handelsthemen
+4. Unternehmen & Aktien: Big Tech / DAX-Schwergewichte, relevante Quartalszahlen
 
-Pro Block: summary (4-5 präzise Sätze mit Zahlen), callout ("Warum das für Immobilienentwickler/Investoren wichtig ist" — konkrete Einordnung), source (Quellenangabe).
+Pro Block: summary (4-5 Sätze, konkrete Zahlen und Entwicklungen), callout (1-2 Sätze: "Warum das für Immobilienentwickler/Investoren konkret wichtig ist"), source (Referenz-Quelle).
 
 Extrahiere alle Fachbegriffe aus deinen Texten als Glossar mit allgemeinverständlichen Definitionen.
 
-Liefere 3 neue Lernbegriffe (einen pro Pfad: finance_fundamentals, immobilienfinanzierung, makrooekonomie) mit Definition und Praxisbeispiel aus dem DACH-Raum.
+Liefere 3 neue Lernbegriffe (einen pro Pfad: finance_fundamentals, immobilienfinanzierung, makrooekonomie) mit präziser Definition und konkretem DACH-Praxisbeispiel.
 
-Antworte NUR als JSON ohne Markdown:
-{
-  "sections": [{"icon": "📈", "title": "...", "summary": "...", "callout": "...", "source": "..."}],
-  "glossary": [{"term": "...", "definition": "..."}],
-  "learning_terms": [{"learning_path": "...", "term": "...", "definition": "...", "example": "..."}]
-}`,
+WICHTIG: Antworte ausschliesslich mit einem einzigen JSON-Objekt, ohne Markdown-Formatierung, ohne Erklaerungen davor oder danach:
+{"sections":[{"icon":"📈","title":"Finanzmärkte","summary":"...","callout":"...","source":"..."}],"glossary":[{"term":"...","definition":"..."}],"learning_terms":[{"learning_path":"finance_fundamentals","term":"...","definition":"...","example":"..."}]}`,
     }],
   })
 
-  const briefingText = briefingResponse.content
+  const rawText = briefingMsg.content
     .filter(b => b.type === 'text')
     .map(b => (b as { type: 'text'; text: string }).text)
     .join('')
 
-  const briefingData = parseJsonFromText(briefingText)
+  const briefingData = extractJson(rawText)
   if (!briefingData) {
-    return NextResponse.json({ error: 'Fehler beim Parsen der Antwort', raw: briefingText.slice(0, 300) }, { status: 500 })
+    return NextResponse.json({
+      error: 'JSON konnte nicht extrahiert werden',
+      preview: rawText.slice(0, 400),
+    }, { status: 500 })
   }
 
   const { error: briefingErr } = await admin.from('daily_briefing').insert({
@@ -87,29 +107,24 @@ Antworte NUR als JSON ohne Markdown:
     )
   }
 
-  const snapshotResponse = await anthropic.messages.create({
+  // --- Market snapshot (Haiku, fast) ---
+  const snapMsg = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
-    max_tokens: 1500,
-    tools: [{ type: 'web_search_20250305' as const, name: 'web_search' }],
+    max_tokens: 1200,
     messages: [{
       role: 'user',
-      content: `Heute ist ${date}. Liefere aktuelle strukturierte Marktdaten als JSON:
-{
-  "zins_countdown": {"fed_date": "YYYY-MM-DD oder null", "ezb_date": "YYYY-MM-DD oder null", "fed_consensus": "z.B. Pause", "ezb_consensus": "z.B. -25bp"},
-  "makro_kalender": [{"event": "CPI USA", "date": "YYYY-MM-DD", "previous": "3.2%", "expected": "3.1%"}],
-  "earnings_watch": [{"company": "Apple", "date": "YYYY-MM-DD", "expected_eps": "$1.45"}],
-  "sentiment_ampel": {"vix": 18.5, "level": "ruhig", "label": "Märkte ruhig, kein Stresssignal"},
-  "geo_risiko": [{"region": "...", "status": "1-Satz Einschätzung"}]
-}
-Nur JSON, kein Markdown.`,
+      content: `Heute ist ${date}. Liefere kompakte Marktdaten als JSON (nutze Training-Wissen, realistisch geschätzt).
+
+Antworte nur mit diesem JSON, ohne Markdown:
+{"zins_countdown":{"fed_date":"YYYY-MM-DD","ezb_date":"YYYY-MM-DD","fed_consensus":"z.B. Pause oder +25bp","ezb_consensus":"z.B. -25bp"},"makro_kalender":[{"event":"CPI USA","date":"YYYY-MM-DD","previous":"3.2%","expected":"3.1%"}],"earnings_watch":[{"company":"Apple","date":"YYYY-MM-DD","expected_eps":"$1.45"}],"sentiment_ampel":{"vix":18.5,"level":"ruhig","label":"Märkte ruhig"},"geo_risiko":[{"region":"Naher Osten","status":"Erhöhte Risikowahrnehmung, begrenzte Marktauswirkung"}]}`,
     }],
   })
 
-  const snapshotText = snapshotResponse.content
+  const snapRaw = snapMsg.content
     .filter(b => b.type === 'text')
     .map(b => (b as { type: 'text'; text: string }).text)
     .join('')
-  const snapshotData = parseJsonFromText(snapshotText)
+  const snapshotData = extractJson(snapRaw)
 
   if (snapshotData) {
     await admin.from('market_drivers_snapshot').upsert({

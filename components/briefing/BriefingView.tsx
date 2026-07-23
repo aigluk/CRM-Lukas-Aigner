@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ChevronDown, ChevronUp, Download, RefreshCw } from 'lucide-react'
+import { ChevronDown, ChevronUp, Download, RefreshCw, ArrowUpRight } from 'lucide-react'
 
 interface BriefingSection {
   icon: string
@@ -24,8 +24,55 @@ interface Briefing {
   pdf_url: string | null
 }
 
-function fmtDate(d: string) {
+function fmtDateShort(d: string) {
+  return new Date(d).toLocaleDateString('de-AT', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })
+}
+
+function fmtDateLong(d: string) {
   return new Date(d).toLocaleDateString('de-AT', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })
+}
+
+// Derive a clean 2-letter badge from the section title
+function sectionBadge(title: string): string {
+  const t = title.toLowerCase()
+  if (t.includes('finanz') || t.includes('markt') || t.includes('börse')) return 'FM'
+  if (t.includes('immobil')) return 'IM'
+  if (t.includes('wirtschaft') || t.includes('makro') || t.includes('global')) return 'WW'
+  if (t.includes('unternehmen') || t.includes('aktien') || t.includes('earnings')) return 'UA'
+  return title.slice(0, 2).toUpperCase()
+}
+
+function SectionCard({ section, index }: { section: BriefingSection; index: number }) {
+  const badge = sectionBadge(section.title)
+  const colors = ['bg-accent', 'bg-white/15', 'bg-white/10', 'bg-accent/60']
+  const badgeBg = colors[index % colors.length]
+
+  return (
+    <div className="border-b border-white/6 pb-6 last:border-0 last:pb-0">
+      <div className="flex items-start gap-4">
+        <div className={`w-9 h-9 rounded-xl ${badgeBg} flex items-center justify-center shrink-0 mt-0.5`}>
+          <span className="text-xs font-black text-white tracking-tight">{badge}</span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-sm font-black text-white uppercase tracking-wide mb-2">{section.title}</h3>
+          <p className="text-sm text-white/65 leading-relaxed mb-4">{section.summary}</p>
+          <div className="flex gap-3 items-stretch">
+            <div className="w-0.5 bg-accent rounded-full shrink-0" />
+            <div>
+              <p className="text-xs font-bold text-accent mb-1 uppercase tracking-widest">Key Takeaway</p>
+              <p className="text-sm text-white/80 leading-relaxed">{section.callout}</p>
+            </div>
+          </div>
+          {section.source && (
+            <p className="text-xs text-white/20 mt-3 flex items-center gap-1">
+              <ArrowUpRight size={10} />
+              {section.source}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function BriefingCard({ briefing, defaultOpen }: { briefing: Briefing; defaultOpen?: boolean }) {
@@ -38,61 +85,51 @@ function BriefingCard({ briefing, defaultOpen }: { briefing: Briefing; defaultOp
         className="w-full flex items-center justify-between px-5 py-4 hover:bg-panel-hover transition-colors"
       >
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center shrink-0">
-            <span className="text-sm">📰</span>
+          <div className="w-8 h-8 rounded-xl bg-accent flex items-center justify-center shrink-0">
+            <span className="text-xs font-black text-white">BR</span>
           </div>
           <div className="text-left min-w-0">
-            <p className="text-sm font-black text-white">Tages-Briefing</p>
-            <p className="text-xs text-white/40 mt-0.5">{fmtDate(briefing.date)}</p>
+            <p className="text-sm font-black text-white tracking-tight">Tages-Briefing</p>
+            <p className="text-xs text-white/35 mt-0.5 font-medium">{fmtDateShort(briefing.date)}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2.5 shrink-0">
           {briefing.pdf_url && (
             <a
               href={briefing.pdf_url}
               target="_blank"
               rel="noopener noreferrer"
               onClick={e => e.stopPropagation()}
-              className="w-7 h-7 rounded-full bg-white/6 hover:bg-white/12 flex items-center justify-center text-white/40 hover:text-white transition-all"
-              title="PDF herunterladen"
+              className="w-7 h-7 rounded-lg bg-white/6 hover:bg-white/12 flex items-center justify-center text-white/40 hover:text-white transition-all"
             >
-              <Download size={13} />
+              <Download size={12} />
             </a>
           )}
-          {open
-            ? <ChevronUp size={16} className="text-white/40" />
-            : <ChevronDown size={16} className="text-white/40" />
-          }
+          <div className="w-6 h-6 rounded-lg bg-white/6 flex items-center justify-center">
+            {open
+              ? <ChevronUp size={13} className="text-white/40" />
+              : <ChevronDown size={13} className="text-white/40" />
+            }
+          </div>
         </div>
       </button>
 
       {open && (
-        <div className="px-5 pb-5 space-y-4">
-          {briefing.sections.map((s, i) => (
-            <div key={i} className="bg-panel-2 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-base leading-none">{s.icon}</span>
-                <h3 className="text-sm font-black text-white">{s.title}</h3>
-              </div>
-              <p className="text-sm text-white/70 leading-relaxed mb-3">{s.summary}</p>
-              <div className="bg-accent/10 border border-accent/20 rounded-xl px-3.5 py-3 mb-2">
-                <p className="text-xs font-bold text-accent mb-1">Warum das wichtig ist</p>
-                <p className="text-xs text-white/70 leading-relaxed">{s.callout}</p>
-              </div>
-              {s.source && (
-                <p className="text-xs text-white/25 mt-1">Quelle: {s.source}</p>
-              )}
-            </div>
-          ))}
+        <div className="px-5 pb-6">
+          <div className="space-y-6 mb-6">
+            {briefing.sections.map((s, i) => (
+              <SectionCard key={i} section={s} index={i} />
+            ))}
+          </div>
 
           {briefing.glossary && briefing.glossary.length > 0 && (
-            <div>
-              <p className="text-xs font-black text-white/40 mb-2 uppercase tracking-widest">Glossar</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div className="border-t border-white/6 pt-5">
+              <p className="text-xs font-black text-white/30 mb-3 uppercase tracking-widest">Glossar</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {briefing.glossary.map((g, i) => (
-                  <div key={i} className="bg-panel-2 rounded-xl px-3.5 py-3">
-                    <p className="text-xs font-bold text-accent-green mb-0.5">{g.term}</p>
-                    <p className="text-xs text-white/55 leading-relaxed">{g.definition}</p>
+                  <div key={i} className="bg-panel-2 rounded-xl px-4 py-3">
+                    <p className="text-xs font-black text-white mb-1 uppercase tracking-wide">{g.term}</p>
+                    <p className="text-xs text-white/45 leading-relaxed">{g.definition}</p>
                   </div>
                 ))}
               </div>
@@ -128,7 +165,7 @@ export function BriefingView() {
     const res = await fetch('/api/briefing/trigger', { method: 'POST' })
     const data = await res.json()
     if (data.ok) {
-      setTriggerMsg(data.skipped ? data.reason : 'Briefing erfolgreich generiert!')
+      setTriggerMsg(data.skipped ? data.reason : 'Briefing erfolgreich generiert.')
       setTriggerError(false)
       if (!data.skipped) await load()
     } else {
@@ -140,48 +177,56 @@ export function BriefingView() {
 
   return (
     <div className="h-full flex flex-col gap-5">
+
+      {/* Header */}
       <div className="shrink-0 flex items-start justify-between">
         <div>
+          <p className="text-xs font-bold text-accent uppercase tracking-widest mb-1">Daily Briefing</p>
           <h1 className="text-3xl font-black text-white tracking-tight leading-none">Briefing</h1>
-          <p className="text-sm text-white/40 mt-1">Tagesaktuelle Einordnung zu Finanzmärkten & Immobilien</p>
+          <p className="text-sm text-white/35 mt-1.5 font-medium">
+            Finanzmärkte · Immobilien DACH · Weltwirtschaft · Märkte
+          </p>
         </div>
         {briefings.length > 0 && (
           <button
             onClick={triggerNow}
             disabled={triggering}
-            className="flex items-center gap-2 bg-white/6 hover:bg-white/10 disabled:opacity-40 text-white/60 hover:text-white font-bold text-sm px-4 py-2 rounded-xl transition-all shrink-0"
+            className="flex items-center gap-2 bg-white/6 hover:bg-white/10 disabled:opacity-40 text-white/50 hover:text-white font-bold text-xs px-3.5 py-2 rounded-xl transition-all shrink-0"
           >
-            <RefreshCw size={14} className={triggering ? 'animate-spin' : ''} />
+            <RefreshCw size={12} className={triggering ? 'animate-spin' : ''} />
             {triggering ? 'Generiere...' : 'Neu generieren'}
           </button>
         )}
       </div>
 
       {triggerMsg && (
-        <div className={`shrink-0 px-4 py-3 rounded-xl text-sm font-medium ${triggerError ? 'bg-accent/10 text-accent' : 'bg-accent-green/10 text-accent-green'}`}>
+        <div className={`shrink-0 px-4 py-3 rounded-xl text-xs font-bold ${triggerError ? 'bg-accent/10 text-accent' : 'bg-white/5 text-white/60'}`}>
           {triggerMsg}
         </div>
       )}
 
+      {/* List */}
       <div className="flex-1 min-h-0 overflow-y-auto space-y-3 pb-2">
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+          <div className="flex items-center justify-center py-24">
+            <div className="w-5 h-5 border-2 border-accent border-t-transparent rounded-full animate-spin" />
           </div>
         ) : briefings.length === 0 ? (
-          <div className="bg-panel rounded-2xl py-16 text-center px-6">
-            <div className="w-14 h-14 rounded-2xl bg-accent/15 flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl">📰</span>
+          <div className="bg-panel rounded-2xl px-8 py-16 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-accent mx-auto mb-5 flex items-center justify-center">
+              <span className="text-base font-black text-white">BR</span>
             </div>
-            <p className="text-sm font-bold text-white mb-1">Noch kein Briefing vorhanden</p>
-            <p className="text-xs text-white/35 mb-6">Das erste Briefing wird um 06:00 Uhr automatisch generiert.<br />Oder starte es jetzt manuell.</p>
+            <p className="text-base font-black text-white mb-2">Noch kein Briefing vorhanden</p>
+            <p className="text-xs text-white/35 leading-relaxed mb-6">
+              Ab morgen 06:00 Uhr täglich automatisch.<br />Erstes Briefing jetzt manuell starten.
+            </p>
             <button
               onClick={triggerNow}
               disabled={triggering}
-              className="inline-flex items-center gap-2 bg-accent hover:opacity-90 disabled:opacity-40 text-white font-black text-sm px-5 py-2.5 rounded-xl transition-all"
+              className="inline-flex items-center gap-2 bg-accent hover:opacity-90 disabled:opacity-40 text-white font-black text-sm px-6 py-3 rounded-xl transition-all"
             >
               <RefreshCw size={14} className={triggering ? 'animate-spin' : ''} />
-              {triggering ? 'Wird generiert...' : 'Jetzt generieren'}
+              {triggering ? 'Wird generiert...' : 'Briefing generieren'}
             </button>
           </div>
         ) : (

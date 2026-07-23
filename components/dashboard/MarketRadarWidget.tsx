@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { TrendingUp, Calendar, BarChart2, Activity, Globe, ChevronRight } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 
 interface ZinsCountdown {
@@ -73,12 +73,14 @@ export function MarketRadarWidget() {
   return (
     <div className="bg-panel rounded-2xl flex flex-col overflow-hidden">
       <div className="flex items-center justify-between px-5 pt-4 pb-3 shrink-0">
-        <div className="flex items-center gap-2">
-          <Activity size={14} className="text-accent" />
-          <h2 className="text-sm font-black text-white">Kursfaktoren-Radar</h2>
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center shrink-0">
+            <span className="text-[10px] font-black text-white">KR</span>
+          </div>
+          <h2 className="text-sm font-black text-white">Kursfaktoren</h2>
         </div>
-        <Link href="/briefing" className="flex items-center gap-1 text-xs text-white/30 hover:text-white/60 transition-colors">
-          Briefing <ChevronRight size={12} />
+        <Link href="/briefing" className="flex items-center gap-1 text-xs text-white/30 hover:text-white/60 transition-colors font-bold">
+          Briefing <ChevronRight size={11} />
         </Link>
       </div>
 
@@ -96,18 +98,15 @@ export function MarketRadarWidget() {
           {/* Zins-Countdown */}
           {snapshot.zins_countdown && (
             <div className="bg-panel-2 rounded-xl px-3.5 py-3">
-              <div className="flex items-center gap-1.5 mb-2">
-                <TrendingUp size={12} className="text-accent" />
-                <p className="text-xs font-black text-white/70">Zins-Countdown</p>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
+              <p className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-2">Zins-Countdown</p>
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <p className="text-[10px] text-white/30 mb-0.5">Fed · {fmtDate(snapshot.zins_countdown.fed_date)}</p>
-                  <p className="text-xs font-bold text-white">{snapshot.zins_countdown.fed_consensus || 'k.A.'}</p>
+                  <p className="text-[10px] text-white/30 mb-0.5 font-bold">FED · {fmtDate(snapshot.zins_countdown.fed_date)}</p>
+                  <p className="text-xs font-black text-white">{snapshot.zins_countdown.fed_consensus || 'k.A.'}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-white/30 mb-0.5">EZB · {fmtDate(snapshot.zins_countdown.ezb_date)}</p>
-                  <p className="text-xs font-bold text-white">{snapshot.zins_countdown.ezb_consensus || 'k.A.'}</p>
+                  <p className="text-[10px] text-white/30 mb-0.5 font-bold">EZB · {fmtDate(snapshot.zins_countdown.ezb_date)}</p>
+                  <p className="text-xs font-black text-white">{snapshot.zins_countdown.ezb_consensus || 'k.A.'}</p>
                 </div>
               </div>
             </div>
@@ -116,33 +115,27 @@ export function MarketRadarWidget() {
           {/* Sentiment-Ampel */}
           {snapshot.sentiment_ampel && (
             <div className="bg-panel-2 rounded-xl px-3.5 py-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <BarChart2 size={12} className="text-accent" />
-                  <p className="text-xs font-black text-white/70">Sentiment</p>
-                </div>
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-[10px] font-black text-white/30 uppercase tracking-widest">Sentiment</p>
                 <span className={`text-xs font-black ${VixColor({ level: snapshot.sentiment_ampel.level })}`}>
                   VIX {snapshot.sentiment_ampel.vix}
                 </span>
               </div>
-              <p className="text-xs text-white/50 mt-1">{snapshot.sentiment_ampel.label}</p>
+              <p className="text-xs text-white/55 font-medium">{snapshot.sentiment_ampel.label}</p>
             </div>
           )}
 
           {/* Makro-Kalender */}
           {snapshot.makro_kalender && snapshot.makro_kalender.length > 0 && (
             <div className="bg-panel-2 rounded-xl px-3.5 py-3">
-              <div className="flex items-center gap-1.5 mb-2">
-                <Calendar size={12} className="text-accent" />
-                <p className="text-xs font-black text-white/70">Makro-Kalender</p>
-              </div>
-              <div className="space-y-1.5">
+              <p className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-2">Makro-Kalender</p>
+              <div className="space-y-2">
                 {snapshot.makro_kalender.slice(0, 3).map((ev, i) => (
                   <div key={i} className="flex items-center justify-between gap-2">
-                    <p className="text-xs text-white/60 truncate flex-1">{ev.event}</p>
+                    <p className="text-xs font-bold text-white/60 truncate flex-1">{ev.event}</p>
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-[10px] text-white/30">{fmtDate(ev.date)}</span>
-                      <span className="text-xs font-bold text-white">{ev.expected}</span>
+                      <span className="text-[10px] text-white/25 font-bold">{fmtDate(ev.date)}</span>
+                      <span className="text-xs font-black text-white">{ev.expected}</span>
                     </div>
                   </div>
                 ))}
@@ -153,17 +146,14 @@ export function MarketRadarWidget() {
           {/* Earnings Watch */}
           {snapshot.earnings_watch && snapshot.earnings_watch.length > 0 && (
             <div className="bg-panel-2 rounded-xl px-3.5 py-3">
-              <div className="flex items-center gap-1.5 mb-2">
-                <TrendingUp size={12} className="text-accent" />
-                <p className="text-xs font-black text-white/70">Earnings</p>
-              </div>
-              <div className="space-y-1.5">
+              <p className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-2">Earnings</p>
+              <div className="space-y-2">
                 {snapshot.earnings_watch.slice(0, 3).map((e, i) => (
                   <div key={i} className="flex items-center justify-between gap-2">
-                    <p className="text-xs font-bold text-white truncate flex-1">{e.company}</p>
+                    <p className="text-xs font-black text-white truncate flex-1">{e.company}</p>
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-[10px] text-white/30">{fmtDate(e.date)}</span>
-                      <span className="text-xs text-white/50">EPS {e.expected_eps}</span>
+                      <span className="text-[10px] text-white/25 font-bold">{fmtDate(e.date)}</span>
+                      <span className="text-xs text-white/45 font-bold">EPS {e.expected_eps}</span>
                     </div>
                   </div>
                 ))}
@@ -174,10 +164,7 @@ export function MarketRadarWidget() {
           {/* Geo-Risiko */}
           {snapshot.geo_risiko && snapshot.geo_risiko.length > 0 && (
             <div className="bg-panel-2 rounded-xl px-3.5 py-3">
-              <div className="flex items-center gap-1.5 mb-2">
-                <Globe size={12} className="text-accent" />
-                <p className="text-xs font-black text-white/70">Geo-Risiko</p>
-              </div>
+              <p className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-2">Geo-Risiko</p>
               <div className="space-y-1.5">
                 {snapshot.geo_risiko.slice(0, 3).map((g, i) => (
                   <div key={i}>
