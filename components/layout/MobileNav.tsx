@@ -62,9 +62,13 @@ export function MobileNav() {
             onClick={() => setMoreOpen(false)}
           />
           <div
-            className="fixed bottom-0 left-0 right-0 border-t-2 border-accent rounded-t-3xl pt-5 px-4 z-60"
+            className="fixed bottom-0 left-0 right-0 rounded-t-3xl px-4 z-60"
             style={{ background: '#1A1A1A', paddingBottom: 'calc(env(safe-area-inset-bottom) + 4.5rem + 1rem)' }}
           >
+            {/* Drag handle */}
+            <div className="flex justify-center pt-3 pb-4">
+              <div className="w-12 h-1.5 rounded-full bg-accent" />
+            </div>
             {secondary.map(({ href, label, icon: Icon }) => {
               const active = isActive(href)
               return (
