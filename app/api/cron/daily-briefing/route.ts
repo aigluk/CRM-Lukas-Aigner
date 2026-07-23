@@ -22,6 +22,24 @@ function extractJson(raw: string): Record<string, unknown> | null {
   try { return JSON.parse(text.slice(start, end + 1)) } catch { return null }
 }
 
+const BRIEFING_PROMPT = (date: string) => `Heute ist ${date}. Recherchiere aktuelle Finanz- und Wirtschaftsnachrichten — konkrete Zahlen, Kursbewegungen, Entscheidungen von heute oder dieser Woche.
+
+Liefere 4 Blöcke:
+1. Finanzmärkte: DAX/ATX/SMI Schlusskurse, EUR/USD, Leitzinsen EZB/Fed, Gold/Öl
+2. Immobiliensektor DACH: Bauzinsen, Immobilienpreise, Regulierung
+3. Weltwirtschaft: Inflation, BIP, Zentralbank-Signale, Handelspolitik
+4. Unternehmen & Aktien: Big Tech Earnings, DAX/ATX/SMI Schwergewichte
+
+Pro Block: summary (4-5 Sätze mit konkreten Zahlen), callout (Relevanz für Immobilienentwickler/Investoren), source.
+
+Extrahiere alle Fachbegriffe als Glossar. Liefere 3 Lernbegriffe (finance_fundamentals, immobilienfinanzierung, makrooekonomie) mit Definition und DACH-Beispiel.
+
+Antworte nur mit JSON, kein Markdown:
+{"sections":[{"icon":"📈","title":"Finanzmärkte","summary":"...","callout":"...","source":"..."}],"glossary":[{"term":"...","definition":"..."}],"learning_terms":[{"learning_path":"finance_fundamentals","term":"...","definition":"...","example":"..."}]}`
+
+const SNAPSHOT_PROMPT = (date: string) => `Heute ist ${date}. Aktuelle Marktdaten, nur JSON kein Markdown:
+{"zins_countdown":{"fed_date":"YYYY-MM-DD","ezb_date":"YYYY-MM-DD","fed_consensus":"z.B. Pause","ezb_consensus":"z.B. -25bp"},"makro_kalender":[{"event":"CPI USA","date":"YYYY-MM-DD","previous":"3.2%","expected":"3.1%"}],"earnings_watch":[{"company":"Apple","date":"YYYY-MM-DD","expected_eps":"$1.45"}],"sentiment_ampel":{"vix":18.5,"level":"ruhig","label":"Märkte ruhig"},"geo_risiko":[{"region":"...","status":"..."}]}`
+
 export async function POST(req: NextRequest) {
   const authHeader = req.headers.get('authorization')
   const cronSecret = process.env.CRON_SECRET
@@ -34,34 +52,15 @@ export async function POST(req: NextRequest) {
 
   const { data: existing } = await supabase
     .from('daily_briefing').select('id').eq('date', date).maybeSingle()
-  if (existing) {
-    return NextResponse.json({ ok: true, skipped: true })
-  }
+  if (existing) return NextResponse.json({ ok: true, skipped: true })
 
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
   const briefingResponse = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 4000,
-    messages: [{
-      role: 'user',
-      content: `Heute ist ${date}. Erstelle ein professionelles Tages-Briefing für einen Immobilienentwickler und Investor im DACH-Raum.
-
-Liefere 4 Blöcke mit dem aktuellsten Wissensstand:
-1. Finanzmärkte: DAX/ATX/SMI, EUR/USD, Leitzinsen EZB/Fed, Rohstoffe
-2. Immobiliensektor DACH: Zinsen, Preisindizes, regulatorische Entwicklungen
-3. Weltwirtschaft: Inflation, BIP-Trends, Zentralbank-Signale, Handelsthemen
-4. Unternehmen & Aktien: Big Tech / DAX-Schwergewichte, relevante Quartalszahlen
-
-Pro Block: summary (4-5 Sätze, konkrete Zahlen), callout ("Warum das für Immobilienentwickler/Investoren konkret wichtig ist"), source (Referenz).
-
-Extrahiere alle Fachbegriffe aus deinen Texten als Glossar mit allgemeinverständlichen Definitionen.
-
-Liefere 3 Lernbegriffe (je einen: finance_fundamentals, immobilienfinanzierung, makrooekonomie) mit Definition und DACH-Praxisbeispiel.
-
-Antworte ausschliesslich mit einem JSON-Objekt, kein Markdown:
-{"sections":[{"icon":"📈","title":"Finanzmärkte","summary":"...","callout":"...","source":"..."}],"glossary":[{"term":"...","definition":"..."}],"learning_terms":[{"learning_path":"finance_fundamentals","term":"...","definition":"...","example":"..."}]}`,
-    }],
+    tools: [{ type: 'web_search_20250305' as const, name: 'web_search' }],
+    messages: [{ role: 'user', content: BRIEFING_PROMPT(date) }],
   })
 
   const rawText = briefingResponse.content
@@ -88,11 +87,8 @@ Antworte ausschliesslich mit einem JSON-Objekt, kein Markdown:
   const snapResponse = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 1200,
-    messages: [{
-      role: 'user',
-      content: `Heute ist ${date}. Liefere kompakte Marktdaten als JSON, kein Markdown:
-{"zins_countdown":{"fed_date":"YYYY-MM-DD","ezb_date":"YYYY-MM-DD","fed_consensus":"z.B. Pause","ezb_consensus":"z.B. -25bp"},"makro_kalender":[{"event":"CPI USA","date":"YYYY-MM-DD","previous":"3.2%","expected":"3.1%"}],"earnings_watch":[{"company":"Apple","date":"YYYY-MM-DD","expected_eps":"$1.45"}],"sentiment_ampel":{"vix":18.5,"level":"ruhig","label":"Märkte ruhig"},"geo_risiko":[{"region":"...","status":"..."}]}`,
-    }],
+    tools: [{ type: 'web_search_20250305' as const, name: 'web_search' }],
+    messages: [{ role: 'user', content: SNAPSHOT_PROMPT(date) }],
   })
 
   const snapRaw = snapResponse.content

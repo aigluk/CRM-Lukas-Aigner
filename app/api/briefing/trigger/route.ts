@@ -10,32 +10,38 @@ function today(): string {
   return new Date().toISOString().split('T')[0]
 }
 
-// Robust JSON extraction: strips markdown fences, finds balanced braces
 function extractJson(raw: string): Record<string, unknown> | null {
-  // Strip ```json ... ``` or ``` ... ``` wrappers
-  let text = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '')
-
-  // Find first { and match balanced braces
+  const text = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '')
   const start = text.indexOf('{')
   if (start === -1) return null
-
-  let depth = 0
-  let end = -1
+  let depth = 0, end = -1
   for (let i = start; i < text.length; i++) {
     if (text[i] === '{') depth++
-    else if (text[i] === '}') {
-      depth--
-      if (depth === 0) { end = i; break }
-    }
+    else if (text[i] === '}') { depth--; if (depth === 0) { end = i; break } }
   }
   if (end === -1) return null
-
-  try {
-    return JSON.parse(text.slice(start, end + 1))
-  } catch {
-    return null
-  }
+  try { return JSON.parse(text.slice(start, end + 1)) } catch { return null }
 }
+
+const BRIEFING_PROMPT = (date: string) => `Heute ist ${date}. Recherchiere aktuelle Finanz- und Wirtschaftsnachrichten — konkrete Zahlen, Kursbewegungen, Entscheidungen von heute oder dieser Woche.
+
+Liefere 4 Blöcke:
+1. Finanzmärkte: DAX/ATX/SMI Schlusskurse, EUR/USD, Leitzinsen EZB/Fed, Gold/Öl
+2. Immobiliensektor DACH: Bauzinsen, Immobilienpreise, Regulierung (aktuelle Entwicklungen)
+3. Weltwirtschaft: Inflation, BIP, Zentralbank-Signale, Handelspolitik
+4. Unternehmen & Aktien: Big Tech Earnings, DAX/ATX/SMI Schwergewichte
+
+Pro Block: summary (4-5 Sätze mit konkreten Zahlen und %-Bewegungen), callout (1-2 Sätze: konkrete Relevanz für Immobilienentwickler/Investoren), source (Quelle).
+
+Extrahiere alle Fachbegriffe aus deinen Texten als Glossar mit allgemeinverständlichen Definitionen.
+
+Liefere 3 Lernbegriffe (je einen: finance_fundamentals, immobilienfinanzierung, makrooekonomie) mit präziser Definition und DACH-Praxisbeispiel.
+
+Antworte ausschliesslich mit einem JSON-Objekt, kein Markdown, keine Erklaerung:
+{"sections":[{"icon":"📈","title":"Finanzmärkte","summary":"...","callout":"...","source":"..."}],"glossary":[{"term":"...","definition":"..."}],"learning_terms":[{"learning_path":"finance_fundamentals","term":"...","definition":"...","example":"..."}]}`
+
+const SNAPSHOT_PROMPT = (date: string) => `Heute ist ${date}. Recherchiere aktuelle Marktdaten und liefere nur dieses JSON, kein Markdown:
+{"zins_countdown":{"fed_date":"YYYY-MM-DD","ezb_date":"YYYY-MM-DD","fed_consensus":"z.B. Pause oder +25bp","ezb_consensus":"z.B. -25bp"},"makro_kalender":[{"event":"CPI USA","date":"YYYY-MM-DD","previous":"3.2%","expected":"3.1%"}],"earnings_watch":[{"company":"Apple","date":"YYYY-MM-DD","expected_eps":"$1.45"}],"sentiment_ampel":{"vix":18.5,"level":"ruhig","label":"Märkte ruhig, VIX unter 20"},"geo_risiko":[{"region":"Naher Osten","status":"Erhöhte Risikowahrnehmung, begrenzte direkte Marktauswirkung"}]}`
 
 export async function POST() {
   const supabase = await createClient()
@@ -46,39 +52,19 @@ export async function POST() {
   const admin = createAdminClient()
 
   const { data: existing } = await admin
-    .from('daily_briefing')
-    .select('id')
-    .eq('date', date)
-    .maybeSingle()
+    .from('daily_briefing').select('id').eq('date', date).maybeSingle()
   if (existing) {
     return NextResponse.json({ ok: true, skipped: true, reason: 'Briefing wurde heute bereits generiert.' })
   }
 
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-  // --- Briefing + Learning Terms (no web_search for reliability; uses training knowledge) ---
+  // Briefing with live web search
   const briefingMsg = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 4000,
-    messages: [{
-      role: 'user',
-      content: `Heute ist ${date}. Erstelle ein professionelles Tages-Briefing für einen Immobilienentwickler und Investor im DACH-Raum.
-
-Liefere 4 Blöcke mit dem aktuellsten Wissensstand (nutze dein Training-Wissen, konkrete Zahlen wo bekannt):
-1. Finanzmärkte: DAX/ATX/SMI, EUR/USD, Leitzinsen EZB/Fed, Rohstoffe
-2. Immobiliensektor DACH: Zinsen, Preisindizes, regulatorische Entwicklungen
-3. Weltwirtschaft: Inflation, BIP-Trends, Zentralbank-Signale, Handelsthemen
-4. Unternehmen & Aktien: Big Tech / DAX-Schwergewichte, relevante Quartalszahlen
-
-Pro Block: summary (4-5 Sätze, konkrete Zahlen und Entwicklungen), callout (1-2 Sätze: "Warum das für Immobilienentwickler/Investoren konkret wichtig ist"), source (Referenz-Quelle).
-
-Extrahiere alle Fachbegriffe aus deinen Texten als Glossar mit allgemeinverständlichen Definitionen.
-
-Liefere 3 neue Lernbegriffe (einen pro Pfad: finance_fundamentals, immobilienfinanzierung, makrooekonomie) mit präziser Definition und konkretem DACH-Praxisbeispiel.
-
-WICHTIG: Antworte ausschliesslich mit einem einzigen JSON-Objekt, ohne Markdown-Formatierung, ohne Erklaerungen davor oder danach:
-{"sections":[{"icon":"📈","title":"Finanzmärkte","summary":"...","callout":"...","source":"..."}],"glossary":[{"term":"...","definition":"..."}],"learning_terms":[{"learning_path":"finance_fundamentals","term":"...","definition":"...","example":"..."}]}`,
-    }],
+    tools: [{ type: 'web_search_20250305' as const, name: 'web_search' }],
+    messages: [{ role: 'user', content: BRIEFING_PROMPT(date) }],
   })
 
   const rawText = briefingMsg.content
@@ -95,9 +81,7 @@ WICHTIG: Antworte ausschliesslich mit einem einzigen JSON-Objekt, ohne Markdown-
   }
 
   const { error: briefingErr } = await admin.from('daily_briefing').insert({
-    date,
-    sections: briefingData.sections ?? [],
-    glossary: briefingData.glossary ?? [],
+    date, sections: briefingData.sections ?? [], glossary: briefingData.glossary ?? [],
   })
   if (briefingErr) return NextResponse.json({ error: briefingErr.message }, { status: 500 })
 
@@ -107,17 +91,12 @@ WICHTIG: Antworte ausschliesslich mit einem einzigen JSON-Objekt, ohne Markdown-
     )
   }
 
-  // --- Market snapshot (Haiku, fast) ---
+  // Market snapshot with live web search
   const snapMsg = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 1200,
-    messages: [{
-      role: 'user',
-      content: `Heute ist ${date}. Liefere kompakte Marktdaten als JSON (nutze Training-Wissen, realistisch geschätzt).
-
-Antworte nur mit diesem JSON, ohne Markdown:
-{"zins_countdown":{"fed_date":"YYYY-MM-DD","ezb_date":"YYYY-MM-DD","fed_consensus":"z.B. Pause oder +25bp","ezb_consensus":"z.B. -25bp"},"makro_kalender":[{"event":"CPI USA","date":"YYYY-MM-DD","previous":"3.2%","expected":"3.1%"}],"earnings_watch":[{"company":"Apple","date":"YYYY-MM-DD","expected_eps":"$1.45"}],"sentiment_ampel":{"vix":18.5,"level":"ruhig","label":"Märkte ruhig"},"geo_risiko":[{"region":"Naher Osten","status":"Erhöhte Risikowahrnehmung, begrenzte Marktauswirkung"}]}`,
-    }],
+    tools: [{ type: 'web_search_20250305' as const, name: 'web_search' }],
+    messages: [{ role: 'user', content: SNAPSHOT_PROMPT(date) }],
   })
 
   const snapRaw = snapMsg.content
