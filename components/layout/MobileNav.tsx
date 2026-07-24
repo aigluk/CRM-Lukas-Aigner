@@ -24,7 +24,6 @@ const SECONDARY = [
   { href: '/partners',   label: 'Partner',       icon: Briefcase },
   { href: '/sales',      label: 'Vertrieb',      icon: BarChart3 },
   { href: '/briefing',   label: 'Briefing',      icon: Newspaper },
-  { href: '/academy',    label: 'Academy',       icon: GraduationCap },
   { href: '/settings',   label: 'Einstellungen', icon: Settings },
 ]
 

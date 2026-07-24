@@ -18,9 +18,8 @@ const NAV = [
   { href: '/sales',      label: 'Vertrieb',    icon: BarChart3,  solid: true },
   { href: '/generator',  label: 'Generator',   icon: Search,     solid: false },
   { href: '/calendar',   label: 'Kalender',    icon: Calendar,   solid: false },
-  { href: '/accounting', label: 'Buchhaltung', icon: Calculator,    solid: false },
-  { href: '/briefing',   label: 'Briefing',    icon: Newspaper,     solid: false },
-  { href: '/academy',    label: 'Academy',     icon: GraduationCap, solid: false },
+  { href: '/accounting', label: 'Buchhaltung', icon: Calculator, solid: false },
+  { href: '/briefing',   label: 'Briefing',    icon: Newspaper,  solid: false },
 ]
 
 export function Sidebar() {
