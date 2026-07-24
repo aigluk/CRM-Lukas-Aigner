@@ -202,11 +202,8 @@ export function BriefingView() {
       {/* Header */}
       <div className="shrink-0 flex items-start justify-between">
         <div>
-          <p className="text-xs font-bold text-accent uppercase tracking-widest mb-1">Daily Briefing</p>
           <h1 className="text-3xl font-black text-white tracking-tight leading-none">Briefing</h1>
-          <p className="text-sm text-white/35 mt-1.5 font-medium">
-            Finanzmärkte · Immobilien DACH · Weltwirtschaft · Märkte
-          </p>
+          <p className="text-sm text-white/40 mt-1">Tagesaktuelle Markt- und Wirtschaftseinordnung</p>
         </div>
         {briefings.length > 0 && (
           <button
