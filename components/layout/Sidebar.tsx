@@ -19,7 +19,6 @@ const NAV = [
   { href: '/generator',  label: 'Generator',   icon: Search,     solid: false },
   { href: '/calendar',   label: 'Kalender',    icon: Calendar,   solid: false },
   { href: '/accounting', label: 'Buchhaltung', icon: Calculator, solid: false },
-  { href: '/briefing',   label: 'Briefing',    icon: Newspaper,  solid: false },
 ]
 
 export function Sidebar() {

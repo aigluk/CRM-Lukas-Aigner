@@ -23,7 +23,6 @@ const SECONDARY = [
   { href: '/generator',  label: 'Generator',     icon: Search },
   { href: '/partners',   label: 'Partner',       icon: Briefcase },
   { href: '/sales',      label: 'Vertrieb',      icon: BarChart3 },
-  { href: '/briefing',   label: 'Briefing',      icon: Newspaper },
   { href: '/settings',   label: 'Einstellungen', icon: Settings },
 ]
 

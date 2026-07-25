@@ -86,7 +86,6 @@ export function SettingsView() {
     { href: '/generator',  label: 'Generator',   icon: Search,          required: false },
     { href: '/calendar',   label: 'Kalender',    icon: Calendar,        required: false },
     { href: '/accounting', label: 'Buchhaltung', icon: Calculator, required: false },
-    { href: '/briefing',   label: 'Briefing',    icon: Newspaper,  required: false },
   ]
 
   async function toggleNavItem(href: string) {
