@@ -615,11 +615,19 @@ export function AccountingView() {
   function nextNumberHint(type: DocType): string {
     const year = new Date().getFullYear()
     const prefix = type === 'invoice' ? 'RE' : type === 'storno' ? 'ST' : 'AN'
-    const existing = documents.filter(d => d.doc_type === type && d.doc_number.startsWith(`${prefix}-${year}-`))
-    const max = existing.reduce((m, d) => {
-      const n = parseInt(d.doc_number.split('-').pop() || '0', 10)
-      return Math.max(m, n)
-    }, 0)
+    // Invoices and stornos share one counter — find the max across both
+    const sharedPairs: [DocType, string][] = (type === 'invoice' || type === 'storno')
+      ? [['invoice', 'RE'], ['storno', 'ST']]
+      : [['quote', 'AN']]
+    let max = 0
+    for (const [t, p] of sharedPairs) {
+      const existing = documents.filter(d => d.doc_type === t && d.doc_number.startsWith(`${p}-${year}-`))
+      const m = existing.reduce((acc, d) => {
+        const n = parseInt(d.doc_number.split('-').pop() || '0', 10)
+        return Math.max(acc, n)
+      }, 0)
+      max = Math.max(max, m)
+    }
     return `${prefix}-${year}-${String(max + 1).padStart(3, '0')}`
   }
 

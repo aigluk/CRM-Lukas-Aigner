@@ -34,21 +34,30 @@ const PREFIX: Record<DocType, string> = { invoice: 'RE', quote: 'AN', storno: 'S
 
 async function nextDocNumber(userId: string, docType: DocType): Promise<string> {
   const year = new Date().getFullYear()
-  const prefix = `${PREFIX[docType]}-${year}-`
+  const prefix = PREFIX[docType]
 
-  const { data } = await db()
-    .from('accounting_documents')
-    .select('doc_number')
-    .eq('user_id', userId)
-    .eq('doc_type', docType)
-    .like('doc_number', `${prefix}%`)
+  // Invoices and stornos share one sequential counter (legal requirement: no gaps).
+  // Quotes have their own independent counter.
+  const sharedTypes: DocType[] = (docType === 'invoice' || docType === 'storno')
+    ? ['invoice', 'storno']
+    : ['quote']
 
   let maxSeq = 0
-  for (const row of data ?? []) {
-    const seq = parseInt(row.doc_number.slice(prefix.length), 10)
-    if (!isNaN(seq) && seq > maxSeq) maxSeq = seq
+  for (const t of sharedTypes) {
+    const p = `${PREFIX[t]}-${year}-`
+    const { data } = await db()
+      .from('accounting_documents')
+      .select('doc_number')
+      .eq('user_id', userId)
+      .eq('doc_type', t)
+      .like('doc_number', `${p}%`)
+    for (const row of data ?? []) {
+      const seq = parseInt(row.doc_number.slice(p.length), 10)
+      if (!isNaN(seq) && seq > maxSeq) maxSeq = seq
+    }
   }
-  return `${prefix}${String(maxSeq + 1).padStart(3, '0')}`
+
+  return `${prefix}-${year}-${String(maxSeq + 1).padStart(3, '0')}`
 }
 
 async function generateAndStorePdf(doc: AccountingDocument, userId: string): Promise<string | null> {
