@@ -30,7 +30,7 @@ async function getCompanyInfo(userId: string): Promise<CompanyInfo> {
   return (data.user?.user_metadata?.company as CompanyInfo) ?? {}
 }
 
-const PREFIX: Record<DocType, string> = { invoice: 'RE', quote: 'AN' }
+const PREFIX: Record<DocType, string> = { invoice: 'RE', quote: 'AN', storno: 'ST' }
 
 async function nextDocNumber(userId: string, docType: DocType): Promise<string> {
   const year = new Date().getFullYear()
@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
     const ownerId = await getWorkspaceOwnerId(user.id)
 
     const body = await req.json()
-    const docType: DocType = body.doc_type === 'quote' ? 'quote' : 'invoice'
+    const docType: DocType = body.doc_type === 'quote' ? 'quote' : body.doc_type === 'storno' ? 'storno' : 'invoice'
     const lineItems: LineItem[] = Array.isArray(body.line_items) ? body.line_items : []
 
     const docNumber = body.doc_number?.trim() || await nextDocNumber(ownerId, docType)
@@ -127,6 +127,9 @@ export async function POST(req: NextRequest) {
       linked_quote_id:     body.linked_quote_id || null,
       linked_quote_number: body.linked_quote_number || null,
       linked_quote_date:   body.linked_quote_date || null,
+      storno_of_number:    body.storno_of_number || null,
+      storno_of_date:      body.storno_of_date || null,
+      storno_of_name:      body.storno_of_name || null,
     }
 
     const { data, error } = await db().from('accounting_documents').insert(row).select().single()
@@ -172,6 +175,7 @@ export async function PATCH(req: NextRequest) {
       'line_items', 'client_name', 'client_address', 'client_country', 'client_vat', 'client_email',
       'tax_rate', 'notes', 'due_date', 'issue_date', 'service_date', 'language',
       'linked_quote_id', 'linked_quote_number', 'linked_quote_date',
+      'storno_of_number', 'storno_of_date', 'storno_of_name',
     ].some(k => k in updates)
     if (contentChanged && !data.is_imported) {
       const pdfPath = await generateAndStorePdf(data as AccountingDocument, ownerId)

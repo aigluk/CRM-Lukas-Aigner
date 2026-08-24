@@ -20,6 +20,7 @@ import { SalaryModal } from './SalaryModal'
 import { SalaryPreviewModal } from './SalaryPreviewModal'
 import { ContractModal } from './ContractModal'
 import { ContractPreviewModal } from './ContractPreviewModal'
+import { StornoModal } from './StornoModal'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useClickOutside } from '@/lib/useClickOutside'
 import { useRef } from 'react'
@@ -301,6 +302,7 @@ export function AccountingView() {
   const [confirmDelete, setConfirmDelete] = useState<{ message: string; action: () => Promise<void> } | null>(null)
   const [salaryModal, setSalaryModal] = useState<{ entry?: AccountingSalaryEntry } | null>(null)
   const [salaryPreview, setSalaryPreview] = useState<AccountingSalaryEntry | null>(null)
+  const [stornoModal, setStornoModal] = useState<{ invoice?: AccountingDocument } | null>(null)
 
   const [periodMode, setPeriodMode] = useState<PeriodMode>('month')
   const now = new Date()
@@ -374,7 +376,7 @@ export function AccountingView() {
     fetch('/api/company').then(r => r.json()).then(d => setCompany(d.company ?? {})).catch(() => {})
   }, [])
 
-  const invoices = useMemo(() => documents.filter(d => d.doc_type === 'invoice'), [documents])
+  const invoices = useMemo(() => documents.filter(d => d.doc_type === 'invoice' || d.doc_type === 'storno'), [documents])
   const quotes   = useMemo(() => documents.filter(d => d.doc_type === 'quote'), [documents])
 
   const searchQ = search.trim().toLowerCase()
@@ -612,7 +614,7 @@ export function AccountingView() {
 
   function nextNumberHint(type: DocType): string {
     const year = new Date().getFullYear()
-    const prefix = type === 'invoice' ? 'RE' : 'AN'
+    const prefix = type === 'invoice' ? 'RE' : type === 'storno' ? 'ST' : 'AN'
     const existing = documents.filter(d => d.doc_type === type && d.doc_number.startsWith(`${prefix}-${year}-`))
     const max = existing.reduce((m, d) => {
       const n = parseInt(d.doc_number.split('-').pop() || '0', 10)
@@ -665,7 +667,8 @@ export function AccountingView() {
   }
 
   function DocList({ docs, type, className }: { docs: AccountingDocument[]; type: DocType; className?: string }) {
-    if (docs.length === 0) {
+    const hasContent = docs.length > 0
+    if (!hasContent) {
       return (
         <div className={`bg-panel rounded-2xl py-16 text-center ${className ?? ''}`}>
           <p className="text-white/40 text-sm font-medium">Noch keine {type === 'invoice' ? 'Rechnungen' : 'Angebote'}.</p>
@@ -673,7 +676,6 @@ export function AccountingView() {
       )
     }
     const sorted = [...docs].sort((a, b) => {
-      // Primary: doc_number numerically descending — numbering defines the order
       const numA = parseInt(a.doc_number.split('-').pop() || '0', 10)
       const numB = parseInt(b.doc_number.split('-').pop() || '0', 10)
       if (numA !== numB) return numB - numA
@@ -682,48 +684,71 @@ export function AccountingView() {
     return (
       <div className={`bg-panel rounded-2xl ${className ?? ''}`}>
         <ul>
-          {sorted.map((doc, i) => (
-            <li key={doc.id} className={`flex items-center gap-3 px-4 sm:px-5 py-3.5 ${i < sorted.length - 1 ? 'border-b border-panel-2' : ''}`}>
-              <button
-                onClick={() => setPreviewDoc(doc)}
-                className="min-w-0 flex-1 text-left"
-                title="Vorschau anzeigen"
-              >
-                <p className="text-sm font-semibold text-white truncate">{doc.client_name}</p>
-                <p className="text-xs text-white/35 mt-0.5">{doc.doc_number} · {fmtDate(doc.issue_date)}</p>
-              </button>
-              <p className="text-sm font-bold text-white shrink-0 hidden sm:block">{fmtMoney(docTotal(doc))}</p>
-              <StatusPicker status={doc.status} onChange={s => updateDocStatus(doc.id, s)} />
-              <button
-                onClick={() => setPreviewDoc(doc)}
-                title="Vorschau"
-                className="w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 flex items-center justify-center text-white/40 hover:text-white transition-all shrink-0"
-              >
-                <Eye size={13} />
-              </button>
-              <a
-                href={`/api/accounting/documents/${doc.id}/pdf?dl=1`}
-                title="PDF herunterladen"
-                className="hidden sm:flex w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 items-center justify-center text-white/40 hover:text-white transition-all shrink-0"
-              >
-                <Download size={13} />
-              </a>
-              <button
-                onClick={() => doc.is_imported ? setImportedEditDoc(doc) : setDocModal({ type, doc })}
-                title="Bearbeiten"
-                className="hidden sm:flex w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 items-center justify-center text-white/40 hover:text-white transition-all shrink-0"
-              >
-                <FileText size={13} />
-              </button>
-              <button
-                onClick={() => deleteDoc(doc.id)}
-                title="Löschen"
-                className="w-8 h-8 rounded-full bg-white/6 hover:bg-accent/20 flex items-center justify-center text-white/30 hover:text-accent transition-all shrink-0"
-              >
-                <Trash2 size={13} />
-              </button>
-            </li>
-          ))}
+          {sorted.map((doc, i) => {
+            const isStorno = doc.doc_type === 'storno'
+            const total = docTotal(doc)
+            return (
+              <li key={doc.id} className={`flex items-center gap-3 px-4 sm:px-5 py-3.5 ${i < sorted.length - 1 ? 'border-b border-panel-2' : ''}`}>
+                <button
+                  onClick={() => setPreviewDoc(doc)}
+                  className="min-w-0 flex-1 text-left"
+                  title="Vorschau anzeigen"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <p className="text-sm font-semibold text-white truncate">{doc.client_name}</p>
+                    {isStorno && (
+                      <span className="shrink-0 text-[10px] font-black px-1.5 py-0.5 rounded-md bg-accent/15 text-accent uppercase tracking-wide">Storno</span>
+                    )}
+                  </div>
+                  <p className="text-xs text-white/35 mt-0.5">
+                    {doc.doc_number} · {fmtDate(doc.issue_date)}
+                    {isStorno && doc.storno_of_number ? ` · Storno von ${doc.storno_of_number}` : ''}
+                  </p>
+                </button>
+                <p className={`text-sm font-bold shrink-0 hidden sm:block ${isStorno ? 'text-accent' : 'text-white'}`}>{fmtMoney(total)}</p>
+                <StatusPicker status={doc.status} onChange={s => updateDocStatus(doc.id, s)} />
+                <button
+                  onClick={() => setPreviewDoc(doc)}
+                  title="Vorschau"
+                  className="w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 flex items-center justify-center text-white/40 hover:text-white transition-all shrink-0"
+                >
+                  <Eye size={13} />
+                </button>
+                <a
+                  href={`/api/accounting/documents/${doc.id}/pdf?dl=1`}
+                  title="PDF herunterladen"
+                  className="hidden sm:flex w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 items-center justify-center text-white/40 hover:text-white transition-all shrink-0"
+                >
+                  <Download size={13} />
+                </a>
+                {!isStorno && (
+                  <button
+                    onClick={() => doc.is_imported ? setImportedEditDoc(doc) : setDocModal({ type: 'invoice', doc })}
+                    title="Bearbeiten"
+                    className="hidden sm:flex w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 items-center justify-center text-white/40 hover:text-white transition-all shrink-0"
+                  >
+                    <FileText size={13} />
+                  </button>
+                )}
+                {!isStorno && type === 'invoice' && (
+                  <button
+                    onClick={() => setStornoModal({ invoice: doc })}
+                    title="Stornorechnung erstellen"
+                    className="hidden sm:flex w-8 h-8 rounded-full bg-white/6 hover:bg-accent/15 items-center justify-center text-white/30 hover:text-accent transition-all shrink-0 text-[10px] font-black"
+                  >
+                    ST
+                  </button>
+                )}
+                <button
+                  onClick={() => deleteDoc(doc.id)}
+                  title="Löschen"
+                  className="w-8 h-8 rounded-full bg-white/6 hover:bg-accent/20 flex items-center justify-center text-white/30 hover:text-accent transition-all shrink-0"
+                >
+                  <Trash2 size={13} />
+                </button>
+              </li>
+            )
+          })}
         </ul>
       </div>
     )
@@ -803,6 +828,9 @@ export function AccountingView() {
           <div className="flex items-center gap-2">
             <button onClick={() => setImportModal(true)} className="flex items-center gap-2 bg-panel hover:bg-panel-hover text-white/60 hover:text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95">
               <Upload size={16} /><span className="hidden sm:inline">Importieren</span>
+            </button>
+            <button onClick={() => setStornoModal({})} className="flex items-center gap-2 bg-panel hover:bg-panel-hover text-white/60 hover:text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95">
+              <span className="text-xs font-black">ST</span><span className="hidden sm:inline">Stornorechnung</span>
             </button>
             <button onClick={() => setDocModal({ type: 'invoice' })} className="flex items-center gap-2 bg-accent hover:bg-accent-hover text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95">
               <Plus size={16} /><span className="hidden sm:inline">Neue Rechnung</span>
@@ -1210,6 +1238,15 @@ export function AccountingView() {
       )}
       {previewContract && (
         <ContractPreviewModal contract={previewContract} onClose={() => setPreviewContract(null)} />
+      )}
+      {stornoModal && (
+        <StornoModal
+          invoices={documents.filter(d => d.doc_type === 'invoice')}
+          nextNumberHint={nextNumberHint('storno')}
+          preselectedInvoice={stornoModal.invoice}
+          onClose={() => setStornoModal(null)}
+          onSaved={() => { setStornoModal(null); loadAll() }}
+        />
       )}
       {confirmDelete && (
         <ConfirmDialog

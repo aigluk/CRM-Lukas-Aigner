@@ -25,44 +25,54 @@ const TOTAL_BG = '#C9C9C9'
 
 const T = {
   de: {
-    docTitle: { invoice: 'Rechnung', quote: 'Angebot' },
+    docTitle: { invoice: 'Rechnung', quote: 'Angebot', storno: 'Stornorechnung' },
     customer: 'Kunde:', address: 'Anschrift:', country: 'Land:', vat: 'Ust. Nr.:',
-    docNo: { invoice: 'Rechnungsnr.', quote: 'Angebotsnr.' },
-    issueDate: { invoice: 'Rechnungsdatum:', quote: 'Angebotsdatum:' },
+    docNo: { invoice: 'Rechnungsnr.', quote: 'Angebotsnr.', storno: 'Stornonr.' },
+    issueDate: { invoice: 'Rechnungsdatum:', quote: 'Angebotsdatum:', storno: 'Stornodatum:' },
     serviceDate: 'Leistungsdatum:',
-    dueDate: { invoice: 'Fälligkeitsdatum:', quote: 'Gültig bis:' },
+    dueDate: { invoice: 'Fälligkeitsdatum:', quote: 'Gültig bis:', storno: '' },
+    stornoRef: 'Storno von:',
+    stornoRefDate: 'Datum Originalrechnung:',
     greeting: {
       invoice: 'Sehr geehrte Damen und Herren,\nvielen Dank für Ihren Auftrag und das damit verbundene Vertrauen!\nHiermit stelle ich Ihnen die folgenden Leistungen in Rechnung:',
       quote: 'Sehr geehrte Damen und Herren,\nvielen Dank für Ihre Anfrage!\nHiermit unterbreite ich Ihnen folgendes Angebot:',
+      storno: 'Sehr geehrte Damen und Herren,\nhiermit storniere ich die unten genannte Rechnung vollständig.',
     },
     smallBusiness: 'Gemäß § 6 Abs. 1 Z 27 UStG wird keine USt. berechnet!',
     pos: 'Pos.:', service: 'Leistung', qty: 'Anzahl', duration: 'Laufzeit', sum: 'Summe:',
     total: 'Ges.:',
     payment: 'Bitte überweisen Sie den Rechnungsbetrag auf das unten angegebene Konto unter Angabe der Rechnungsnummer!',
+    stornoFooter: 'Diese Stornorechnung hebt die genannte Rechnung vollständig auf. Es besteht keine Zahlungsverpflichtung.',
     terms: {
       invoice: 'Die Leistungserbringung erfolgt auf Grundlage meiner Allgemeinen Geschäftsbedingungen (AGB), die die Rahmenbedingungen der Zusammenarbeit festlegen.\nDiese Rechnung bezieht sich auf diese Bedingungen.\nDie AGB sowie die Datenschutzerklärung werden auf Wunsch jederzeit gerne in geeigneter Form zur Verfügung gestellt.',
       quote: 'Die Leistungserbringung erfolgt - bei Auftragserteilung - auf Grundlage meiner Allgemeinen Geschäftsbedingungen (AGB), die die Rahmenbedingungen der Zusammenarbeit festlegen.\nDieses Angebot bezieht sich auf diese Bedingungen.\nDie AGB sowie die Datenschutzerklärung werden auf Wunsch jederzeit gerne in geeigneter Form zur Verfügung gestellt.',
+      storno: 'Die AGB sowie die Datenschutzerklärung werden auf Wunsch jederzeit gerne in geeigneter Form zur Verfügung gestellt.',
     },
     bank: 'Bank:', iban: 'IBAN.:', bic: 'BIC.:', gisa: 'GISA-Zahl:',
   },
   en: {
-    docTitle: { invoice: 'Invoice', quote: 'Quote' },
+    docTitle: { invoice: 'Invoice', quote: 'Quote', storno: 'Credit Note' },
     customer: 'Customer:', address: 'Address:', country: 'Country:', vat: 'VAT No.:',
-    docNo: { invoice: 'Invoice No.', quote: 'Quote No.' },
-    issueDate: { invoice: 'Invoice Date:', quote: 'Quote Date:' },
+    docNo: { invoice: 'Invoice No.', quote: 'Quote No.', storno: 'Credit Note No.' },
+    issueDate: { invoice: 'Invoice Date:', quote: 'Quote Date:', storno: 'Credit Note Date:' },
     serviceDate: 'Service Date:',
-    dueDate: { invoice: 'Due Date:', quote: 'Valid Until:' },
+    dueDate: { invoice: 'Due Date:', quote: 'Valid Until:', storno: '' },
+    stornoRef: 'Cancels Invoice:',
+    stornoRefDate: 'Original Invoice Date:',
     greeting: {
       invoice: 'Dear Sir or Madam,\nthank you for your order and your trust!\nPlease find the following services invoiced below:',
       quote: 'Dear Sir or Madam,\nthank you for your inquiry!\nPlease find the following quote below:',
+      storno: 'Dear Sir or Madam,\nwe hereby fully cancel the invoice referenced below.',
     },
     smallBusiness: 'No VAT is charged in accordance with § 6 para. 1 no. 27 of the Austrian VAT Act (small business exemption).',
     pos: 'Item:', service: 'Description', qty: 'Qty', duration: 'Duration', sum: 'Total:',
     total: 'Total:',
     payment: 'Please transfer the invoice amount to the account stated below, quoting the invoice number.',
+    stornoFooter: 'This credit note fully cancels the referenced invoice. No payment is due.',
     terms: {
       invoice: 'Services are provided on the basis of my General Terms and Conditions (GTC), which govern the framework of our cooperation.\nThis invoice is subject to these terms.\nThe GTC and privacy policy are available on request at any time in a suitable format.',
       quote: 'Should this quote be accepted, services will be provided on the basis of my General Terms and Conditions (GTC), which govern the framework of our cooperation.\nThis quote is subject to these terms.\nThe GTC and privacy policy are available on request at any time in a suitable format.',
+      storno: 'The GTC and privacy policy are available on request at any time in a suitable format.',
     },
     bank: 'Bank:', iban: 'IBAN:', bic: 'BIC:', gisa: 'GISA No.:',
   },
@@ -164,7 +174,8 @@ export function DocumentPdf({ doc, company }: { doc: AccountingDocument; company
   const tax = company.small_business ? 0 : subtotal * (doc.tax_rate / 100)
   const total = subtotal + tax
   const isInvoice = doc.doc_type === 'invoice'
-  const k = isInvoice ? 'invoice' : 'quote'
+  const isStorno = doc.doc_type === 'storno'
+  const k: 'invoice' | 'quote' | 'storno' = isStorno ? 'storno' : isInvoice ? 'invoice' : 'quote'
   const lang: DocLanguage = doc.language === 'en' ? 'en' : 'de'
   const tr = T[lang]
   const addressLines = (company.address || '').split('\n').filter(Boolean)
@@ -220,7 +231,7 @@ export function DocumentPdf({ doc, company }: { doc: AccountingDocument; company
                 <Text style={styles.metaValueRight}>{fmtDate(doc.service_date, lang)}</Text>
               </View>
             )}
-            {doc.due_date && (
+            {doc.due_date && !isStorno && (
               <View style={styles.metaLineRight}>
                 <Text style={styles.metaLabelRight}>{tr.dueDate[k]}</Text>
                 <Text style={styles.metaValueRight}>{fmtDate(doc.due_date, lang)}</Text>
@@ -235,7 +246,16 @@ export function DocumentPdf({ doc, company }: { doc: AccountingDocument; company
           <Text style={styles.titleText}>{fmtDocNumber(doc.doc_number, lang)}</Text>
         </View>
 
-        {/* Greeting */}
+        {/* Storno reference block */}
+        {isStorno && (doc.storno_of_number || doc.storno_of_name) && (
+          <Text style={styles.quoteRef}>
+            {tr.stornoRef} {doc.storno_of_number ?? ''}
+            {doc.storno_of_date ? ` ${lang === 'en' ? 'dated' : 'vom'} ${fmtDate(doc.storno_of_date, lang)}` : ''}
+            {doc.storno_of_name ? ` (${doc.storno_of_name})` : ''}
+          </Text>
+        )}
+
+        {/* Quote reference block */}
         {isInvoice && doc.linked_quote_number && (
           <Text style={styles.quoteRef}>
             {lang === 'en' ? 'Reference: Quote No.' : 'Bezug: Angebot Nr.'} {fmtDocNumber(doc.linked_quote_number, lang)}
@@ -243,7 +263,7 @@ export function DocumentPdf({ doc, company }: { doc: AccountingDocument; company
           </Text>
         )}
         <Lines text={tr.greeting[k]} style={styles.greeting} />
-        {isInvoice && company.small_business && (
+        {(isInvoice || isStorno) && company.small_business && (
           <Text style={styles.smallBizNote}>{tr.smallBusiness}</Text>
         )}
 
@@ -283,6 +303,7 @@ export function DocumentPdf({ doc, company }: { doc: AccountingDocument; company
         {/* Footer notes + bank block, pushed to bottom */}
         <View style={styles.footerNotes}>
           {isInvoice && <Text style={styles.footerPara}>{tr.payment}</Text>}
+          {isStorno && <Text style={styles.footerPara}>{tr.stornoFooter}</Text>}
           <Lines text={tr.terms[k]} style={styles.footerPara} />
 
           <View style={styles.bottomRule} />

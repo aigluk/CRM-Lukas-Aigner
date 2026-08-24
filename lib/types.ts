@@ -54,7 +54,7 @@ export interface GenerateResult {
 
 /* ── Buchhaltung ──────────────────────────────────────────── */
 
-export type DocType = 'invoice' | 'quote'
+export type DocType = 'invoice' | 'quote' | 'storno'
 export type DocStatus = 'draft' | 'sent' | 'paid' | 'overdue'
 export type DocLanguage = 'de' | 'en'
 
@@ -147,6 +147,9 @@ export interface AccountingDocument {
   linked_quote_id?: string | null
   linked_quote_number?: string
   linked_quote_date?: string
+  storno_of_number?: string | null
+  storno_of_date?: string | null
+  storno_of_name?: string | null
   is_imported?: boolean
   pdf_path?: string
   created_at: string
