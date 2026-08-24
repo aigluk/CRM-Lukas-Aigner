@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, type FocusEvent } from 'react'
+import { useState, useEffect, type FocusEvent } from 'react'
 import { X, Plus, Trash2, Save } from 'lucide-react'
-import type { AccountingDocument, LineItem } from '@/lib/types'
+import type { AccountingCustomer, AccountingDocument, LineItem } from '@/lib/types'
 import { DatePicker } from '@/components/accounting/DatePicker'
 
 function selectAllOnFocus(e: FocusEvent<HTMLInputElement>) {
@@ -38,8 +38,11 @@ export function StornoModal({
   onClose: () => void
   onSaved: () => void
 }) {
-  const [mode, setMode] = useState<'existing' | 'manual'>(preselectedInvoice ? 'existing' : 'existing')
+  const [mode, setMode] = useState<'existing' | 'manual'>('existing')
   const [selectedId, setSelectedId] = useState(preselectedInvoice?.id ?? '')
+  const [customers, setCustomers] = useState<AccountingCustomer[]>([])
+
+  // Manual mode fields
   const [manualRefNumber, setManualRefNumber] = useState('')
   const [manualRefDate, setManualRefDate] = useState('')
   const [manualRefName, setManualRefName] = useState('')
@@ -48,12 +51,35 @@ export function StornoModal({
   const [manualItems, setManualItems] = useState<LineItem[]>([emptyItem()])
   const [manualTaxRate, setManualTaxRate] = useState(20)
   const [manualTaxAdded, setManualTaxAdded] = useState(true)
+
   const [issueDate, setIssueDate] = useState(new Date().toISOString().slice(0, 10))
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
+  useEffect(() => {
+    fetch('/api/accounting/customers')
+      .then(r => r.json())
+      .then(d => setCustomers(d.customers ?? []))
+      .catch(() => {})
+  }, [])
+
   const selectedInvoice = invoices.find(d => d.id === selectedId) ?? preselectedInvoice ?? null
+
+  // Resolve full client data: prefer customer record over invoice fields (ensures complete data even if invoice was sparse)
+  const resolvedCustomer = selectedInvoice?.customer_id
+    ? customers.find(c => c.id === selectedInvoice.customer_id) ?? null
+    : null
+
+  function resolvedClientField(invoiceField: string | null | undefined, customerField: string | null | undefined): string | null {
+    return customerField?.trim() || invoiceField?.trim() || null
+  }
+
+  const effectiveClientName    = resolvedClientField(selectedInvoice?.client_name, resolvedCustomer?.name)
+  const effectiveClientAddress = resolvedClientField(selectedInvoice?.client_address, resolvedCustomer?.address)
+  const effectiveClientCountry = resolvedClientField(selectedInvoice?.client_country, resolvedCustomer?.country)
+  const effectiveClientVat     = resolvedClientField(selectedInvoice?.client_vat, resolvedCustomer?.vat_number)
+  const effectiveClientEmail   = resolvedClientField(selectedInvoice?.client_email, resolvedCustomer?.email)
 
   async function handleSave() {
     setError('')
@@ -68,20 +94,21 @@ export function StornoModal({
           unit_price: -Math.abs(item.unit_price),
         }))
         payload = {
-          doc_type: 'storno',
-          issue_date: issueDate,
-          client_name: selectedInvoice.client_name,
-          client_address: selectedInvoice.client_address ?? null,
-          client_country: selectedInvoice.client_country ?? null,
-          client_vat: selectedInvoice.client_vat ?? null,
-          client_email: selectedInvoice.client_email ?? null,
-          line_items: negatedItems,
-          tax_rate: selectedInvoice.tax_rate,
-          notes: notes || null,
+          doc_type:        'storno',
+          issue_date:      issueDate,
+          customer_id:     selectedInvoice.customer_id ?? null,
+          client_name:     effectiveClientName ?? selectedInvoice.client_name,
+          client_address:  effectiveClientAddress,
+          client_country:  effectiveClientCountry,
+          client_vat:      effectiveClientVat,
+          client_email:    effectiveClientEmail,
+          line_items:      negatedItems,
+          tax_rate:        selectedInvoice.tax_rate,
+          notes:           notes || null,
           storno_of_number: selectedInvoice.doc_number,
-          storno_of_date: selectedInvoice.issue_date,
-          storno_of_name: null,
-          status: 'draft',
+          storno_of_date:   selectedInvoice.issue_date,
+          storno_of_name:   null,
+          status:          'draft',
         }
       } else {
         if (!manualRefNumber.trim()) { setError('Bitte die Rechnungsnummer der Originalrechnung angeben.'); setSaving(false); return }
@@ -92,17 +119,17 @@ export function StornoModal({
           unit_price: -Math.abs(item.unit_price),
         }))
         payload = {
-          doc_type: 'storno',
-          issue_date: issueDate,
-          client_name: manualClientName.trim(),
-          client_address: manualClientAddress || null,
-          line_items: negatedItems,
-          tax_rate: manualTaxAdded ? manualTaxRate : 0,
-          notes: notes || null,
+          doc_type:        'storno',
+          issue_date:      issueDate,
+          client_name:     manualClientName.trim(),
+          client_address:  manualClientAddress || null,
+          line_items:      negatedItems,
+          tax_rate:        manualTaxAdded ? manualTaxRate : 0,
+          notes:           notes || null,
           storno_of_number: manualRefNumber.trim(),
-          storno_of_date: manualRefDate || null,
-          storno_of_name: manualRefName.trim() || null,
-          status: 'draft',
+          storno_of_date:   manualRefDate || null,
+          storno_of_name:   manualRefName.trim() || null,
+          status:          'draft',
         }
       }
 
@@ -187,17 +214,45 @@ export function StornoModal({
                       .sort((a, b) => b.doc_number.localeCompare(a.doc_number))
                       .map(d => (
                         <option key={d.id} value={d.id}>
-                          {d.doc_number} &nbsp;· {d.client_name} &nbsp;· {fmtDate(d.issue_date)}
+                          {d.doc_number} · {d.client_name} · {fmtDate(d.issue_date)}
                         </option>
                       ))}
                   </select>
                 )}
               </div>
 
-              {/* Preview if selected */}
+              {/* Client data preview (resolved from customer record + invoice) */}
               {selectedInvoice && (
                 <div className="bg-dark/60 rounded-2xl px-4 py-4 space-y-2">
-                  <p className="text-xs font-black text-white/30 uppercase tracking-widest mb-3">Vorschau der Stornopositionen</p>
+                  <p className="text-xs font-black text-white/30 uppercase tracking-widest mb-3">Kundendaten auf der Stornorechnung</p>
+                  <div className="space-y-1.5 mb-4">
+                    {effectiveClientName && (
+                      <div className="flex gap-3">
+                        <span className="text-xs text-white/30 w-20 shrink-0">Kunde</span>
+                        <span className="text-xs text-white/70">{effectiveClientName}</span>
+                      </div>
+                    )}
+                    {effectiveClientAddress && (
+                      <div className="flex gap-3">
+                        <span className="text-xs text-white/30 w-20 shrink-0">Anschrift</span>
+                        <span className="text-xs text-white/70">{effectiveClientAddress}</span>
+                      </div>
+                    )}
+                    {effectiveClientCountry && (
+                      <div className="flex gap-3">
+                        <span className="text-xs text-white/30 w-20 shrink-0">Land</span>
+                        <span className="text-xs text-white/70">{effectiveClientCountry}</span>
+                      </div>
+                    )}
+                    {effectiveClientVat && (
+                      <div className="flex gap-3">
+                        <span className="text-xs text-white/30 w-20 shrink-0">Ust. Nr.</span>
+                        <span className="text-xs text-white/70">{effectiveClientVat}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <p className="text-xs font-black text-white/30 uppercase tracking-widest mb-2">Stornopositionen</p>
                   {(selectedInvoice.line_items ?? []).map((item, i) => (
                     <div key={i} className="flex items-center justify-between gap-4">
                       <p className="text-sm text-white/70 truncate">{item.description}</p>
@@ -348,7 +403,7 @@ export function StornoModal({
             </>
           )}
 
-          {/* Storno date + notes (always visible) */}
+          {/* Storno date + notes */}
           <div className="border-t border-white/6 pt-5 grid grid-cols-2 gap-3">
             <div>
               <label className={labelCls}>Stornodatum</label>
