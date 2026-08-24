@@ -430,8 +430,13 @@ export function AccountingView() {
   }
 
   const totals = useMemo(() => {
-    const incomePaid = invoices.filter(d => d.status === 'paid' && inListPeriod(d.issue_date, listPeriod)).reduce((s, d) => s + docTotal(d), 0)
-    const incomeOpen = invoices.filter(d => d.status !== 'paid' && inListPeriod(d.issue_date, listPeriod)).reduce((s, d) => s + docTotal(d), 0)
+    // Stornos are always effective immediately — counted regardless of their own status.
+    // Regular invoices count only when paid (for the paid bucket) or otherwise (open bucket).
+    const regularInvoices = invoices.filter(d => d.doc_type === 'invoice')
+    const stornos = invoices.filter(d => d.doc_type === 'storno')
+    const stornoAdjustment = stornos.filter(d => inListPeriod(d.issue_date, listPeriod)).reduce((s, d) => s + docTotal(d), 0)
+    const incomePaid = regularInvoices.filter(d => d.status === 'paid' && inListPeriod(d.issue_date, listPeriod)).reduce((s, d) => s + docTotal(d), 0) + stornoAdjustment
+    const incomeOpen = regularInvoices.filter(d => d.status !== 'paid' && inListPeriod(d.issue_date, listPeriod)).reduce((s, d) => s + docTotal(d), 0)
     const expensesReceipts = receipts.filter(r => r.receipt_type === 'expense' && inListPeriod(r.date, listPeriod)).reduce((s, r) => s + r.amount, 0)
     const expensesSubs = subscriptions.reduce((s, sub) => s + subscriptionContribution(sub, listPeriod), 0)
     const expenses = expensesReceipts + expensesSubs

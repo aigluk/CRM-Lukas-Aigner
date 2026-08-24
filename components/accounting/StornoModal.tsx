@@ -48,6 +48,9 @@ export function StornoModal({
   const [manualRefName, setManualRefName] = useState('')
   const [manualClientName, setManualClientName] = useState('')
   const [manualClientAddress, setManualClientAddress] = useState('')
+  const [manualClientCountry, setManualClientCountry] = useState('')
+  const [manualClientVat, setManualClientVat] = useState('')
+  const [manualClientEmail, setManualClientEmail] = useState('')
   const [manualItems, setManualItems] = useState<LineItem[]>([emptyItem()])
   const [manualTaxRate, setManualTaxRate] = useState(20)
   const [manualTaxAdded, setManualTaxAdded] = useState(true)
@@ -123,6 +126,9 @@ export function StornoModal({
           issue_date:      issueDate,
           client_name:     manualClientName.trim(),
           client_address:  manualClientAddress || null,
+          client_country:  manualClientCountry || null,
+          client_vat:      manualClientVat || null,
+          client_email:    manualClientEmail || null,
           line_items:      negatedItems,
           tax_rate:        manualTaxAdded ? manualTaxRate : 0,
           notes:           notes || null,
@@ -161,7 +167,7 @@ export function StornoModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-[#1A1A1A] rounded-3xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
+      <div className="relative bg-dark rounded-3xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-4 shrink-0 border-b border-white/6">
@@ -297,15 +303,29 @@ export function StornoModal({
                 />
               </div>
 
-              <div className="border-t border-white/6 pt-5 space-y-4">
+              <div className="border-t border-white/6 pt-5 space-y-3">
                 <p className="text-xs font-black text-white/30 uppercase tracking-widest">Angaben zum Kunden</p>
                 <div>
-                  <label className={labelCls}>Kundenname</label>
-                  <input className={inputCls} placeholder="Firmenname oder Personenname" value={manualClientName} onChange={e => setManualClientName(e.target.value)} />
+                  <label className={labelCls}>Firmenname / Kundenname</label>
+                  <input className={inputCls} placeholder="z.B. Muster GmbH" value={manualClientName} onChange={e => setManualClientName(e.target.value)} />
                 </div>
                 <div>
-                  <label className={labelCls}>Anschrift (optional)</label>
+                  <label className={labelCls}>Anschrift</label>
                   <input className={inputCls} placeholder="Straße, PLZ Ort" value={manualClientAddress} onChange={e => setManualClientAddress(e.target.value)} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={labelCls}>Land</label>
+                    <input className={inputCls} placeholder="z.B. Österreich" value={manualClientCountry} onChange={e => setManualClientCountry(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className={labelCls}>USt.-IdNr. (optional)</label>
+                    <input className={inputCls} placeholder="z.B. ATU12345678" value={manualClientVat} onChange={e => setManualClientVat(e.target.value)} />
+                  </div>
+                </div>
+                <div>
+                  <label className={labelCls}>E-Mail (optional)</label>
+                  <input className={inputCls} type="email" placeholder="kontakt@beispiel.at" value={manualClientEmail} onChange={e => setManualClientEmail(e.target.value)} />
                 </div>
               </div>
 
