@@ -912,7 +912,7 @@ export function AccountingView() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Suchen..."
-              className="w-full bg-panel rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-white/25 outline-none focus:ring-1 focus:ring-accent transition-all"
+              className="w-full bg-panel rounded-xl pl-9 pr-4 py-2.5 text-sm text-dark placeholder-dark/25 outline-none focus:ring-1 focus:ring-accent transition-all"
             />
           </div>
           <ListPeriodFilter period={listPeriod} onChange={setListPeriod} />

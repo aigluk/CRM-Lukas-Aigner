@@ -51,9 +51,9 @@ export function TimePicker({ value, onChange, label, openUp }: { value: string; 
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center gap-2.5 bg-dark rounded-xl px-3.5 py-3 text-sm text-white font-bold transition-all"
+        className="w-full flex items-center gap-2.5 bg-panel-2 rounded-xl px-3.5 py-3 text-sm text-dark font-bold transition-all"
       >
-        <Clock size={14} className="text-white/25 shrink-0" />
+        <Clock size={14} className="text-dark/30 shrink-0" />
         {h}:{closestM} Uhr
       </button>
 
@@ -141,9 +141,9 @@ export function DatePicker({ value, onChange, label, openUp }: { value: string; 
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center gap-2.5 bg-dark rounded-xl px-3.5 py-3 text-sm text-white font-bold text-left transition-all"
+        className="w-full flex items-center gap-2.5 bg-panel-2 rounded-xl px-3.5 py-3 text-sm text-dark font-bold text-left transition-all"
       >
-        <CalendarIcon size={14} className="text-white/25 shrink-0" />
+        <CalendarIcon size={14} className="text-dark/30 shrink-0" />
         {display}
       </button>
 

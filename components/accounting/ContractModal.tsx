@@ -9,8 +9,8 @@ function selectAllOnFocus(e: FocusEvent<HTMLInputElement>) {
   e.target.select()
 }
 
-const inputCls = 'w-full bg-dark rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all'
-const labelCls = 'block text-xs font-bold text-white/30 mb-1.5'
+const inputCls = 'w-full bg-panel-2 rounded-xl px-3.5 py-2.5 text-sm text-dark placeholder-dark/25 outline-none focus:ring-1 focus:ring-accent transition-all'
+const labelCls = 'block text-xs font-bold text-dark/40 mb-1.5'
 
 const TYPE_META: Record<ContractType, { title: string; partyLabel: string; partyPlaceholder: string; newLabel: string; pickerLabel: string; endpoint: string; listKey: string }> = {
   service:     { title: 'Dienstleistungsvertrag', partyLabel: 'Kunde / Auftraggeber', partyPlaceholder: 'Firma oder Name', newLabel: 'Neuer Dienstleistungsvertrag', pickerLabel: 'Gespeicherten Kunden übernehmen', endpoint: '/api/accounting/customers', listKey: 'customers' },
@@ -144,7 +144,7 @@ export function ContractModal({
                 <button
                   key={l} type="button" onClick={() => setLanguage(l)}
                   className={`px-2.5 py-1 rounded-md text-xs font-black transition-all ${
-                    language === l ? 'bg-accent text-white' : 'text-white/40 hover:text-white'
+                    language === l ? 'bg-accent text-white' : 'text-dark/50 hover:text-dark'
                   }`}
                 >
                   {l.toUpperCase()}
@@ -247,7 +247,7 @@ export function ContractModal({
           </div>
 
           {contractType === 'service' && (
-            <div className="bg-dark rounded-2xl p-4 space-y-3">
+            <div className="bg-panel-2 rounded-2xl p-4 space-y-3">
               <p className="text-xs font-bold text-white/40">Leistungspaket</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
@@ -264,10 +264,10 @@ export function ContractModal({
                   <label className={labelCls}>Zahlungsmodalität</label>
                   <div className="flex bg-panel rounded-xl p-1">
                     <button type="button" onClick={() => { setPaymentMode('einmalzahlung'); setTermMonths(1) }}
-                      className={`flex-1 py-1.5 rounded-lg text-sm font-bold transition-all ${paymentMode === 'einmalzahlung' ? 'bg-accent text-white' : 'text-white/40 hover:text-white'}`}
+                      className={`flex-1 py-1.5 rounded-lg text-sm font-bold transition-all ${paymentMode === 'einmalzahlung' ? 'bg-accent text-white' : 'text-dark/50 hover:text-dark'}`}
                     >Einmalzahlung</button>
                     <button type="button" onClick={() => { setPaymentMode('raten'); setTermMonths(12) }}
-                      className={`flex-1 py-1.5 rounded-lg text-sm font-bold transition-all ${paymentMode === 'raten' ? 'bg-accent text-white' : 'text-white/40 hover:text-white'}`}
+                      className={`flex-1 py-1.5 rounded-lg text-sm font-bold transition-all ${paymentMode === 'raten' ? 'bg-accent text-white' : 'text-dark/50 hover:text-dark'}`}
                     >Ratenzahlung</button>
                   </div>
                 </div>

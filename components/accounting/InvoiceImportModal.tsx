@@ -6,7 +6,7 @@ import type { DocStatus, AccountingCustomer } from '@/lib/types'
 import { DatePicker } from './DatePicker'
 
 const numberInputCls = '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
-const inputCls = 'w-full bg-dark rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all'
+const inputCls = 'w-full bg-panel-2 rounded-xl px-3.5 py-2.5 text-sm text-dark placeholder-dark/25 outline-none focus:ring-1 focus:ring-accent transition-all'
 const labelCls = 'block text-xs font-bold text-white/30 mb-1.5'
 
 const STATUS_LABELS: Record<DocStatus, string> = {

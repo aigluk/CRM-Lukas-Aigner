@@ -5,7 +5,7 @@ import { X, Save, Plus, Pencil, Trash2, Check } from 'lucide-react'
 import type { AccountingSubscription, SubscriptionInterval, PriceHistoryEntry } from '@/lib/types'
 import { DatePicker } from './DatePicker'
 
-const inputCls = 'w-full bg-dark rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all'
+const inputCls = 'w-full bg-panel-2 rounded-xl px-3.5 py-2.5 text-sm text-dark placeholder-dark/25 outline-none focus:ring-1 focus:ring-accent transition-all'
 const labelCls = 'block text-xs font-bold text-white/30 mb-1.5'
 const numCls = '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
 
@@ -191,7 +191,7 @@ export function SubscriptionModal({
 
           {/* Price history (edit mode) */}
           {isEdit && (
-            <div className="bg-dark rounded-xl p-3.5 space-y-2">
+            <div className="bg-panel-2 rounded-xl p-3.5 space-y-2">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs font-bold text-white/40">Preisverlauf</span>
                 <button type="button" onClick={() => { setShowAddPrice(v => !v); setNewPriceAmt(''); setNewPriceNote('') }}

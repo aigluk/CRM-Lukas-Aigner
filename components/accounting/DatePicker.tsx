@@ -93,7 +93,7 @@ export function DatePicker({
         onClick={openPicker}
         className={`w-full flex items-center justify-between gap-2 ${className}`}
       >
-        <span className={selected ? 'text-white' : 'text-white/30'}>
+        <span className={selected ? 'text-dark' : 'text-dark/35'}>
           {selected
             ? selected.toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' })
             : placeholder}
@@ -103,7 +103,7 @@ export function DatePicker({
 
       {open && (
         <div
-          className={`z-[200] bg-panel-2 border border-white/10 rounded-2xl shadow-2xl p-3 animate-in fade-in duration-150 ${
+          className={`z-[200] bg-white border border-rim rounded-2xl shadow-2xl p-3 animate-in fade-in duration-150 ${
             openUp ? 'slide-in-from-bottom-1' : 'slide-in-from-top-1'
           }`}
           style={popStyle}
@@ -112,15 +112,15 @@ export function DatePicker({
             <button
               type="button"
               onClick={() => setViewMonth(new Date(year, month - 1, 1))}
-              className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-all"
+              className="w-7 h-7 flex items-center justify-center rounded-lg text-dark/40 hover:text-dark hover:bg-panel-2 transition-all"
             >
               <ChevronLeft size={15} />
             </button>
-            <span className="text-xs font-bold text-white">{MONTHS[month]} {year}</span>
+            <span className="text-xs font-bold text-dark">{MONTHS[month]} {year}</span>
             <button
               type="button"
               onClick={() => setViewMonth(new Date(year, month + 1, 1))}
-              className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-all"
+              className="w-7 h-7 flex items-center justify-center rounded-lg text-dark/40 hover:text-dark hover:bg-panel-2 transition-all"
             >
               <ChevronRight size={15} />
             </button>
@@ -128,7 +128,7 @@ export function DatePicker({
 
           <div className="grid grid-cols-7 gap-0.5 mb-1">
             {WEEKDAYS.map(w => (
-              <div key={w} className="text-[10px] font-bold text-white/25 text-center py-1">{w}</div>
+              <div key={w} className="text-[10px] font-bold text-dark/30 text-center py-1">{w}</div>
             ))}
           </div>
 
@@ -147,7 +147,7 @@ export function DatePicker({
                       ? 'bg-accent text-white'
                       : isToday
                       ? 'text-accent bg-accent/10 hover:bg-accent/20'
-                      : 'text-white/70 hover:bg-white/10'
+                      : 'text-dark/70 hover:bg-panel-2'
                   }`}
                 >
                   {d.getDate()}

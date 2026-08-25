@@ -49,25 +49,25 @@ function MonthDropdown({ period, onSelect }: {
           setOpen(o => !o)
         }}
         className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1 ${
-          isActive ? 'bg-accent text-white' : 'bg-panel text-white/40 hover:text-white/70'
+          isActive ? 'bg-accent text-white' : 'bg-panel-2 text-dark/50 hover:text-dark/80'
         }`}
       >
         {isActive ? `${MONTHS[activeMonth]} ${(period as MonthPeriod).year}` : 'Monat'}
         <ChevronDown size={11} />
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1 bg-[#2a2a2a] rounded-xl z-20 shadow-xl border border-white/8 p-2 min-w-40">
+        <div className="absolute right-0 top-full mt-1 bg-white rounded-xl z-20 shadow-md border border-rim p-2 min-w-40">
           <div className="flex items-center justify-between mb-2 px-1">
             <button
               onClick={() => setPickerYear(y => y - 1)}
-              className="text-white/40 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/8"
+              className="text-dark/40 hover:text-dark transition-colors p-1 rounded-lg hover:bg-panel-2"
             >
               <ChevronLeft size={13} />
             </button>
-            <span className="text-xs font-bold text-white/70">{pickerYear}</span>
+            <span className="text-xs font-bold text-dark/70">{pickerYear}</span>
             <button
               onClick={() => setPickerYear(y => y + 1)}
-              className="text-white/40 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/8"
+              className="text-dark/40 hover:text-dark transition-colors p-1 rounded-lg hover:bg-panel-2"
             >
               <ChevronRight size={13} />
             </button>
@@ -80,7 +80,7 @@ function MonthDropdown({ period, onSelect }: {
                 className={`text-[11px] font-semibold py-1.5 rounded-lg transition-all ${
                   isActive && i === activeMonth && (period as MonthPeriod).year === pickerYear
                     ? 'bg-accent text-white'
-                    : 'text-white/55 hover:text-white hover:bg-white/8'
+                    : 'text-dark/55 hover:text-dark hover:bg-panel-2'
                 }`}
               >
                 {m}
@@ -112,19 +112,19 @@ function YearDropdown({ year, isActive, onSelect }: { year: number; isActive: bo
       <button
         onClick={() => { onSelect(year); setOpen(o => !o) }}
         className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1 ${
-          isActive ? 'bg-accent text-white' : 'bg-panel text-white/40 hover:text-white/70'
+          isActive ? 'bg-accent text-white' : 'bg-panel-2 text-dark/50 hover:text-dark/80'
         }`}
       >
         {year} <ChevronDown size={11} />
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1 bg-[#2a2a2a] rounded-xl overflow-hidden z-20 shadow-xl border border-white/8 min-w-20">
+        <div className="absolute right-0 top-full mt-1 bg-white rounded-xl overflow-hidden z-20 shadow-md border border-rim min-w-20">
           {years.map(y => (
             <button
               key={y}
               onClick={() => { onSelect(y); setOpen(false) }}
               className={`block w-full text-left px-4 py-2.5 text-xs font-semibold transition-all ${
-                y === year && isActive ? 'text-accent' : 'text-white/60 hover:text-white hover:bg-white/5'
+                y === year && isActive ? 'text-accent' : 'text-dark/60 hover:text-dark hover:bg-panel-2'
               }`}
             >
               {y}
@@ -167,7 +167,7 @@ export function StatTiles({ leads }: { leads: Lead[] }) {
     },
     {
       label: 'Abschlussquote', value: `${rate}%`, icon: Percent, href: '/leads',
-      cardBg: 'bg-accent-green', textColor: 'text-dark', labelColor: 'text-dark/45', iconBg: 'bg-dark/8', iconColor: 'text-dark',
+      cardBg: 'bg-accent-green', textColor: 'text-white', labelColor: 'text-white/70', iconBg: 'bg-white/20', iconColor: 'text-white',
     },
   ]
 
@@ -177,7 +177,7 @@ export function StatTiles({ leads }: { leads: Lead[] }) {
         <button
           onClick={() => setPeriod('heute')}
           className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-            period === 'heute' ? 'bg-accent text-white' : 'bg-panel text-white/40 hover:text-white/70'
+            period === 'heute' ? 'bg-accent text-white' : 'bg-panel-2 text-dark/50 hover:text-dark/80'
           }`}
         >
           Heute

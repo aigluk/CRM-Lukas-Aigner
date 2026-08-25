@@ -9,8 +9,8 @@ function selectAllOnFocus(e: FocusEvent<HTMLInputElement>) {
   e.target.select()
 }
 
-const inputCls = 'w-full bg-dark rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all'
-const labelCls = 'block text-xs font-bold text-white/30 mb-1.5'
+const inputCls = 'w-full bg-panel-2 rounded-xl px-3.5 py-2.5 text-sm text-dark placeholder-dark/25 outline-none focus:ring-1 focus:ring-accent transition-all'
+const labelCls = 'block text-xs font-bold text-dark/40 mb-1.5'
 
 function emptyItem(): LineItem {
   return { description: '', qty: 1, unit_price: 0, duration: '1' }
@@ -176,19 +176,19 @@ export function DocumentModal({
           </h2>
           <div className="flex items-center gap-2 shrink-0">
             {/* Language toggle */}
-            <div className="flex bg-dark rounded-lg p-0.5">
+            <div className="flex bg-panel-2 rounded-lg p-0.5">
               {(['de', 'en'] as DocLanguage[]).map(l => (
                 <button
                   key={l} type="button" onClick={() => setLanguage(l)}
                   className={`px-2.5 py-1 rounded-md text-xs font-black transition-all ${
-                    language === l ? 'bg-accent text-white' : 'text-white/40 hover:text-white'
+                    language === l ? 'bg-accent text-white' : 'text-dark/40 hover:text-dark'
                   }`}
                 >
                   {l.toUpperCase()}
                 </button>
               ))}
             </div>
-            <button onClick={onClose} className="p-1.5 rounded-xl bg-panel-hover text-white/30 hover:text-white transition-all">
+            <button onClick={onClose} className="p-1.5 rounded-xl bg-panel-2 text-dark/30 hover:text-dark transition-all">
               <X size={16} />
             </button>
           </div>
@@ -244,7 +244,7 @@ export function DocumentModal({
                   <option value="">- Manuell eingeben -</option>
                   {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
-                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-dark/30 pointer-events-none" />
               </div>
             </div>
           )}
@@ -261,7 +261,7 @@ export function DocumentModal({
                   <option value="">- Kein Angebot verknüpfen -</option>
                   {quotes.map(q => <option key={q.id} value={q.id}>{q.doc_number} · {q.client_name}</option>)}
                 </select>
-                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-dark/30 pointer-events-none" />
               </div>
               {linkedQuote && (
                 <p className="text-xs text-accent font-bold mt-1.5">
@@ -302,17 +302,17 @@ export function DocumentModal({
             <label className={labelCls}>Positionen</label>
             <div className="space-y-2.5">
               {items.map((item, idx) => (
-                <div key={idx} className="bg-dark rounded-2xl p-3.5 relative">
+                <div key={idx} className="bg-panel-2 rounded-2xl p-3.5 relative">
                   <button
                     type="button" onClick={() => removeItem(idx)}
                     title="Position entfernen"
-                    className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full flex items-center justify-center text-white/25 hover:text-accent hover:bg-accent/10 transition-all"
+                    className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full flex items-center justify-center text-dark/25 hover:text-accent hover:bg-accent/10 transition-all"
                   >
                     <Trash2 size={13} />
                   </button>
                   <div className="grid grid-cols-2 sm:grid-cols-[1fr_120px_90px_100px] gap-2.5 pr-9">
                     <div className="col-span-2 sm:col-span-1">
-                      <label className="block text-[10px] font-black uppercase tracking-wide text-white/25 mb-1">Leistung</label>
+                      <label className="block text-[10px] font-black uppercase tracking-wide text-dark/30 mb-1">Leistung</label>
                       <input
                         type="text" value={item.description}
                         onChange={e => updateItem(idx, { description: e.target.value })}
@@ -321,7 +321,7 @@ export function DocumentModal({
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-black uppercase tracking-wide text-white/25 mb-1">Anzahl</label>
+                      <label className="block text-[10px] font-black uppercase tracking-wide text-dark/30 mb-1">Anzahl</label>
                       <div className="flex items-center gap-1">
                         <button
                           type="button"
@@ -346,7 +346,7 @@ export function DocumentModal({
                       </div>
                     </div>
                     <div>
-                      <label className="block text-[10px] font-black uppercase tracking-wide text-white/25 mb-1">Laufzeit</label>
+                      <label className="block text-[10px] font-black uppercase tracking-wide text-dark/30 mb-1">Laufzeit</label>
                       <input
                         type="text" value={item.duration ?? ''}
                         onChange={e => updateItem(idx, { duration: e.target.value })}
@@ -355,7 +355,7 @@ export function DocumentModal({
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-black uppercase tracking-wide text-white/25 mb-1">Preis (€)</label>
+                      <label className="block text-[10px] font-black uppercase tracking-wide text-dark/30 mb-1">Preis (€)</label>
                       <input
                         type="number" value={item.unit_price} min={0} step="any"
                         onChange={e => updateItem(idx, { unit_price: parseFloat(e.target.value) || 0 })}
@@ -365,7 +365,7 @@ export function DocumentModal({
                     </div>
                   </div>
                   <div className="mt-2.5 pr-9">
-                    <label className="block text-[10px] font-black uppercase tracking-wide text-white/25 mb-1">Leistungsbeschreibung (optional)</label>
+                    <label className="block text-[10px] font-black uppercase tracking-wide text-dark/30 mb-1">Leistungsbeschreibung (optional)</label>
                     <textarea
                       value={item.details ?? ''}
                       onChange={e => updateItem(idx, { details: e.target.value })}
@@ -386,19 +386,19 @@ export function DocumentModal({
           </div>
 
           {/* Tax + totals */}
-          <div className="bg-dark rounded-2xl p-4 space-y-2">
+          <div className="bg-panel-2 rounded-2xl p-4 space-y-2">
             {smallBusiness ? (
-              <p className="text-xs text-white/30 font-medium pb-1">Kleinunternehmer - keine USt. gemäß § 6 Abs. 1 Z 27 UStG.</p>
+              <p className="text-xs text-dark/40 font-medium pb-1">Kleinunternehmer - keine USt. gemäß § 6 Abs. 1 Z 27 UStG.</p>
             ) : taxAdded ? (
               <div className="flex items-center justify-between">
-                <button type="button" onClick={removeTax} className="text-xs font-bold text-white/30 hover:text-accent transition-all">
+                <button type="button" onClick={removeTax} className="text-xs font-bold text-dark/40 hover:text-accent transition-all">
                   USt.-Satz (%) entfernen
                 </button>
                 <input
                   type="number" value={taxRate} min={0} max={100} step="any"
                   onChange={e => setTaxRate(parseFloat(e.target.value) || 0)}
                   onFocus={selectAllOnFocus}
-                  className="w-20 bg-panel rounded-lg px-2.5 py-1.5 text-sm text-white text-right outline-none focus:ring-1 focus:ring-accent"
+                  className="w-20 bg-white rounded-lg px-2.5 py-1.5 text-sm text-dark text-right outline-none focus:ring-1 focus:ring-accent"
                 />
               </div>
             ) : (
@@ -409,16 +409,16 @@ export function DocumentModal({
                 <Plus size={13} strokeWidth={3} />USt. hinzufügen
               </button>
             )}
-            <div className="flex items-center justify-between text-sm text-white/50">
+            <div className="flex items-center justify-between text-sm text-dark/50">
               <span>Zwischensumme</span><span>{fmtMoney(subtotal)}</span>
             </div>
             {!smallBusiness && taxAdded && (
-              <div className="flex items-center justify-between text-sm text-white/50">
+              <div className="flex items-center justify-between text-sm text-dark/50">
                 <span>USt. ({taxRate}%)</span><span>{fmtMoney(tax)}</span>
               </div>
             )}
-            <div className="flex items-center justify-between pt-2 border-t border-white/10">
-              <span className="text-sm font-black text-white">Gesamtbetrag</span>
+            <div className="flex items-center justify-between pt-2 border-t border-dark/10">
+              <span className="text-sm font-black text-dark">Gesamtbetrag</span>
               <span className="text-sm font-black text-accent">{fmtMoney(total)}</span>
             </div>
           </div>

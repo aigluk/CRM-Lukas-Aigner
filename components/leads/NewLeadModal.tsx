@@ -24,13 +24,13 @@ const EMPTY = {
 
 function Label({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
-    <label className="flex items-center gap-1.5 text-[11px] font-medium text-white/35 mb-1.5">
+    <label className="flex items-center gap-1.5 text-[11px] font-medium text-dark/40 mb-1.5">
       {icon}{text}
     </label>
   )
 }
 
-const inputCls = 'w-full bg-dark rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all'
+const inputCls = 'w-full bg-panel-2 rounded-xl px-3.5 py-2.5 text-sm text-dark placeholder-dark/25 outline-none focus:ring-1 focus:ring-accent transition-all'
 
 export function NewLeadModal({ onClose, onCreate }: Props) {
   const [form, setForm] = useState(EMPTY)
@@ -74,12 +74,12 @@ export function NewLeadModal({ onClose, onCreate }: Props) {
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-white/6">
           <div>
-            <h2 className="text-base font-black text-white">Neuer Lead</h2>
-            <p className="text-xs text-white/30 mt-0.5">Kontakt manuell erfassen</p>
+            <h2 className="text-base font-black text-dark">Neuer Lead</h2>
+            <p className="text-xs text-dark/40 mt-0.5">Kontakt manuell erfassen</p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-panel-hover text-white/30 hover:text-white transition-colors"
+            className="p-2 rounded-xl bg-panel-2 text-dark/30 hover:text-dark transition-colors"
           >
             <X size={16} />
           </button>
@@ -128,12 +128,12 @@ export function NewLeadModal({ onClose, onCreate }: Props) {
               <select
                 value={form.branche}
                 onChange={e => set('branche', e.target.value)}
-                className="w-full bg-dark rounded-xl px-3.5 py-2.5 pr-9 text-sm text-white outline-none focus:ring-1 focus:ring-accent transition-all appearance-none"
+                className="w-full bg-panel-2 rounded-xl px-3.5 py-2.5 pr-9 text-sm text-dark outline-none focus:ring-1 focus:ring-accent transition-all appearance-none"
               >
                 <option value="">- Branche wählen -</option>
                 {BRANCHES.map(b => <option key={b} value={b}>{b}</option>)}
               </select>
-              <ChevronDown size={14} className="absolute right-3 top-[calc(50%+7px)] -translate-y-1/2 text-white/30 pointer-events-none" />
+              <ChevronDown size={14} className="absolute right-3 top-[calc(50%+7px)] -translate-y-1/2 text-dark/30 pointer-events-none" />
             </div>
             <div>
               <Label icon={<MapPin size={11} />} text="Stadt / Region" />
@@ -154,7 +154,7 @@ export function NewLeadModal({ onClose, onCreate }: Props) {
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                     form.status === s
                       ? 'bg-accent text-white'
-                      : 'bg-panel-hover text-white/35 hover:text-white'
+                      : 'bg-panel-2 text-dark/50 hover:text-dark'
                   }`}
                 >
                   {STATUS_LABELS[s]}
@@ -191,7 +191,7 @@ export function NewLeadModal({ onClose, onCreate }: Props) {
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 bg-panel-hover text-white/40 hover:text-white font-bold text-sm rounded-xl transition-all"
+              className="px-5 py-2.5 bg-panel-2 text-dark/50 hover:text-dark font-bold text-sm rounded-xl transition-all"
             >
               Abbrechen
             </button>

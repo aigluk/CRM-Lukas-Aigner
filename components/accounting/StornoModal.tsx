@@ -9,8 +9,8 @@ function selectAllOnFocus(e: FocusEvent<HTMLInputElement>) {
   e.target.select()
 }
 
-const inputCls = 'w-full bg-dark rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all'
-const labelCls = 'block text-xs font-bold text-white/30 mb-1.5'
+const inputCls = 'w-full bg-panel-2 rounded-xl px-3.5 py-2.5 text-sm text-dark placeholder-dark/25 outline-none focus:ring-1 focus:ring-accent transition-all'
+const labelCls = 'block text-xs font-bold text-dark/40 mb-1.5'
 
 function emptyItem(): LineItem {
   return { description: '', qty: 1, unit_price: 0, duration: '1' }
@@ -42,7 +42,6 @@ export function StornoModal({
   const [selectedId, setSelectedId] = useState(preselectedInvoice?.id ?? '')
   const [customers, setCustomers] = useState<AccountingCustomer[]>([])
 
-  // Manual mode fields
   const [manualRefNumber, setManualRefNumber] = useState('')
   const [manualRefDate, setManualRefDate] = useState('')
   const [manualRefName, setManualRefName] = useState('')
@@ -69,7 +68,6 @@ export function StornoModal({
 
   const selectedInvoice = invoices.find(d => d.id === selectedId) ?? preselectedInvoice ?? null
 
-  // Resolve full client data: prefer customer record over invoice fields (ensures complete data even if invoice was sparse)
   const resolvedCustomer = selectedInvoice?.customer_id
     ? customers.find(c => c.id === selectedInvoice.customer_id) ?? null
     : null
@@ -167,15 +165,15 @@ export function StornoModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-dark rounded-3xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
+      <div className="relative bg-panel rounded-3xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-6 pb-4 shrink-0 border-b border-white/6">
+        <div className="flex items-center justify-between px-6 pt-6 pb-4 shrink-0 border-b border-rim-subtle">
           <div>
-            <h2 className="text-lg font-black text-white">Stornorechnung erstellen</h2>
-            <p className="text-xs text-white/35 mt-0.5 font-medium">{nextNumberHint}</p>
+            <h2 className="text-lg font-black text-dark">Stornorechnung erstellen</h2>
+            <p className="text-xs text-dark/40 mt-0.5 font-medium">{nextNumberHint}</p>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 flex items-center justify-center text-white/40 hover:text-white transition-all">
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-panel-2 hover:bg-panel-hover flex items-center justify-center text-dark/40 hover:text-dark transition-all">
             <X size={16} />
           </button>
         </div>
@@ -184,13 +182,13 @@ export function StornoModal({
         <div className="flex gap-1.5 px-6 pt-4 shrink-0">
           <button
             onClick={() => setMode('existing')}
-            className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${mode === 'existing' ? 'bg-accent text-white' : 'bg-white/6 text-white/40 hover:text-white'}`}
+            className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${mode === 'existing' ? 'bg-accent text-white' : 'bg-panel-2 text-dark/50 hover:text-dark'}`}
           >
             Rechnung auswählen
           </button>
           <button
             onClick={() => setMode('manual')}
-            className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${mode === 'manual' ? 'bg-accent text-white' : 'bg-white/6 text-white/40 hover:text-white'}`}
+            className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${mode === 'manual' ? 'bg-accent text-white' : 'bg-panel-2 text-dark/50 hover:text-dark'}`}
           >
             Manuelle Referenz
           </button>
@@ -201,11 +199,10 @@ export function StornoModal({
 
           {mode === 'existing' ? (
             <>
-              {/* Invoice picker */}
               <div>
                 <label className={labelCls}>Originalrechnung</label>
                 {preselectedInvoice ? (
-                  <div className="bg-dark rounded-xl px-3.5 py-2.5 text-sm text-white/70">
+                  <div className="bg-panel-2 rounded-xl px-3.5 py-2.5 text-sm text-dark/70">
                     {preselectedInvoice.doc_number} &nbsp;&middot;&nbsp; {preselectedInvoice.client_name} &nbsp;&middot;&nbsp; {fmtDate(preselectedInvoice.issue_date)}
                   </div>
                 ) : (
@@ -227,57 +224,55 @@ export function StornoModal({
                 )}
               </div>
 
-              {/* Client data preview (resolved from customer record + invoice) */}
               {selectedInvoice && (
-                <div className="bg-dark/60 rounded-2xl px-4 py-4 space-y-2">
-                  <p className="text-xs font-black text-white/30 uppercase tracking-widest mb-3">Kundendaten auf der Stornorechnung</p>
+                <div className="bg-panel-2 rounded-2xl px-4 py-4 space-y-2">
+                  <p className="text-xs font-black text-dark/40 uppercase tracking-widest mb-3">Kundendaten auf der Stornorechnung</p>
                   <div className="space-y-1.5 mb-4">
                     {effectiveClientName && (
                       <div className="flex gap-3">
-                        <span className="text-xs text-white/30 w-20 shrink-0">Kunde</span>
-                        <span className="text-xs text-white/70">{effectiveClientName}</span>
+                        <span className="text-xs text-dark/40 w-20 shrink-0">Kunde</span>
+                        <span className="text-xs text-dark/70">{effectiveClientName}</span>
                       </div>
                     )}
                     {effectiveClientAddress && (
                       <div className="flex gap-3">
-                        <span className="text-xs text-white/30 w-20 shrink-0">Anschrift</span>
-                        <span className="text-xs text-white/70">{effectiveClientAddress}</span>
+                        <span className="text-xs text-dark/40 w-20 shrink-0">Anschrift</span>
+                        <span className="text-xs text-dark/70">{effectiveClientAddress}</span>
                       </div>
                     )}
                     {effectiveClientCountry && (
                       <div className="flex gap-3">
-                        <span className="text-xs text-white/30 w-20 shrink-0">Land</span>
-                        <span className="text-xs text-white/70">{effectiveClientCountry}</span>
+                        <span className="text-xs text-dark/40 w-20 shrink-0">Land</span>
+                        <span className="text-xs text-dark/70">{effectiveClientCountry}</span>
                       </div>
                     )}
                     {effectiveClientVat && (
                       <div className="flex gap-3">
-                        <span className="text-xs text-white/30 w-20 shrink-0">Ust. Nr.</span>
-                        <span className="text-xs text-white/70">{effectiveClientVat}</span>
+                        <span className="text-xs text-dark/40 w-20 shrink-0">Ust. Nr.</span>
+                        <span className="text-xs text-dark/70">{effectiveClientVat}</span>
                       </div>
                     )}
                   </div>
 
-                  <p className="text-xs font-black text-white/30 uppercase tracking-widest mb-2">Stornopositionen</p>
+                  <p className="text-xs font-black text-dark/40 uppercase tracking-widest mb-2">Stornopositionen</p>
                   {(selectedInvoice.line_items ?? []).map((item, i) => (
                     <div key={i} className="flex items-center justify-between gap-4">
-                      <p className="text-sm text-white/70 truncate">{item.description}</p>
+                      <p className="text-sm text-dark/70 truncate">{item.description}</p>
                       <p className="text-sm font-bold text-accent shrink-0">-{fmtMoney(item.qty * item.unit_price)}</p>
                     </div>
                   ))}
-                  <div className="border-t border-white/8 mt-3 pt-3 flex justify-between">
-                    <p className="text-sm font-black text-white">Gesamt</p>
+                  <div className="border-t border-dark/8 mt-3 pt-3 flex justify-between">
+                    <p className="text-sm font-black text-dark">Gesamt</p>
                     <p className="text-sm font-black text-accent">{fmtMoney(existingTotal)}</p>
                   </div>
                   {selectedInvoice.tax_rate > 0 && (
-                    <p className="text-xs text-white/30">inkl. {selectedInvoice.tax_rate}% USt.</p>
+                    <p className="text-xs text-dark/40">inkl. {selectedInvoice.tax_rate}% USt.</p>
                   )}
                 </div>
               )}
             </>
           ) : (
             <>
-              {/* Manual reference */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className={labelCls}>Rechnungsnr. der Originalrechnung</label>
@@ -303,8 +298,8 @@ export function StornoModal({
                 />
               </div>
 
-              <div className="border-t border-white/6 pt-5 space-y-3">
-                <p className="text-xs font-black text-white/30 uppercase tracking-widest">Angaben zum Kunden</p>
+              <div className="border-t border-rim-subtle pt-5 space-y-3">
+                <p className="text-xs font-black text-dark/40 uppercase tracking-widest">Angaben zum Kunden</p>
                 <div>
                   <label className={labelCls}>Firmenname / Kundenname</label>
                   <input className={inputCls} placeholder="z.B. Muster GmbH" value={manualClientName} onChange={e => setManualClientName(e.target.value)} />
@@ -329,9 +324,8 @@ export function StornoModal({
                 </div>
               </div>
 
-              {/* Line items */}
-              <div className="border-t border-white/6 pt-5 space-y-3">
-                <p className="text-xs font-black text-white/30 uppercase tracking-widest">Positionen (Beträge werden automatisch negiert)</p>
+              <div className="border-t border-rim-subtle pt-5 space-y-3">
+                <p className="text-xs font-black text-dark/40 uppercase tracking-widest">Positionen (Beträge werden automatisch negiert)</p>
                 {manualItems.map((item, i) => (
                   <div key={i} className="space-y-2">
                     <div className="flex items-center gap-2">
@@ -345,7 +339,7 @@ export function StornoModal({
                         <button
                           type="button"
                           onClick={() => setManualItems(prev => prev.filter((_, j) => j !== i))}
-                          className="w-8 h-8 rounded-xl bg-white/6 hover:bg-accent/20 flex items-center justify-center text-white/30 hover:text-accent transition-all shrink-0"
+                          className="w-8 h-8 rounded-xl bg-panel-2 hover:bg-accent/10 flex items-center justify-center text-dark/30 hover:text-accent transition-all shrink-0"
                         >
                           <Trash2 size={13} />
                         </button>
@@ -387,44 +381,41 @@ export function StornoModal({
                 <button
                   type="button"
                   onClick={() => setManualItems(prev => [...prev, emptyItem()])}
-                  className="flex items-center gap-2 text-xs font-bold text-white/35 hover:text-white transition-colors"
+                  className="flex items-center gap-2 text-xs font-bold text-dark/50 hover:text-dark transition-colors"
                 >
                   <Plus size={13} /> Position hinzufügen
                 </button>
 
-                {/* Tax */}
                 <div className="flex items-center gap-3 pt-1">
                   {manualTaxAdded ? (
                     <>
                       <label className={labelCls + ' mb-0'}>USt. (%)</label>
                       <input
                         type="number" min="0" max="100"
-                        className="w-20 bg-dark rounded-xl px-3 py-2 text-sm text-white outline-none focus:ring-1 focus:ring-accent"
+                        className="w-20 bg-panel-2 rounded-xl px-3 py-2 text-sm text-dark outline-none focus:ring-1 focus:ring-accent"
                         value={manualTaxRate}
                         onFocus={selectAllOnFocus}
                         onChange={e => setManualTaxRate(parseFloat(e.target.value) || 0)}
                       />
-                      <button type="button" onClick={() => setManualTaxAdded(false)} className="text-xs text-white/30 hover:text-white transition-colors">entfernen</button>
+                      <button type="button" onClick={() => setManualTaxAdded(false)} className="text-xs text-dark/40 hover:text-dark transition-colors">entfernen</button>
                     </>
                   ) : (
-                    <button type="button" onClick={() => { setManualTaxAdded(true); setManualTaxRate(20) }} className="text-xs font-bold text-white/35 hover:text-white transition-colors">
+                    <button type="button" onClick={() => { setManualTaxAdded(true); setManualTaxRate(20) }} className="text-xs font-bold text-dark/50 hover:text-dark transition-colors">
                       + Umsatzsteuer hinzufügen
                     </button>
                   )}
                 </div>
 
-                {/* Totals preview */}
-                <div className="bg-dark/60 rounded-xl px-4 py-3 text-right space-y-1">
-                  <p className="text-xs text-white/30">Netto: {fmtMoney(-manualSubtotal)}</p>
-                  {manualTaxAdded && <p className="text-xs text-white/30">USt. {manualTaxRate}%: {fmtMoney(-manualTax)}</p>}
+                <div className="bg-panel-2 rounded-xl px-4 py-3 text-right space-y-1">
+                  <p className="text-xs text-dark/50">Netto: {fmtMoney(-manualSubtotal)}</p>
+                  {manualTaxAdded && <p className="text-xs text-dark/50">USt. {manualTaxRate}%: {fmtMoney(-manualTax)}</p>}
                   <p className="text-sm font-black text-accent">Gesamt: {fmtMoney(manualTotal)}</p>
                 </div>
               </div>
             </>
           )}
 
-          {/* Storno date + notes */}
-          <div className="border-t border-white/6 pt-5 grid grid-cols-2 gap-3">
+          <div className="border-t border-rim-subtle pt-5 grid grid-cols-2 gap-3">
             <div>
               <label className={labelCls}>Stornodatum</label>
               <DatePicker value={issueDate} onChange={setIssueDate} />
@@ -434,7 +425,7 @@ export function StornoModal({
             <label className={labelCls}>Hinweis / Notiz (optional)</label>
             <textarea
               rows={2}
-              className="w-full bg-dark rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all resize-none"
+              className="w-full bg-panel-2 rounded-xl px-3.5 py-2.5 text-sm text-dark placeholder-dark/25 outline-none focus:ring-1 focus:ring-accent transition-all resize-none"
               placeholder="Interne Notiz zur Stornorechnung"
               value={notes}
               onChange={e => setNotes(e.target.value)}
@@ -445,8 +436,8 @@ export function StornoModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-5 shrink-0 border-t border-white/6 flex justify-end gap-3">
-          <button onClick={onClose} className="px-5 py-2.5 rounded-xl text-sm font-bold text-white/40 hover:text-white transition-colors">
+        <div className="px-6 py-5 shrink-0 border-t border-rim-subtle flex justify-end gap-3">
+          <button onClick={onClose} className="px-5 py-2.5 rounded-xl text-sm font-bold text-dark/50 hover:text-dark transition-colors">
             Abbrechen
           </button>
           <button

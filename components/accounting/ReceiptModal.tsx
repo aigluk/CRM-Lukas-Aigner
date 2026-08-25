@@ -5,8 +5,8 @@ import { X, Save, Camera, Loader2 } from 'lucide-react'
 import type { AccountingReceipt, ReceiptType } from '@/lib/types'
 import { DatePicker } from './DatePicker'
 
-const inputCls = 'w-full bg-dark rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all'
-const labelCls = 'block text-xs font-bold text-white/30 mb-1.5'
+const inputCls = 'w-full bg-panel-2 rounded-xl px-3.5 py-2.5 text-sm text-dark placeholder-dark/25 outline-none focus:ring-1 focus:ring-accent transition-all'
+const labelCls = 'block text-xs font-bold text-dark/40 mb-1.5'
 
 const TYPE_LABELS: Record<Exclude<ReceiptType, 'income_other'>, string> = {
   expense: 'Ausgabe',
@@ -164,11 +164,11 @@ export function ReceiptModal({
           )}
 
           {/* Type */}
-          <div className="flex bg-dark rounded-xl p-1">
+          <div className="flex bg-panel-2 rounded-xl p-1">
             {(Object.keys(TYPE_LABELS) as Exclude<ReceiptType, 'income_other'>[]).map(t => (
               <button key={t} type="button" onClick={() => setReceiptType(t)}
                 className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
-                  receiptType === t ? 'bg-accent text-white' : 'text-white/40 hover:text-white'
+                  receiptType === t ? 'bg-accent text-white' : 'text-dark/50 hover:text-dark'
                 }`}>
                 {TYPE_LABELS[t]}
               </button>

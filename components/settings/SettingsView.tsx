@@ -19,10 +19,10 @@ type AdminUser = {
 }
 
 function Label({ text }: { text: string }) {
-  return <label className="block text-xs font-bold text-white/30 mb-1.5">{text}</label>
+  return <label className="block text-xs font-bold text-dark/40 mb-1.5">{text}</label>
 }
 
-const inputCls = 'w-full bg-dark rounded-xl px-3.5 py-3 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all'
+const inputCls = 'w-full bg-panel-2 rounded-xl px-3.5 py-3 text-sm text-dark placeholder-dark/25 outline-none focus:ring-1 focus:ring-accent transition-all'
 
 export function SettingsView() {
   const supabase = createClient()
@@ -227,7 +227,7 @@ export function SettingsView() {
               await supabase.auth.signOut()
               router.push('/login')
             }}
-            className="flex items-center gap-2 px-4 py-2.5 bg-white/6 hover:bg-white/10 text-white/50 hover:text-white text-xs font-bold rounded-xl transition-all active:scale-95 shrink-0"
+            className="flex items-center gap-2 px-4 py-2.5 bg-panel-2 hover:bg-panel-hover text-dark/50 hover:text-dark text-xs font-bold rounded-xl transition-all active:scale-95 shrink-0"
           >
             <LogOut size={14} />
             <span className="hidden sm:inline">Abmelden</span>
@@ -283,12 +283,12 @@ export function SettingsView() {
               </div>
               <div>
                 <Label text="Rechtsform" />
-                <div className="flex bg-dark rounded-xl p-1">
+                <div className="flex bg-panel-2 rounded-xl p-1">
                   <button type="button" onClick={() => setCompany(c => ({ ...c, legal_form: 'einzelunternehmer' }))}
-                    className={`flex-1 py-1.5 rounded-lg text-sm font-bold transition-all ${company.legal_form !== 'gmbh' ? 'bg-accent text-white' : 'text-white/40 hover:text-white'}`}
+                    className={`flex-1 py-1.5 rounded-lg text-sm font-bold transition-all ${company.legal_form !== 'gmbh' ? 'bg-accent text-white' : 'text-dark/50 hover:text-dark'}`}
                   >Einzelunternehmer</button>
                   <button type="button" onClick={() => setCompany(c => ({ ...c, legal_form: 'gmbh' }))}
-                    className={`flex-1 py-1.5 rounded-lg text-sm font-bold transition-all ${company.legal_form === 'gmbh' ? 'bg-accent text-white' : 'text-white/40 hover:text-white'}`}
+                    className={`flex-1 py-1.5 rounded-lg text-sm font-bold transition-all ${company.legal_form === 'gmbh' ? 'bg-accent text-white' : 'text-dark/50 hover:text-dark'}`}
                   >GmbH</button>
                 </div>
               </div>
@@ -346,11 +346,11 @@ export function SettingsView() {
                     placeholder="38510595" className={inputCls} />
                 </div>
               </div>
-              <label className="flex items-center gap-2.5 bg-dark rounded-xl px-3.5 py-3 cursor-pointer">
+              <label className="flex items-center gap-2.5 bg-panel-2 rounded-xl px-3.5 py-3 cursor-pointer">
                 <input type="checkbox" checked={company.small_business}
                   onChange={e => setCompany(c => ({ ...c, small_business: e.target.checked }))}
                   className="w-4 h-4 rounded accent-accent" />
-                <span className="text-sm text-white/70 font-medium">Kleinunternehmer (§ 6 Abs. 1 Z 27 UStG) - keine USt. auf Rechnungen</span>
+                <span className="text-sm text-dark/70 font-medium">Kleinunternehmer (§ 6 Abs. 1 Z 27 UStG) - keine USt. auf Rechnungen</span>
               </label>
               {companyMsg && <p className="text-xs text-white/40">{companyMsg}</p>}
               <button type="submit" disabled={companySaving}

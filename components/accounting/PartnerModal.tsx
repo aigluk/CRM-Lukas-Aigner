@@ -7,8 +7,8 @@ import { addReminder } from '@/lib/useReminders'
 import { DatePicker, TimePicker } from '@/components/ui/DateTimePicker'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 
-const inputCls = 'w-full bg-dark rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all'
-const labelCls = 'block text-xs font-bold text-white/30 mb-1.5'
+const inputCls = 'w-full bg-panel-2 rounded-xl px-3.5 py-2.5 text-sm text-dark placeholder-dark/25 outline-none focus:ring-1 focus:ring-accent transition-all'
+const labelCls = 'block text-xs font-bold text-dark/40 mb-1.5'
 
 export function PartnerModal({
   partner, onClose, onSaved,
@@ -125,7 +125,7 @@ export function PartnerModal({
             <button
               onClick={() => setShowReminder(v => !v)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
-                showReminder ? 'bg-accent text-white' : 'bg-panel-hover text-white/40 hover:text-white'
+                showReminder ? 'bg-accent text-white' : 'bg-panel-hover text-dark/50 hover:text-dark'
               }`}
             >
               <BellRing size={12} />Erinnerung hinzufügen
@@ -148,7 +148,7 @@ export function PartnerModal({
 
         <div className="px-5 py-5 space-y-4">
           {showReminder && (
-            <div className="bg-dark rounded-2xl p-4 space-y-3">
+            <div className="bg-panel-2 rounded-2xl p-4 space-y-3">
               <textarea
                 value={reminderText}
                 onChange={e => setReminderText(e.target.value)}
@@ -205,14 +205,14 @@ export function PartnerModal({
             </div>
             <div>
               <label className={labelCls}>Umsatzsteuerpflichtig</label>
-              <div className="flex bg-dark rounded-xl p-1">
+              <div className="flex bg-panel-2 rounded-xl p-1">
                 <button
                   type="button" onClick={() => setVatLiable(true)}
-                  className={`flex-1 py-1.5 rounded-lg text-sm font-bold transition-all ${vatLiable ? 'bg-accent text-white' : 'text-white/40 hover:text-white'}`}
+                  className={`flex-1 py-1.5 rounded-lg text-sm font-bold transition-all ${vatLiable ? 'bg-accent text-white' : 'text-dark/50 hover:text-dark'}`}
                 >Ja</button>
                 <button
                   type="button" onClick={() => setVatLiable(false)}
-                  className={`flex-1 py-1.5 rounded-lg text-sm font-bold transition-all ${!vatLiable ? 'bg-accent text-white' : 'text-white/40 hover:text-white'}`}
+                  className={`flex-1 py-1.5 rounded-lg text-sm font-bold transition-all ${!vatLiable ? 'bg-accent text-white' : 'text-dark/50 hover:text-dark'}`}
                 >Nein</button>
               </div>
             </div>
@@ -224,7 +224,7 @@ export function PartnerModal({
             </div>
             <div>
               <label className={labelCls}>Unternehmensart</label>
-              <div className="flex bg-dark rounded-xl p-1">
+              <div className="flex bg-panel-2 rounded-xl p-1">
                 {([
                   ['unternehmen', 'Unternehmen'],
                   ['kleinunternehmer', 'Kleinunt.'],
@@ -233,7 +233,7 @@ export function PartnerModal({
                   <button
                     key={value}
                     type="button" onClick={() => setEntityType(value)}
-                    className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all px-1 ${entityType === value ? 'bg-accent text-white' : 'text-white/40 hover:text-white'}`}
+                    className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all px-1 ${entityType === value ? 'bg-accent text-white' : 'text-dark/50 hover:text-dark'}`}
                   >{label}</button>
                 ))}
               </div>

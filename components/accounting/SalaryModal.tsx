@@ -5,8 +5,8 @@ import { X, Save, FileUp, Eye, FileText } from 'lucide-react'
 import type { AccountingSalaryEntry, SalaryEntryType } from '@/lib/types'
 import { DatePicker } from './DatePicker'
 
-const inputCls = 'w-full bg-dark rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all'
-const labelCls = 'block text-xs font-bold text-white/30 mb-1.5'
+const inputCls = 'w-full bg-panel-2 rounded-xl px-3.5 py-2.5 text-sm text-dark placeholder-dark/25 outline-none focus:ring-1 focus:ring-accent transition-all'
+const labelCls = 'block text-xs font-bold text-dark/40 mb-1.5'
 const numberInputCls = '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
 
 const TYPE_LABELS: Record<SalaryEntryType, string> = {
@@ -98,11 +98,11 @@ export function SalaryModal({
 
         <div className="px-5 py-5 space-y-4">
           {/* Typ */}
-          <div className="flex bg-dark rounded-xl p-1">
+          <div className="flex bg-panel-2 rounded-xl p-1">
             {(Object.keys(TYPE_LABELS) as SalaryEntryType[]).map(t => (
               <button key={t} type="button" onClick={() => setEntryType(t)}
                 className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
-                  entryType === t ? 'bg-accent text-white' : 'text-white/40 hover:text-white'
+                  entryType === t ? 'bg-accent text-white' : 'text-dark/50 hover:text-dark'
                 }`}>
                 {TYPE_LABELS[t]}
               </button>
@@ -155,7 +155,7 @@ export function SalaryModal({
               onChange={e => e.target.files?.[0] && setFile(e.target.files[0])} />
 
             {file ? (
-              <div className="flex items-center gap-3 bg-dark rounded-xl px-3.5 py-2.5">
+              <div className="flex items-center gap-3 bg-panel-2 rounded-xl px-3.5 py-2.5">
                 <FileUp size={14} className="text-accent shrink-0" />
                 <span className="text-sm text-white/70 truncate flex-1">{file.name}</span>
                 <button type="button" onClick={() => setFile(null)} className="text-white/30 hover:text-white transition-all shrink-0">
@@ -163,7 +163,7 @@ export function SalaryModal({
                 </button>
               </div>
             ) : hasExistingFile ? (
-              <div className="flex items-center gap-3 bg-dark rounded-xl px-3.5 py-2.5">
+              <div className="flex items-center gap-3 bg-panel-2 rounded-xl px-3.5 py-2.5">
                 <FileText size={14} className="text-white/40 shrink-0" />
                 <span className="text-sm text-white/55 truncate flex-1">Lohnzettel hochgeladen</span>
                 {onPreview && (

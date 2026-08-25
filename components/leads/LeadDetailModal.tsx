@@ -35,14 +35,14 @@ function StatusDropdown({
         <ChevronDown size={11} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className="absolute top-full left-0 mt-1 z-20 bg-panel-hover rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.6)] border border-white/10 p-1 min-w-50">
+        <div className="absolute top-full left-0 mt-1 z-20 bg-white rounded-xl shadow-md border border-rim p-1 min-w-50">
           {STATUSES.map(s => (
             <button
               key={s}
               type="button"
               onClick={() => { onChange(s); setOpen(false) }}
-              className={`w-full text-left px-3 py-2.5 text-sm rounded-lg hover:bg-white/8 transition-colors ${
-                s === status ? 'text-accent font-bold' : 'text-white/60'
+              className={`w-full text-left px-3 py-2.5 text-sm rounded-lg hover:bg-panel-2 transition-colors ${
+                s === status ? 'text-accent font-bold' : 'text-dark/60'
               }`}
             >
               {STATUS_LABELS[s]}
@@ -70,8 +70,8 @@ function HandlerDropdown({
           handler
             ? handler === currentUsername
               ? 'bg-accent/20 text-accent hover:bg-accent/30'
-              : 'bg-white/12 text-white/70 hover:bg-white/18'
-            : 'bg-white/5 text-white/30 hover:bg-white/10 hover:text-white/50'
+              : 'bg-panel-2 text-dark/70 hover:bg-panel-hover'
+            : 'bg-panel-2 text-dark/40 hover:bg-panel-hover hover:text-dark/60'
         }`}
       >
         <User size={11} className="shrink-0" />
@@ -79,17 +79,17 @@ function HandlerDropdown({
         <ChevronDown size={11} className={`shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className="absolute top-full left-0 mt-1 z-20 bg-panel-hover rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.6)] border border-white/10 p-1 min-w-44">
+        <div className="absolute top-full left-0 mt-1 z-20 bg-white rounded-xl shadow-md border border-rim p-1 min-w-44">
           {users.length === 0 && (
-            <p className="px-3 py-2.5 text-xs text-white/30">Erst Benutzernamen in Einstellungen setzen.</p>
+            <p className="px-3 py-2.5 text-xs text-dark/40">Erst Benutzernamen in Einstellungen setzen.</p>
           )}
           {users.map(u => (
             <button
               key={u.id}
               type="button"
               onClick={() => { onChange(handler === u.username ? null : u.username); setOpen(false) }}
-              className={`w-full text-left px-3 py-2.5 text-sm rounded-lg hover:bg-white/8 transition-colors flex items-center gap-2 ${
-                handler === u.username ? 'text-accent font-bold' : 'text-white/60'
+              className={`w-full text-left px-3 py-2.5 text-sm rounded-lg hover:bg-panel-2 transition-colors flex items-center gap-2 ${
+                handler === u.username ? 'text-accent font-bold' : 'text-dark/60'
               }`}
             >
               <User size={11} className="shrink-0 opacity-40" />
@@ -100,7 +100,7 @@ function HandlerDropdown({
             <button
               type="button"
               onClick={() => { onChange(null); setOpen(false) }}
-              className="w-full text-left px-3 py-2 mt-0.5 text-xs text-white/30 hover:bg-white/8 hover:text-accent transition-colors border-t border-white/8 rounded-b-lg"
+              className="w-full text-left px-3 py-2 mt-0.5 text-xs text-dark/40 hover:bg-panel-2 hover:text-accent transition-colors border-t border-rim-subtle rounded-b-lg"
             >
               Entfernen
             </button>
@@ -127,18 +127,18 @@ function Field({
 }) {
   return (
     <div>
-      <label className="flex items-center gap-1.5 text-xs font-bold text-white/25 mb-1.5">
+      <label className="flex items-center gap-1.5 text-xs font-bold text-dark/35 mb-1.5">
         {icon}{label}
       </label>
       {editing ? (
         <input
           type={type} value={value} onChange={e => onChange(e.target.value)}
-          className="w-full bg-dark rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:ring-1 focus:ring-accent transition-all"
+          className="w-full bg-panel-2 rounded-xl px-3 py-2.5 text-sm text-dark outline-none focus:ring-1 focus:ring-accent transition-all"
         />
       ) : href && value ? (
         <a href={href} target={type !== 'tel' && type !== 'email' ? '_blank' : undefined}
           rel="noopener noreferrer"
-          className="text-sm text-white/70 hover:text-white transition-colors flex items-center gap-1.5 group"
+          className="text-sm text-dark/70 hover:text-dark transition-colors flex items-center gap-1.5 group"
         >
           <span className="truncate">{value}</span>
           {type !== 'tel' && type !== 'email' && (
@@ -146,7 +146,7 @@ function Field({
           )}
         </a>
       ) : (
-        <p className="text-sm text-white/50">{value || '-'}</p>
+        <p className="text-sm text-dark/50">{value || '-'}</p>
       )}
     </div>
   )
@@ -258,12 +258,12 @@ export function LeadDetailModal({
           {/* Row 1: title + close */}
           <div className="flex items-start justify-between gap-3 mb-2.5">
             <div className="min-w-0 flex-1">
-              <h2 className="text-base font-black text-white truncate">{lead.name}</h2>
-              <p className="text-xs text-white/35 mt-0.5 truncate">
+              <h2 className="text-base font-black text-dark truncate">{lead.name}</h2>
+              <p className="text-xs text-dark/40 mt-0.5 truncate">
                 {[lead.branche || lead.industry, lead.city || lead.region].filter(Boolean).join(' · ') || '-'}
               </p>
             </div>
-            <button onClick={onClose} className="p-1.5 rounded-xl bg-panel-hover text-white/30 hover:text-white transition-all shrink-0">
+            <button onClick={onClose} className="p-1.5 rounded-xl bg-panel-2 text-dark/30 hover:text-dark transition-all shrink-0">
               <X size={16} />
             </button>
           </div>
@@ -272,7 +272,7 @@ export function LeadDetailModal({
             <button
               onClick={() => setCallMode(v => !v)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                callMode ? 'bg-accent text-white' : 'bg-panel-hover text-white/40 hover:text-white'
+                callMode ? 'bg-accent text-white' : 'bg-panel-2 text-dark/50 hover:text-dark'
               }`}
             >
               <Zap size={12} />Im Call
@@ -290,7 +290,7 @@ export function LeadDetailModal({
                     setForm({ ...lead }); setEditAppt(!!lead.appointment_date); setEditing(false)
                     setCallMode(false); setChecked(new Set()); setQuickNote('')
                   }}
-                  className="px-3 py-1.5 bg-panel-hover text-white/40 hover:text-white text-xs font-bold rounded-xl transition-all"
+                  className="px-3 py-1.5 bg-panel-2 text-dark/50 hover:text-dark text-xs font-bold rounded-xl transition-all"
                 >
                   Abbrechen
                 </button>
@@ -298,7 +298,7 @@ export function LeadDetailModal({
             ) : (
               <button
                 onClick={() => { setForm({ ...lead }); setEditAppt(!!lead.appointment_date); setEditing(true) }}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-panel-hover text-white/40 hover:text-white text-xs font-bold rounded-xl transition-all"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-panel-2 text-dark/50 hover:text-dark text-xs font-bold rounded-xl transition-all"
               >
                 <Edit3 size={12} />Bearbeiten
               </button>
@@ -310,7 +310,7 @@ export function LeadDetailModal({
 
           {/* IM CALL PANEL */}
           {callMode && (
-            <div className="bg-dark rounded-2xl p-5 space-y-4">
+            <div className="bg-panel-2 rounded-2xl p-5 space-y-4">
               <p className="text-xs font-black text-accent">Schnellaktionen</p>
               <ul className="space-y-2">
                 {CALL_ITEMS.map(item => {
@@ -323,9 +323,9 @@ export function LeadDetailModal({
                       >
                         {done
                           ? <CheckSquare size={16} className="text-accent-green shrink-0" />
-                          : <Square size={16} className="text-white/20 group-hover:text-white/40 shrink-0 transition-colors" />
+                          : <Square size={16} className="text-dark/20 group-hover:text-dark/40 shrink-0 transition-colors" />
                         }
-                        <span className={`text-sm transition-colors ${done ? 'text-white/40 line-through' : 'text-white/80'}`}>
+                        <span className={`text-sm transition-colors ${done ? 'text-dark/40 line-through' : 'text-dark/80'}`}>
                           {item}
                         </span>
                       </button>
@@ -338,20 +338,19 @@ export function LeadDetailModal({
                 onChange={e => setQuickNote(e.target.value)}
                 placeholder="Notiz aus dem Call..."
                 rows={2}
-                className="w-full bg-panel rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all resize-none"
+                className="w-full bg-white rounded-xl px-3 py-2.5 text-sm text-dark placeholder-dark/25 outline-none focus:ring-1 focus:ring-accent transition-all resize-none"
               />
-              {/* Termin anlegen */}
               {!showAppt ? (
                 <button
                   onClick={() => setShowAppt(true)}
-                  className="flex items-center gap-2 text-xs font-bold text-white/40 hover:text-white transition-colors"
+                  className="flex items-center gap-2 text-xs font-bold text-dark/50 hover:text-dark transition-colors"
                 >
                   <Plus size={13} />
                   Termin anlegen
                 </button>
               ) : (
                 <div className="space-y-2">
-                  <p className="text-xs font-bold text-white/30">Termin</p>
+                  <p className="text-xs font-bold text-dark/40">Termin</p>
                   <div className="grid grid-cols-3 gap-2">
                     <div className="col-span-3 sm:col-span-1">
                       <DatePicker value={form.appointment_date ?? ''} onChange={v => set('appointment_date', v)} />
@@ -372,7 +371,7 @@ export function LeadDetailModal({
 
           {/* Status */}
           <div>
-            <label className="block text-xs font-bold text-white/30 mb-2">Status</label>
+            <label className="block text-xs font-bold text-dark/40 mb-2">Status</label>
             {editing ? (
               <div className="flex flex-wrap gap-2">
                 {STATUSES.map(s => (
@@ -382,7 +381,7 @@ export function LeadDetailModal({
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                       (form.status ?? lead.status) === s
                         ? 'bg-accent text-white'
-                        : 'bg-panel-hover text-white/40 hover:text-white'
+                        : 'bg-panel-2 text-dark/50 hover:text-dark'
                     }`}
                   >
                     {STATUS_LABELS[s]}
@@ -404,7 +403,7 @@ export function LeadDetailModal({
                 <button
                   onClick={() => setShowReminder(v => !v)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                    showReminder ? 'bg-accent text-white' : 'bg-panel-hover text-white/40 hover:text-white'
+                    showReminder ? 'bg-accent text-white' : 'bg-panel-2 text-dark/50 hover:text-dark'
                   }`}
                 >
                   <BellRing size={12} />Erinnerung hinzufügen
@@ -423,18 +422,18 @@ export function LeadDetailModal({
                   </button>
                 )}
                 {lead.status_date && (
-                  <span className="text-xs text-white/25">seit {formatDate(lead.status_date)}</span>
+                  <span className="text-xs text-dark/35">seit {formatDate(lead.status_date)}</span>
                 )}
               </div>
             )}
             {showReminder && (
-              <div className="mt-3 bg-dark rounded-2xl p-4 space-y-3">
+              <div className="mt-3 bg-panel-2 rounded-2xl p-4 space-y-3">
                 <textarea
                   value={reminderText}
                   onChange={e => setReminderText(e.target.value)}
                   placeholder="Worüber soll erinnert werden?"
                   rows={2}
-                  className="w-full bg-panel rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all resize-none"
+                  className="w-full bg-white rounded-xl px-3 py-2.5 text-sm text-dark placeholder-dark/25 outline-none focus:ring-1 focus:ring-accent transition-all resize-none"
                 />
                 <div className="flex items-center gap-2">
                   <div className="flex-1">
@@ -476,7 +475,7 @@ export function LeadDetailModal({
 
             {/* Branche — editable with datalist suggestions */}
             <div>
-              <label className="flex items-center gap-1.5 text-xs font-bold text-white/25 mb-1.5">
+              <label className="flex items-center gap-1.5 text-xs font-bold text-dark/35 mb-1.5">
                 <Tag size={11} />Branche
               </label>
               {editing ? (
@@ -487,42 +486,42 @@ export function LeadDetailModal({
                     onChange={e => set('branche', e.target.value as Lead['branche'])}
                     list="branche-suggestions"
                     placeholder="z. B. Photovoltaik"
-                    className="w-full bg-dark rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:ring-1 focus:ring-accent transition-all"
+                    className="w-full bg-panel-2 rounded-xl px-3 py-2.5 text-sm text-dark outline-none focus:ring-1 focus:ring-accent transition-all"
                   />
                   <datalist id="branche-suggestions">
                     {branches.map(b => <option key={b} value={b} />)}
                   </datalist>
                 </>
               ) : (
-                <p className="text-sm text-white/50">{lead.branche || '-'}</p>
+                <p className="text-sm text-dark/50">{lead.branche || '-'}</p>
               )}
             </div>
           </div>
 
           {/* Last edited */}
           {lead.updated_at && (
-            <p className="text-xs text-white/20 font-medium">
+            <p className="text-xs text-dark/35 font-medium">
               Zuletzt bearbeitet: {formatRelativeDateTime(lead.updated_at)}
             </p>
           )}
 
           {/* Appointment — view mode */}
           {!callMode && !editing && lead.appointment_date && (
-            <div className="bg-dark rounded-2xl p-4">
+            <div className="bg-panel-2 rounded-2xl p-4">
               <div className="flex items-center justify-between mb-2">
                 <label className="flex items-center gap-1.5 text-xs font-bold text-accent">
                   <Calendar size={11} />Termin
                 </label>
                 <button
                   onClick={() => onUpdate(lead.id, { appointment_date: '', appointment_from: '', appointment_to: '' })}
-                  className="flex items-center gap-1 text-xs text-white/30 hover:text-accent transition-colors font-bold"
+                  className="flex items-center gap-1 text-xs text-dark/40 hover:text-accent transition-colors font-bold"
                 >
                   <X size={11} /> Termin löschen
                 </button>
               </div>
-              <p className="text-sm font-bold text-white">{formatDate(lead.appointment_date)}</p>
+              <p className="text-sm font-bold text-dark">{formatDate(lead.appointment_date)}</p>
               {lead.appointment_from && (
-                <p className="text-xs text-white/40 mt-1">
+                <p className="text-xs text-dark/50 mt-1">
                   {lead.appointment_from}{lead.appointment_to ? ` - ${lead.appointment_to}` : ''} Uhr
                 </p>
               )}
@@ -531,7 +530,7 @@ export function LeadDetailModal({
 
           {/* Appointment — edit mode */}
           {!callMode && editing && (
-            <div className="bg-dark rounded-2xl p-4">
+            <div className="bg-panel-2 rounded-2xl p-4">
               <div className="flex items-center justify-between mb-2">
                 <label className="flex items-center gap-1.5 text-xs font-bold text-accent">
                   <Calendar size={11} />Termin
@@ -539,7 +538,7 @@ export function LeadDetailModal({
                 {editAppt && (
                   <button
                     onClick={() => { setEditAppt(false); set('appointment_date', ''); set('appointment_from', ''); set('appointment_to', '') }}
-                    className="flex items-center gap-1 text-xs text-white/30 hover:text-accent transition-colors font-bold"
+                    className="flex items-center gap-1 text-xs text-dark/40 hover:text-accent transition-colors font-bold"
                   >
                     <X size={11} /> Entfernen
                   </button>
@@ -556,7 +555,7 @@ export function LeadDetailModal({
               ) : (
                 <button
                   onClick={() => setEditAppt(true)}
-                  className="flex items-center gap-2 text-xs font-bold text-white/40 hover:text-white transition-colors"
+                  className="flex items-center gap-2 text-xs font-bold text-dark/50 hover:text-dark transition-colors"
                 >
                   <Plus size={13} />Termin festlegen
                 </button>
@@ -566,36 +565,36 @@ export function LeadDetailModal({
 
           {/* Notes */}
           <div>
-            <label className="flex items-center gap-1.5 text-xs font-bold text-white/25 mb-2">
+            <label className="flex items-center gap-1.5 text-xs font-bold text-dark/35 mb-2">
               <FileText size={11} />Notizen
             </label>
             {editing ? (
               <textarea value={form.notes ?? ''} onChange={e => set('notes', e.target.value)} rows={4}
-                className="w-full bg-dark rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all resize-none"
+                className="w-full bg-panel-2 rounded-xl px-3 py-2.5 text-sm text-dark placeholder-dark/25 outline-none focus:ring-1 focus:ring-accent transition-all resize-none"
                 placeholder="Gesprächsverlauf, Beobachtungen..." />
             ) : (
-              <p className="text-sm text-white/50 whitespace-pre-wrap leading-relaxed min-h-5">{form.notes || lead.notes || '-'}</p>
+              <p className="text-sm text-dark/50 whitespace-pre-wrap leading-relaxed min-h-5">{form.notes || lead.notes || '-'}</p>
             )}
           </div>
 
           {/* Deal Note */}
           <div>
-            <label className="flex items-center gap-1.5 text-xs font-bold text-white/25 mb-2">
+            <label className="flex items-center gap-1.5 text-xs font-bold text-dark/35 mb-2">
               <FileText size={11} />Deal Note
             </label>
             {editing ? (
               <textarea value={form.note ?? ''} onChange={e => set('note', e.target.value)} rows={2}
-                className="w-full bg-dark rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent transition-all resize-none"
+                className="w-full bg-panel-2 rounded-xl px-3 py-2.5 text-sm text-dark placeholder-dark/25 outline-none focus:ring-1 focus:ring-accent transition-all resize-none"
                 placeholder="Angebotsbetrag, Deal-Details..." />
             ) : (
-              <p className="text-sm text-white/50 min-h-5">{lead.note || '-'}</p>
+              <p className="text-sm text-dark/50 min-h-5">{lead.note || '-'}</p>
             )}
           </div>
 
           {/* Delete */}
           <div className="pt-4">
             <button onClick={() => setConfirmDelete(true)}
-              className="flex items-center gap-2 text-xs text-white/20 hover:text-accent transition-colors font-bold"
+              className="flex items-center gap-2 text-xs text-dark/30 hover:text-accent transition-colors font-bold"
             >
               <Trash2 size={13} />
               Lead löschen
