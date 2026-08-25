@@ -4,17 +4,19 @@
   /* Brand palette */
   --color-accent:        #1D4ED8;
   --color-accent-hover:  #1e40af;
-  --color-accent-green:  #B9FBC0;
+  --color-accent-green:  #0369A1;
 
-  /* Dark background scale */
+  /* Dark background scale (used for sidebar active states, dark elements) */
   --color-dark:          #0F172A;
-  --color-panel:         #1E293B;
-  --color-panel-2:       #243347;
-  --color-panel-hover:   #2D4060;
+
+  /* Panel backgrounds — light mode */
+  --color-panel:         #FFFFFF;
+  --color-panel-2:       #F1F5F9;
+  --color-panel-hover:   #E2E8F0;
 
   /* Borders */
-  --color-rim:           #334155;
-  --color-rim-subtle:    #1E293B;
+  --color-rim:           #E2E8F0;
+  --color-rim-subtle:    #F1F5F9;
 
   /* Font */
   --font-family-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -27,22 +29,45 @@
     height: 100%;
     margin: 0;
     padding: 0;
-    background: #0F172A;
-    color: #FFFFFF;
+    background: #F8FAFC;
+    color: #0F172A;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Thin dark scrollbar */
+  /* Light scrollbar */
   ::-webkit-scrollbar { width: 4px; height: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: #334155; border-radius: 99px; }
-  ::-webkit-scrollbar-thumb:hover { background: #475569; }
+  ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
 
   /* Hide scrollbar but keep scroll on pipeline tabs */
   .scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }
   .scrollbar-none::-webkit-scrollbar { display: none; }
+
+  /*
+    Light mode: inside <main>, override --color-white to dark ink.
+    This makes all text-white / text-white/40 etc. render as dark readable text
+    on the white/light panel backgrounds — without touching individual components.
+  */
+  main {
+    --color-white: #0F172A;
+  }
+
+  /*
+    Restore actual white text on intentionally dark/colored backgrounds
+    (accent buttons, dark nav pills, dark modal containers).
+  */
+  main .bg-accent,
+  main .bg-dark {
+    --color-white: #FFFFFF;
+  }
+
+  /* Subtle card elevation for panels in light mode */
+  main .bg-panel {
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+  }
 }
 
 @layer utilities {
@@ -58,9 +83,9 @@
     to   { opacity: 1; transform: translateY(0); }
   }
 
-  /* Shimmer for loading states */
+  /* Shimmer for loading states — light mode */
   .shimmer {
-    background: linear-gradient(90deg, #1E293B 25%, #2D4060 50%, #1E293B 75%);
+    background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
   }

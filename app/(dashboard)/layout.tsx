@@ -4,7 +4,7 @@ import { RouteGuard } from '@/components/layout/RouteGuard'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-dvh overflow-hidden bg-dark">
+    <div className="flex h-dvh overflow-hidden bg-[#F8FAFC]">
       <RouteGuard />
       {/* Desktop sidebar */}
       <div className="hidden lg:block shrink-0">
@@ -13,7 +13,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Main content */}
       <main
-        className="flex-1 overflow-y-auto min-w-0 overscroll-none"
+        className="flex-1 overflow-y-auto min-w-0 overscroll-none bg-[#F8FAFC]"
         style={{ scrollbarGutter: 'stable' }}
       >
         <div className="h-full flex flex-col p-5 pb-8 lg:p-10 lg:pb-10">
