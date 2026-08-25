@@ -61,7 +61,7 @@ export function MobileNav() {
           />
           <div
             className="fixed bottom-0 left-0 right-0 rounded-t-3xl px-4 z-60"
-            style={{ background: '#1A1A1A', paddingBottom: 'calc(env(safe-area-inset-bottom) + 4.5rem + 1rem)' }}
+            style={{ background: '#0F172A', paddingBottom: 'calc(env(safe-area-inset-bottom) + 4.5rem + 1rem)' }}
           >
             {/* Drag handle */}
             <div className="flex justify-center pt-3 pb-4">
@@ -99,7 +99,7 @@ export function MobileNav() {
       {/* Bottombar */}
       <nav
         className="lg:hidden fixed bottom-0 left-0 right-0 z-50 border-t-2 border-accent"
-        style={{ background: '#1A1A1A', paddingBottom: 'env(safe-area-inset-bottom)' }}
+        style={{ background: '#0F172A', paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         <div className="flex items-stretch h-18">
           {primary.map(({ href, label, icon: Icon }) => {

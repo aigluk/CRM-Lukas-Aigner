@@ -18,7 +18,7 @@ function BinaryRain() {
     const resize = () => {
       canvas.width = window.innerWidth
       canvas.height = window.innerHeight
-      ctx.fillStyle = '#1A1A1A'
+      ctx.fillStyle = '#0F172A'
       ctx.fillRect(0, 0, canvas.width, canvas.height)
     }
     resize()
@@ -30,14 +30,14 @@ function BinaryRain() {
       raf = requestAnimationFrame(tick)
       if (now - last < 55) return
       last = now
-      ctx.fillStyle = 'rgba(26,26,26,0.07)'
+      ctx.fillStyle = 'rgba(15,23,42,0.07)'
       ctx.fillRect(0, 0, canvas.width, canvas.height)
       ctx.font = `bold ${FONT}px monospace`
       const len = colCount()
       if (drops.length !== len) drops = Array.from({ length: len }, () => Math.floor(Math.random() * -60))
       for (let i = 0; i < len; i++) {
         if (drops[i] < 0) { drops[i]++; continue }
-        ctx.fillStyle = 'rgba(255,82,82,0.88)'
+        ctx.fillStyle = 'rgba(29,78,216,0.88)'
         ctx.fillText(Math.random() > 0.5 ? '1' : '0', i * FONT, drops[i] * FONT)
         drops[i]++
         if (drops[i] * FONT > canvas.height && Math.random() > 0.974) drops[i] = Math.floor(Math.random() * -30)

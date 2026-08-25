@@ -9,7 +9,6 @@ import { ReminderWidget } from '@/components/dashboard/ReminderWidget'
 import { ReminderBanner } from '@/components/dashboard/ReminderBanner'
 import { DbSetupBanner } from '@/components/dashboard/DbSetupBanner'
 import { ClientDate } from '@/components/dashboard/ClientDate'
-import { MarketRadarWidget } from '@/components/dashboard/MarketRadarWidget'
 import type { Lead } from '@/lib/types'
 
 export default async function DashboardPage() {
@@ -52,12 +51,11 @@ export default async function DashboardPage() {
         <KPICards leads={all} />
       </div>
 
-      {/* Bottom panels — 2-col on tablet, 4-col on desktop, stacked on mobile */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      {/* Bottom panels — 2-col on tablet, 3-col on desktop, stacked on mobile */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         <div className="min-h-72 lg:min-h-0 lg:h-80"><TodayPanel leads={all} /></div>
         <div className="min-h-72 lg:min-h-0 lg:h-80"><ReminderWidget /></div>
         <div className="min-h-72 lg:min-h-0 lg:h-80"><ActivityFeed leads={all} compact /></div>
-        <div className="min-h-72 lg:min-h-0 lg:h-80"><MarketRadarWidget /></div>
       </div>
     </div>
   )
