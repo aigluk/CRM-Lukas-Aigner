@@ -6,7 +6,7 @@
   --color-accent-hover:  #1e40af;
   --color-accent-green:  #0369A1;
 
-  /* Dark background scale (used for sidebar active states, dark elements) */
+  /* Dark background scale (sidebar active, inputs, dark chips) */
   --color-dark:          #0F172A;
 
   /* Panel backgrounds — light mode */
@@ -16,7 +16,7 @@
 
   /* Borders */
   --color-rim:           #E2E8F0;
-  --color-rim-subtle:    #F1F5F9;
+  --color-rim-subtle:    #EEEFF2;
 
   /* Font */
   --font-family-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -29,7 +29,7 @@
     height: 100%;
     margin: 0;
     padding: 0;
-    background: #F8FAFC;
+    background: #F1F5F9;
     color: #0F172A;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -45,35 +45,11 @@
   /* Hide scrollbar but keep scroll on pipeline tabs */
   .scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }
   .scrollbar-none::-webkit-scrollbar { display: none; }
-
-  /*
-    Light mode: inside <main>, override --color-white to dark ink.
-    This makes all text-white / text-white/40 etc. render as dark readable text
-    on the white/light panel backgrounds — without touching individual components.
-  */
-  main {
-    --color-white: #0F172A;
-  }
-
-  /*
-    Restore actual white text on intentionally dark/colored backgrounds
-    (accent buttons, dark nav pills, dark modal containers).
-  */
-  main .bg-accent,
-  main .bg-dark {
-    --color-white: #FFFFFF;
-  }
-
-  /* Subtle card elevation for panels in light mode */
-  main .bg-panel {
-    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
-  }
 }
 
 @layer utilities {
   .text-balance { text-wrap: balance; }
 
-  /* Fade-up animation for view transitions */
   .animate-fade-up {
     animation: fadeUp 0.25s ease-out;
   }
@@ -83,9 +59,9 @@
     to   { opacity: 1; transform: translateY(0); }
   }
 
-  /* Shimmer for loading states — light mode */
+  /* Shimmer — light mode */
   .shimmer {
-    background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
+    background: linear-gradient(90deg, #E2E8F0 25%, #CBD5E1 50%, #E2E8F0 75%);
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
   }
@@ -94,4 +70,88 @@
     0%   { background-position: 200% 0; }
     100% { background-position: -200% 0; }
   }
+}
+
+/*
+  LIGHT MODE TEXT OVERRIDES
+  @layer overrides comes after @layer utilities in the cascade,
+  so these rules win without !important.
+
+  Strategy:
+    1. Override all text-white/* classes to dark ink inside <main>
+    2. Restore actual white for elements on dark backgrounds (bg-dark, bg-accent)
+       — covers both "same element" (e.g. <input class="bg-dark text-white">)
+         and "descendant" (e.g. <span class="text-white"> inside <div class="bg-dark">)
+*/
+@layer overrides {
+
+  /* ── Step 1: text-white → dark ink ─────────────────────── */
+  main .text-white                 { color: #0F172A; }
+  main .text-white\/4              { color: rgba(15,23,42,0.04); }
+  main .text-white\/6              { color: rgba(15,23,42,0.06); }
+  main .text-white\/8              { color: rgba(15,23,42,0.08); }
+  main .text-white\/10             { color: rgba(15,23,42,0.10); }
+  main .text-white\/12             { color: rgba(15,23,42,0.12); }
+  main .text-white\/15             { color: rgba(15,23,42,0.15); }
+  main .text-white\/20             { color: rgba(15,23,42,0.20); }
+  main .text-white\/25             { color: rgba(15,23,42,0.25); }
+  main .text-white\/30             { color: rgba(15,23,42,0.30); }
+  main .text-white\/35             { color: rgba(15,23,42,0.35); }
+  main .text-white\/40             { color: rgba(15,23,42,0.40); }
+  main .text-white\/45             { color: rgba(15,23,42,0.45); }
+  main .text-white\/50             { color: rgba(15,23,42,0.50); }
+  main .text-white\/55             { color: rgba(15,23,42,0.55); }
+  main .text-white\/60             { color: rgba(15,23,42,0.60); }
+  main .text-white\/70             { color: rgba(15,23,42,0.70); }
+  main .text-white\/80             { color: rgba(15,23,42,0.80); }
+  main .text-white\/85             { color: rgba(15,23,42,0.85); }
+  main .hover\:text-white:hover    { color: #0F172A; }
+
+  /* Borders: white → dark */
+  main .border-white\/4            { border-color: rgba(15,23,42,0.04); }
+  main .border-white\/6            { border-color: rgba(15,23,42,0.06); }
+  main .border-white\/8            { border-color: rgba(15,23,42,0.08); }
+  main .border-white\/10           { border-color: rgba(15,23,42,0.10); }
+  main .border-white\/15           { border-color: rgba(15,23,42,0.15); }
+  main .border-white\/20           { border-color: rgba(15,23,42,0.20); }
+  main .border-white\/30           { border-color: rgba(15,23,42,0.30); }
+
+  /* ── Step 2: restore white on bg-dark (same element) ─────── */
+  main .bg-dark.text-white                { color: #FFFFFF; }
+  main .bg-dark.text-white\/20            { color: rgba(255,255,255,0.20); }
+  main .bg-dark.text-white\/25            { color: rgba(255,255,255,0.25); }
+  main .bg-dark.text-white\/30            { color: rgba(255,255,255,0.30); }
+  main .bg-dark.text-white\/35            { color: rgba(255,255,255,0.35); }
+  main .bg-dark.text-white\/40            { color: rgba(255,255,255,0.40); }
+  main .bg-dark.hover\:text-white:hover   { color: #FFFFFF; }
+
+  /* ── Step 3: restore white on bg-dark (descendants) ─────── */
+  main .bg-dark .text-white               { color: #FFFFFF; }
+  main .bg-dark .text-white\/6            { color: rgba(255,255,255,0.06); }
+  main .bg-dark .text-white\/8            { color: rgba(255,255,255,0.08); }
+  main .bg-dark .text-white\/10           { color: rgba(255,255,255,0.10); }
+  main .bg-dark .text-white\/12           { color: rgba(255,255,255,0.12); }
+  main .bg-dark .text-white\/15           { color: rgba(255,255,255,0.15); }
+  main .bg-dark .text-white\/20           { color: rgba(255,255,255,0.20); }
+  main .bg-dark .text-white\/25           { color: rgba(255,255,255,0.25); }
+  main .bg-dark .text-white\/30           { color: rgba(255,255,255,0.30); }
+  main .bg-dark .text-white\/35           { color: rgba(255,255,255,0.35); }
+  main .bg-dark .text-white\/40           { color: rgba(255,255,255,0.40); }
+  main .bg-dark .text-white\/45           { color: rgba(255,255,255,0.45); }
+  main .bg-dark .text-white\/50           { color: rgba(255,255,255,0.50); }
+  main .bg-dark .text-white\/55           { color: rgba(255,255,255,0.55); }
+  main .bg-dark .text-white\/60           { color: rgba(255,255,255,0.60); }
+  main .bg-dark .text-white\/70           { color: rgba(255,255,255,0.70); }
+  main .bg-dark .text-white\/80           { color: rgba(255,255,255,0.80); }
+  main .bg-dark .hover\:text-white:hover  { color: #FFFFFF; }
+  main .bg-dark .border-white\/10         { border-color: rgba(255,255,255,0.10); }
+  main .bg-dark .border-white\/15         { border-color: rgba(255,255,255,0.15); }
+  main .bg-dark .border-white\/20         { border-color: rgba(255,255,255,0.20); }
+
+  /* ── Step 4: restore white on bg-accent (same element + descendants) ── */
+  main .bg-accent.text-white              { color: #FFFFFF; }
+  main .bg-accent .text-white             { color: #FFFFFF; }
+  main .bg-accent .text-white\/40         { color: rgba(255,255,255,0.40); }
+  main .bg-accent .text-white\/60         { color: rgba(255,255,255,0.60); }
+  main .bg-accent .hover\:text-white:hover { color: #FFFFFF; }
 }
