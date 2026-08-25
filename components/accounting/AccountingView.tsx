@@ -734,11 +734,20 @@ export function AccountingView() {
                 >
                   <Download size={13} />
                 </a>
-                {!isStorno && (
+                {!doc.is_imported && (
                   <button
-                    onClick={() => doc.is_imported ? setImportedEditDoc(doc) : setDocModal({ type: 'invoice', doc })}
+                    onClick={() => setDocModal({ type: doc.doc_type, doc })}
                     title="Bearbeiten"
-                    className="hidden sm:flex w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 items-center justify-center text-white/40 hover:text-white transition-all shrink-0"
+                    className="flex w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 items-center justify-center text-white/40 hover:text-white transition-all shrink-0"
+                  >
+                    <FileText size={13} />
+                  </button>
+                )}
+                {doc.is_imported && (
+                  <button
+                    onClick={() => setImportedEditDoc(doc)}
+                    title="Bearbeiten"
+                    className="flex w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 items-center justify-center text-white/40 hover:text-white transition-all shrink-0"
                   >
                     <FileText size={13} />
                   </button>
@@ -747,7 +756,7 @@ export function AccountingView() {
                   <button
                     onClick={() => setStornoModal({ invoice: doc })}
                     title="Stornorechnung erstellen"
-                    className="hidden sm:flex w-8 h-8 rounded-full bg-white/6 hover:bg-accent/15 items-center justify-center text-white/30 hover:text-accent transition-all shrink-0 text-[10px] font-black"
+                    className="flex w-8 h-8 rounded-full bg-white/6 hover:bg-accent/15 items-center justify-center text-white/30 hover:text-accent transition-all shrink-0 text-[10px] font-black"
                   >
                     ST
                   </button>

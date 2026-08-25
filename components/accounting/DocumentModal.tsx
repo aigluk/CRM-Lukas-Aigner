@@ -214,17 +214,21 @@ export function DocumentModal({
               <input type="text" value={docNumber} onChange={e => setDocNumber(e.target.value)} className={inputCls} />
             </div>
             <div>
-              <label className={labelCls}>{docType === 'invoice' ? 'Rechnungsdatum' : 'Angebotsdatum'}</label>
+              <label className={labelCls}>{docType === 'storno' ? 'Stornodatum' : docType === 'invoice' ? 'Rechnungsdatum' : 'Angebotsdatum'}</label>
               <DatePicker value={issueDate} onChange={setIssueDate} className={inputCls} />
             </div>
-            <div>
-              <label className={labelCls}>Leistungsdatum</label>
-              <DatePicker value={serviceDate} onChange={setServiceDate} className={inputCls} />
-            </div>
-            <div>
-              <label className={labelCls}>{docType === 'invoice' ? 'Fällig bis' : 'Gültig bis'}</label>
-              <DatePicker value={dueDate} onChange={setDueDate} className={inputCls} />
-            </div>
+            {docType !== 'storno' && (
+              <div>
+                <label className={labelCls}>Leistungsdatum</label>
+                <DatePicker value={serviceDate} onChange={setServiceDate} className={inputCls} />
+              </div>
+            )}
+            {docType !== 'storno' && (
+              <div>
+                <label className={labelCls}>{docType === 'invoice' ? 'Fällig bis' : 'Gültig bis'}</label>
+                <DatePicker value={dueDate} onChange={setDueDate} className={inputCls} />
+              </div>
+            )}
           </div>
 
           {/* Customer picker */}
