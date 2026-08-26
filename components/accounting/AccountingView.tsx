@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import {
   Plus, FileText, TrendingUp, TrendingDown, Wallet,
-  Download, FileDown, Trash2, ChevronDown, ChevronLeft, ChevronRight, Image as ImageIcon, Eye, EyeOff,
+  Download, FileDown, FolderDown, Trash2, ChevronDown, ChevronLeft, ChevronRight, Image as ImageIcon, Eye, EyeOff,
   Loader2, Search, Upload, RefreshCw, Pencil,
 } from 'lucide-react'
 import type { AccountingDocument, AccountingReceipt, AccountingSubscription, AccountingContract, AccountingSalaryEntry, ContractType, DocType, DocStatus, ReceiptType, SubscriptionInterval, SalaryEntryType } from '@/lib/types'
@@ -296,6 +296,7 @@ export function AccountingView() {
   const [company, setCompany] = useState<CompanyInfo>({})
   const [listPeriod, setListPeriod] = useState<ListPeriod>('all')
   const [exportingPdf, setExportingPdf] = useState(false)
+  const [exportingZip, setExportingZip] = useState(false)
   const [search, setSearch] = useState('')
   const [importModal, setImportModal] = useState(false)
   const [importedEditDoc, setImportedEditDoc] = useState<AccountingDocument | null>(null)
@@ -482,9 +483,12 @@ export function AccountingView() {
       .map(sub => {
         const subStart = new Date(sub.start_date)
         const actualFrom = subStart > periodStart ? subStart : periodStart
+        // Cap at end_date if set
+        const subEndCap = sub.end_date ? new Date(sub.end_date) : effectiveSubEnd
+        const effectiveEnd = subEndCap < effectiveSubEnd ? subEndCap : effectiveSubEnd
         const fromY = actualFrom.getFullYear(), fromM = actualFrom.getMonth()
-        const toY = effectiveSubEnd.getFullYear(), toM = effectiveSubEnd.getMonth()
-        const totalMonths = Math.max(0, (toY - fromY) * 12 + toM - fromM + 1)
+        const toY = effectiveEnd.getFullYear(), toM = effectiveEnd.getMonth()
+        const totalMonths = actualFrom <= effectiveEnd ? Math.max(0, (toY - fromY) * 12 + toM - fromM + 1) : 0
 
         const history = [...(sub.price_history ?? [])].sort((a, b) => a.effective_from.localeCompare(b.effective_from))
         const intervalFactor = sub.interval === 'monthly' ? 1 : sub.interval === 'quarterly' ? 3 : 12
@@ -614,6 +618,25 @@ export function AccountingView() {
       URL.revokeObjectURL(url)
     } finally {
       setExportingPdf(false)
+    }
+  }
+
+  async function exportClosingZip() {
+    setExportingZip(true)
+    try {
+      const res = await fetch('/api/accounting/closing-zip', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ periodMode, periodYear, periodMonth, periodQuarter, label: closing.label }),
+      })
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `Abschluss-${closing.label.replace(/\s+/g, '-')}.zip`
+      a.click()
+      URL.revokeObjectURL(url)
+    } finally {
+      setExportingZip(false)
     }
   }
 
@@ -997,7 +1020,7 @@ export function AccountingView() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold text-dark truncate">{s.name}</p>
-                    <p className="text-xs text-dark/45 mt-0.5">{SUBSCRIPTION_INTERVAL_LABELS[s.interval]} · seit {fmtDate(s.start_date)}</p>
+                    <p className="text-xs text-dark/45 mt-0.5">{SUBSCRIPTION_INTERVAL_LABELS[s.interval]} · {fmtDate(s.start_date)}{s.end_date ? ` – ${fmtDate(s.end_date)}` : ''}</p>
                   </div>
                   <p className="text-sm font-bold text-accent shrink-0">{fmtMoney(s.amount)}</p>
                   <button
@@ -1080,14 +1103,25 @@ export function AccountingView() {
           <div className="bg-panel rounded-2xl p-5 shrink-0">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-black text-dark">Zeitraum</h2>
-              <button
-                onClick={exportClosingPdf}
-                disabled={exportingPdf}
-                className="flex items-center gap-2 bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-xl text-xs font-bold tracking-wide transition-all active:scale-95 disabled:opacity-50"
-              >
-                {exportingPdf ? <Loader2 size={13} className="animate-spin" /> : <FileDown size={13} strokeWidth={2.2} />}
-                PDF-Export
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={exportClosingZip}
+                  disabled={exportingZip}
+                  title="ZIP mit allen Rechnungen und Belegen"
+                  className="flex items-center gap-2 bg-panel-2 hover:bg-panel-hover text-dark/70 hover:text-dark px-3 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 disabled:opacity-50"
+                >
+                  {exportingZip ? <Loader2 size={13} className="animate-spin" /> : <FolderDown size={13} strokeWidth={2.2} />}
+                  ZIP
+                </button>
+                <button
+                  onClick={exportClosingPdf}
+                  disabled={exportingPdf}
+                  className="flex items-center gap-2 bg-accent hover:bg-accent-hover text-white px-4 py-2 rounded-xl text-xs font-bold tracking-wide transition-all active:scale-95 disabled:opacity-50"
+                >
+                  {exportingPdf ? <Loader2 size={13} className="animate-spin" /> : <FileDown size={13} strokeWidth={2.2} />}
+                  PDF-Export
+                </button>
+              </div>
             </div>
             <div className="flex gap-1.5 mb-3">
               {([['month', 'Monat'], ['quarter', 'Quartal'], ['year', 'Jahr']] as [PeriodMode, string][]).map(([m, l]) => (

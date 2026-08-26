@@ -143,14 +143,14 @@ export function ClosingPdf({ data, company }: { data: ClosingPdfData; company: C
   let kuStatusText: string
   if (data.smallBusinessActive) {
     if (data.ytdRevenueGross > data.kuTolerance) {
-      kuStatusText = `Achtung: Der Jahresumsatz (${fmtMoney(data.ytdRevenueGross)}) überschreitet die Toleranzgrenze von ${fmtMoney(data.kuTolerance)} um mehr als 10 %. Die Kleinunternehmer-Befreiung entfällt rückwirkend ab dem Umsatz, mit dem die Grenze überschritten wurde. Bitte umgehend mit dem Finanzamt bzw. Steuerberater abklären.`
+      kuStatusText = `Jahresumsatz brutto: ${fmtMoney(data.ytdRevenueGross)} – die 10%-Toleranzgrenze (${fmtMoney(data.kuTolerance)}) gem. § 6 Abs. 1 Z 27 UStG ist überschritten. Die Kleinunternehmerbefreiung entfällt rückwirkend; Umsatzsteuerpflicht besteht ab Überschreitung der Grenze.`
     } else if (data.ytdRevenueGross > data.kuLimit) {
-      kuStatusText = `Die Kleinunternehmergrenze von ${fmtMoney(data.kuLimit)} wurde überschritten, liegt aber innerhalb der 10 % Toleranzgrenze (${fmtMoney(data.kuTolerance)}). Die USt-Befreiung bleibt im laufenden Jahr erhalten, entfällt aber automatisch ab dem Folgejahr.`
+      kuStatusText = `Jahresumsatz brutto: ${fmtMoney(data.ytdRevenueGross)} – Kleinunternehmergrenze (${fmtMoney(data.kuLimit)}) überschritten, innerhalb der 10%-Toleranz (${fmtMoney(data.kuTolerance)}) gem. § 6 Abs. 1 Z 27 UStG. USt-Befreiung bleibt für das laufende Kalenderjahr aufrecht; ab dem Folgejahr gilt Regelbesteuerung.`
     } else {
-      kuStatusText = `Jahresumsatz brutto: ${fmtMoney(data.ytdRevenueGross)} von ${fmtMoney(data.kuLimit)} Kleinunternehmergrenze (§ 6 Abs. 1 Z 27 UStG). Keine Umsatzsteuerpflicht.`
+      kuStatusText = `Jahresumsatz brutto: ${fmtMoney(data.ytdRevenueGross)} – innerhalb der Kleinunternehmergrenze gem. § 6 Abs. 1 Z 27 UStG (${fmtMoney(data.kuLimit)}). Befreiung von der Umsatzsteuerpflicht.`
     }
   } else {
-    kuStatusText = 'Regelbesteuerung: Umsatzsteuer wird verrechnet und ist im Rahmen der UVA an das Finanzamt abzuführen.'
+    kuStatusText = 'Regelbesteuerung gem. § 19 UStG: Umsatzsteuer wird verrechnet und quartalsweise im Rahmen der UVA (§ 21 UStG) an das Finanzamt abgeführt.'
   }
 
   return (
@@ -309,8 +309,8 @@ export function ClosingPdf({ data, company }: { data: ClosingPdfData; company: C
             </View>
             <Text style={styles.note}>
               {hasGfSalary
-                ? 'GF-Gehalt und Anstellung sind beide §25 EStG (KZ 245 auf E1). Bei wesentlicher Beteiligung (>25 % GmbH-Anteil) gilt GSVG statt ASVG. SVS-Beitrage separat abfuhren. Lohnsteuer wird auf ESt angerechnet. Bitte mit Steuerberater abstimmen.'
-                : 'Einkünfte aus nichtselbständiger Arbeit gemäß §25 EStG, KZ 245 auf E1. Einbehaltene Lohnsteuer wird auf ESt angerechnet. Alle L16 an den Steuerberater weitergeben.'}
+                ? 'Einkünfte aus nichtselbständiger Arbeit gem. § 25 EStG (KZ 245 auf Formular E1). Bei wesentlicher Beteiligung (> 25 %) an einer GmbH gilt GSVG statt ASVG; SVS-Beiträge sind separat abzuführen. Einbehaltene Lohnsteuer wird gem. § 46 Abs. 1 Z 2 EStG auf die Einkommensteuer angerechnet.'
+                : 'Einkünfte aus nichtselbständiger Arbeit gem. § 25 EStG (KZ 245 auf Formular E1). Einbehaltene Lohnsteuer wird gem. § 46 Abs. 1 Z 2 EStG auf die Einkommensteuer angerechnet.'}
             </Text>
           </View>
           )
@@ -318,9 +318,8 @@ export function ClosingPdf({ data, company }: { data: ClosingPdfData; company: C
 
         <View style={styles.footerNotes}>
           <Text style={styles.footerPara}>
-            Hinweis: Diese Aufstellung ist eine automatisierte, unverbindliche Hochrechnung auf Basis der in der CRM-Software erfassten Rechnungen und Belege. Sie ersetzt keine
-            steuerliche Beratung, keine Bilanzierung/Einnahmen-Ausgaben-Rechnung im Sinne der BAO und keine verbindliche Auskunft des Finanzamtes oder der SVS. Vorauszahlungen der
-            Einkommensteuer werden vom Finanzamt per Bescheid auf Basis des Vorjahres festgesetzt und können von der hier dargestellten Hochrechnung abweichen.
+            Einnahmen-Ausgaben-Rechnung gem. § 4 Abs. 3 EStG. Einkommensteuervorauszahlungen werden vom Finanzamt gem. § 45 EStG auf Basis des Vorjahresbescheids festgesetzt.
+            Umsatzsteuervoranmeldung gem. § 21 UStG. Alle Angaben auf Basis der erfassten Belege und Rechnungen.
           </Text>
 
           <View style={styles.bottomRule} />

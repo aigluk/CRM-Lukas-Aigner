@@ -6,7 +6,7 @@ import type { AccountingSubscription, SubscriptionInterval, PriceHistoryEntry } 
 import { DatePicker } from './DatePicker'
 
 const inputCls = 'w-full bg-panel-2 rounded-xl px-3.5 py-2.5 text-sm text-dark placeholder-dark/25 outline-none focus:ring-1 focus:ring-accent transition-all'
-const labelCls = 'block text-xs font-bold text-white/30 mb-1.5'
+const labelCls = 'block text-xs font-bold text-dark/40 mb-1.5'
 const numCls = '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
 
 const INTERVAL_LABELS: Record<SubscriptionInterval, string> = {
@@ -28,6 +28,7 @@ export function SubscriptionModal({
   const [name, setName]         = useState(subscription?.name ?? '')
   const [interval, setInterval] = useState<SubscriptionInterval>(subscription?.interval ?? 'monthly')
   const [startDate, setStartDate] = useState(subscription?.start_date ?? new Date().toISOString().slice(0, 10))
+  const [endDate, setEndDate]   = useState(subscription?.end_date ?? '')
   const [amount, setAmount]     = useState(subscription ? String(subscription.amount) : '')
 
   // Price history (edit mode only)
@@ -56,7 +57,7 @@ export function SubscriptionModal({
     setError('')
 
     try {
-      const body = { name: name.trim(), amount: amt, interval, start_date: startDate, active: true }
+      const body = { name: name.trim(), amount: amt, interval, start_date: startDate, end_date: endDate || null, active: true }
       const res = isEdit
         ? await fetch('/api/accounting/subscriptions', {
             method: 'PATCH', headers: { 'Content-Type': 'application/json' },
@@ -150,8 +151,8 @@ export function SubscriptionModal({
       <div className="bg-panel w-full sm:max-w-md rounded-2xl overflow-y-auto shadow-2xl overscroll-contain"
         style={{ maxHeight: 'calc(94dvh - env(safe-area-inset-bottom))', WebkitOverflowScrolling: 'touch' }}>
         <div className="sticky top-0 bg-panel z-10 px-5 pt-4 pb-3 border-b border-rim-subtle flex items-center justify-between gap-3">
-          <h2 className="text-base font-black text-white">{isEdit ? 'Abo bearbeiten' : 'Neues Abo'}</h2>
-          <button onClick={onClose} className="p-1.5 rounded-xl bg-panel-hover text-white/30 hover:text-white transition-all shrink-0">
+          <h2 className="text-base font-black text-dark">{isEdit ? 'Abo bearbeiten' : 'Neues Abo'}</h2>
+          <button onClick={onClose} className="p-1.5 rounded-xl bg-panel-hover text-dark/30 hover:text-dark transition-all shrink-0">
             <X size={16} />
           </button>
         </div>
@@ -175,13 +176,30 @@ export function SubscriptionModal({
             </div>
           </div>
 
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelCls}>Ende (optional)</label>
+              <div className="relative">
+                <DatePicker value={endDate || ''} onChange={setEndDate} className={inputCls} placeholder="kein Ende" />
+              </div>
+            </div>
+            {endDate && (
+              <div className="flex items-end">
+                <button type="button" onClick={() => setEndDate('')}
+                  className="w-full px-3 py-2.5 rounded-xl text-xs font-bold bg-panel-2 text-dark/50 hover:text-accent hover:bg-accent/10 transition-all text-center">
+                  Enddatum entfernen
+                </button>
+              </div>
+            )}
+          </div>
+
           <div>
             <label className={labelCls}>Abrechnung</label>
             <div className="flex gap-2">
               {(Object.keys(INTERVAL_LABELS) as SubscriptionInterval[]).map(i => (
                 <button key={i} type="button" onClick={() => setInterval(i)}
                   className={`flex-1 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                    interval === i ? 'bg-accent text-white' : 'bg-panel-hover text-white/40 hover:text-white'
+                    interval === i ? 'bg-accent text-white' : 'bg-panel-2 text-dark/55 hover:text-dark'
                   }`}>
                   {INTERVAL_LABELS[i]}
                 </button>
@@ -193,7 +211,7 @@ export function SubscriptionModal({
           {isEdit && (
             <div className="bg-panel-2 rounded-xl p-3.5 space-y-2">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-bold text-white/40">Preisverlauf</span>
+                <span className="text-xs font-bold text-dark/45">Preisverlauf</span>
                 <button type="button" onClick={() => { setShowAddPrice(v => !v); setNewPriceAmt(''); setNewPriceNote('') }}
                   className="flex items-center gap-1 text-xs font-bold text-accent hover:text-accent-hover transition-all">
                   <Plus size={11} />Preisänderung
@@ -201,7 +219,7 @@ export function SubscriptionModal({
               </div>
 
               {priceHistory.length === 0 && (
-                <p className="text-xs text-white/25 italic">Noch kein Preisverlauf — wird beim ersten Speichern angelegt.</p>
+                <p className="text-xs text-dark/35 italic">Noch kein Preisverlauf — wird beim ersten Speichern angelegt.</p>
               )}
 
               {[...priceHistory].sort((a, b) => a.effective_from.localeCompare(b.effective_from)).map(entry => (
@@ -221,29 +239,29 @@ export function SubscriptionModal({
                           <Check size={11} />Speichern
                         </button>
                         <button type="button" onClick={() => setEditingEntryId(null)}
-                          className="px-3 bg-panel-hover text-white/40 text-xs font-bold py-1.5 rounded-lg">Abbruch</button>
+                          className="px-3 bg-panel-2 text-dark/50 text-xs font-bold py-1.5 rounded-lg">Abbruch</button>
                       </div>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
                       <div className="min-w-0 flex-1">
-                        <span className="text-xs font-bold text-white">
+                        <span className="text-xs font-bold text-dark">
                           {entry.amount.toLocaleString('de-AT', { minimumFractionDigits: 2 })} €
                         </span>
-                        <span className="text-xs text-white/35 ml-2">ab {fmtDate(entry.effective_from)}</span>
-                        {entry.note && <p className="text-[10px] text-white/25 mt-0.5">{entry.note}</p>}
+                        <span className="text-xs text-dark/45 ml-2">ab {fmtDate(entry.effective_from)}</span>
+                        {entry.note && <p className="text-[10px] text-dark/35 mt-0.5">{entry.note}</p>}
                       </div>
                       <button type="button" onClick={() => {
                         setEditingEntryId(entry.id)
                         setEditEntryAmt(String(entry.amount))
                         setEditEntryFrom(entry.effective_from)
                         setEditEntryNote(entry.note ?? '')
-                      }} className="w-6 h-6 flex items-center justify-center rounded-lg text-white/25 hover:text-white hover:bg-white/10 transition-all">
+                      }} className="w-6 h-6 flex items-center justify-center rounded-lg text-dark/30 hover:text-dark hover:bg-dark/8 transition-all">
                         <Pencil size={10} />
                       </button>
                       {priceHistory.length > 1 && (
                         <button type="button" onClick={() => deleteEntry(entry.id)} disabled={saving}
-                          className="w-6 h-6 flex items-center justify-center rounded-lg text-white/25 hover:text-accent hover:bg-accent/10 transition-all">
+                          className="w-6 h-6 flex items-center justify-center rounded-lg text-dark/30 hover:text-accent hover:bg-accent/10 transition-all">
                           <Trash2 size={10} />
                         </button>
                       )}
@@ -254,7 +272,7 @@ export function SubscriptionModal({
 
               {showAddPrice && (
                 <div className="rounded-lg bg-panel px-3 py-2.5 space-y-2 border border-accent/30">
-                  <p className="text-xs font-bold text-white/50">Neuer Preis</p>
+                  <p className="text-xs font-bold text-dark/50">Neuer Preis</p>
                   <div className="grid grid-cols-2 gap-2">
                     <input type="number" value={newPriceAmt} onChange={e => setNewPriceAmt(e.target.value)}
                       placeholder="Betrag (€)" className={`${inputCls} ${numCls} text-xs py-1.5 px-2.5`} />

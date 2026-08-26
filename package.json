@@ -12,6 +12,7 @@
     "@react-pdf/renderer": "^4.5.1",
     "@supabase/ssr": "^0.6.0",
     "@supabase/supabase-js": "^2.50.0",
+    "jszip": "^3.10.1",
     "lucide-react": "^0.511.0",
     "next": "^15.5.19",
     "react": "^19.0.0",

@@ -205,6 +205,7 @@ export interface AccountingSubscription {
   amount: number
   interval: SubscriptionInterval
   start_date: string
+  end_date?: string | null
   active: boolean
   notes?: string
   price_history: PriceHistoryEntry[]
