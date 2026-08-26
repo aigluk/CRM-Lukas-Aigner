@@ -1,11 +1,13 @@
 import { Sidebar } from '@/components/layout/Sidebar'
 import { MobileNav } from '@/components/layout/MobileNav'
 import { RouteGuard } from '@/components/layout/RouteGuard'
+import { ScrollLockManager } from '@/components/layout/ScrollLockManager'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-dvh overflow-hidden bg-[#F1F5F9]">
       <RouteGuard />
+      <ScrollLockManager />
       {/* Desktop sidebar */}
       <div className="hidden lg:block shrink-0">
         <Sidebar />
