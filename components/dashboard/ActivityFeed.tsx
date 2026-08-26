@@ -17,7 +17,7 @@ export function ActivityFeed({ leads, compact }: { leads: Lead[]; compact?: bool
           <ListChecks size={15} strokeWidth={2.8} className="text-accent" />
           <h2 className="text-sm font-bold text-white">Letzte Aktivitäten</h2>
         </div>
-        <div className="flex-1 overflow-y-auto space-y-1 min-h-0">
+        <div className="flex-1 overflow-y-auto space-y-1 min-h-0 pb-5">
           {recent.length === 0 ? (
             <p className="text-sm text-white/35 text-center py-6 font-medium">Noch keine Leads vorhanden.</p>
           ) : (

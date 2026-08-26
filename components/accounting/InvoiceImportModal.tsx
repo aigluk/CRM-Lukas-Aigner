@@ -254,7 +254,7 @@ export function InvoiceImportModal({
   const showFileArea = !!fileName
 
   return (
-    <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-60 flex items-end sm:items-center justify-center px-3 sm:p-4"
+    <div className="modal-open fixed inset-0 bg-black/75 backdrop-blur-sm z-60 flex items-end sm:items-center justify-center px-3 sm:p-4"
       style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
     >
       {/* Iframe + form for Safari/fallback upload path */}
@@ -453,7 +453,7 @@ export function InvoiceImportModal({
       </div>
 
       {lightbox && preview && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-70 flex items-center justify-center p-4"
+        <div className="modal-open fixed inset-0 bg-black/90 backdrop-blur-sm z-70 flex items-center justify-center p-4"
           onClick={() => setLightbox(false)}>
           <button onClick={() => setLightbox(false)}
             className="absolute top-4 right-4 p-2 rounded-xl bg-panel-hover text-white/70 hover:text-white transition-all">

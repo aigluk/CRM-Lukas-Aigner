@@ -19,7 +19,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="h-full flex flex-col p-5 pb-8 lg:p-10 lg:pb-10">
           {children}
           {/* Mobile-only spacer so content clears the nav + safe area */}
-          <div className="lg:hidden shrink-0" style={{ height: 'calc(5rem + env(safe-area-inset-bottom))' }} />
+          <div className="lg:hidden shrink-0" style={{ height: 'calc(5.75rem + env(safe-area-inset-bottom))' }} />
         </div>
       </main>
 

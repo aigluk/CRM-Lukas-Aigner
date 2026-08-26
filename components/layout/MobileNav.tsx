@@ -56,7 +56,7 @@ export function MobileNav() {
       {moreOpen && (
         <div className="lg:hidden">
           <div
-            className="fixed inset-0 bg-black/50 z-59"
+            className="modal-open fixed inset-0 bg-black/50 z-59"
             onClick={() => setMoreOpen(false)}
           />
           <div

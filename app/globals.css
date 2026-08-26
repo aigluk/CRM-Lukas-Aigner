@@ -162,3 +162,8 @@
   main .bg-accent-green .text-white\/70   { color: rgba(255,255,255,0.70); }
   main .bg-accent-green .text-white\/80   { color: rgba(255,255,255,0.80); }
 }
+
+/* Lock background scroll when any modal/sheet is open (iOS PWA fix) */
+main:has(.modal-open) {
+  overflow-y: hidden;
+}

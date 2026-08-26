@@ -21,13 +21,13 @@ export const STATUS_LABELS: Record<LeadStatus, string> = {
 }
 
 export const STATUS_COLORS: Record<LeadStatus, { bg: string; text: string; dot: string }> = {
-  'NEU':             { bg: 'bg-white/7',         text: 'text-white/45',     dot: 'bg-white/35'    },
+  'NEU':             { bg: 'bg-dark/6',          text: 'text-dark/55',      dot: 'bg-dark/35'     },
   'VERKAUFSGESPRÄCH':{ bg: 'bg-accent/15',       text: 'text-accent',       dot: 'bg-accent'      },
-  'FOLLOW UP':       { bg: 'bg-white/16',        text: 'text-white',        dot: 'bg-white'       },
+  'FOLLOW UP':       { bg: 'bg-dark/10',         text: 'text-dark/70',      dot: 'bg-dark/50'     },
   'CLOSING CALL':    { bg: 'bg-accent/20',       text: 'text-accent',       dot: 'bg-accent'      },
   'ABSCHLUSS':       { bg: 'bg-accent-green/15', text: 'text-accent-green', dot: 'bg-accent-green'},
-  'KEIN INTERESSE':  { bg: 'bg-white/4',         text: 'text-white/22',     dot: 'bg-white/18'    },
-  'NO GO':           { bg: 'bg-white/3',         text: 'text-white/12',     dot: 'bg-white/10'    },
+  'KEIN INTERESSE':  { bg: 'bg-dark/5',          text: 'text-dark/35',      dot: 'bg-dark/25'     },
+  'NO GO':           { bg: 'bg-dark/4',          text: 'text-dark/20',      dot: 'bg-dark/15'     },
 }
 
 export const BRANCHES = [

@@ -83,7 +83,7 @@ export function TodayPanel({ leads: initialLeads, onEdit }: Props) {
         </div>
 
         {/* Appointment list */}
-        <div className="flex-1 overflow-y-auto min-h-0 space-y-2">
+        <div className="flex-1 overflow-y-auto min-h-0 space-y-2 pb-5">
           {appts.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center gap-2 py-4">
               <div className="w-14 h-14 rounded-2xl bg-accent/12 flex items-center justify-center">

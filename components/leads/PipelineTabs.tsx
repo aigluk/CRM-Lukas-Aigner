@@ -4,13 +4,13 @@ import { LeadStatus } from '@/lib/types'
 import { STATUSES, STATUS_LABELS } from '@/lib/constants'
 
 const ACTIVE_STYLE: Record<LeadStatus, string> = {
-  'NEU':             'bg-white text-dark',
-  'VERKAUFSGESPRÄCH':'bg-white text-dark',
-  'FOLLOW UP':       'bg-white text-dark',
-  'CLOSING CALL':    'bg-white text-dark',
-  'ABSCHLUSS':       'bg-accent-green text-dark',
-  'KEIN INTERESSE':  'bg-white text-dark',
-  'NO GO':           'bg-accent text-white',
+  'NEU':             'bg-accent text-white',
+  'VERKAUFSGESPRÄCH':'bg-accent text-white',
+  'FOLLOW UP':       'bg-accent text-white',
+  'CLOSING CALL':    'bg-accent text-white',
+  'ABSCHLUSS':       'bg-accent-green text-white',
+  'KEIN INTERESSE':  'bg-dark text-white',
+  'NO GO':           'bg-dark text-white',
 }
 
 export function PipelineTabs({
@@ -34,13 +34,13 @@ export function PipelineTabs({
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all shrink-0 ${
               active
                 ? ACTIVE_STYLE[status]
-                : 'bg-panel text-white/40 hover:text-white'
+                : 'bg-panel text-dark/45 hover:text-dark'
             }`}
           >
             {STATUS_LABELS[status]}
             {count > 0 && (
               <span className={`text-[10px] min-w-4.5 h-4.5 inline-flex items-center justify-center rounded-md font-black px-1 ${
-                active ? 'bg-black/15' : 'bg-white/8 text-white/25'
+                active ? 'bg-white/20' : 'bg-dark/8 text-dark/50'
               }`}>
                 {count}
               </span>

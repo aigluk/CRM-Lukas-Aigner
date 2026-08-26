@@ -719,7 +719,7 @@ export function AccountingView() {
     })
     return (
       <div className={`bg-panel rounded-2xl ${className ?? ''}`}>
-        <ul>
+        <ul className="pb-5">
           {sorted.map((doc, i) => {
             const isStorno = doc.doc_type === 'storno'
             const total = docTotal(doc)
@@ -815,7 +815,7 @@ export function AccountingView() {
     })
     return (
       <div className={`bg-panel rounded-2xl ${className ?? ''}`}>
-        <ul>
+        <ul className="pb-5">
           {sortedItems.map((c, i) => (
             <li key={c.id} className={`flex items-center gap-3 px-4 sm:px-5 py-3.5 ${i < sortedItems.length - 1 ? 'border-b border-panel-2' : ''}`}>
               <button
@@ -1012,7 +1012,7 @@ export function AccountingView() {
           </div>
         ) : (
           <div className="bg-panel rounded-2xl flex-1 min-h-0 overflow-y-auto">
-            <ul>
+            <ul className="pb-5">
               {subscriptions.map((s, i) => (
                 <li key={s.id} className={`flex items-center gap-3 px-4 sm:px-5 py-3.5 ${i < subscriptions.length - 1 ? 'border-b border-panel-2' : ''} ${s.active ? '' : 'opacity-40'}`}>
                   <div className="w-9 h-9 rounded-xl bg-panel-2 text-dark/50 flex items-center justify-center shrink-0">
@@ -1059,7 +1059,7 @@ export function AccountingView() {
           </div>
         ) : (
           <div className="bg-panel rounded-2xl flex-1 min-h-0 overflow-y-auto">
-            <ul>
+            <ul className="pb-5">
               {salaries.map((s, i) => (
                 <li key={s.id} className={`flex items-center gap-3 px-4 sm:px-5 py-3.5 ${i < salaries.length - 1 ? 'border-b border-panel-2' : ''}`}>
                   <div className="min-w-0 flex-1">
@@ -1159,7 +1159,7 @@ export function AccountingView() {
               <ListYearDropdown year={periodYear} isActive onSelect={setPeriodYear} />
             </div>
           </div>
-          <div className="flex-1 min-h-0 flex flex-col gap-4 overflow-y-auto">
+          <div className="flex-1 min-h-0 flex flex-col gap-4 overflow-y-auto pb-5">
             <div>
               <p className="text-xs font-bold text-dark/45 mb-2 px-1 uppercase tracking-wide">Ausgangsrechnungen · {closing.invoiceCount} bezahlt</p>
               <DocList docs={closing.periodInvoices} type="invoice" />
@@ -1203,7 +1203,7 @@ export function AccountingView() {
           {listReceipts.length === 0 ? (
             <div className="py-16 text-center"><p className="text-dark/40 text-sm font-medium">Noch keine Eingangsrechnungen.</p></div>
           ) : (
-            <ul>
+            <ul className="pb-5">
               {listReceipts.map((r, i) => (
                 <li key={r.id} className={`flex items-center gap-3 px-4 sm:px-5 py-3.5 ${i < listReceipts.length - 1 ? 'border-b border-panel-2' : ''}`}>
                   <div className="min-w-0 flex-1">
