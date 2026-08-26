@@ -43,7 +43,7 @@ export function SettingsView() {
 
   const [company, setCompany]           = useState({
     name: '', legal_form: 'einzelunternehmer' as 'einzelunternehmer' | 'gmbh', fn: '',
-    address: '', email: '', phone: '', iban: '', uid: '',
+    address: '', email: '', phone: '', iban: '', uid: '', steuernummer: '',
     bank_name: '', bic: '', gisa: '', small_business: false,
   })
   const [companySaving, setCompanySaving] = useState(false)
@@ -69,7 +69,7 @@ export function SettingsView() {
       setJoinedAt(data.user?.created_at ?? '')
       setCompany({
         name: '', legal_form: 'einzelunternehmer', fn: '',
-        address: '', email: '', phone: '', iban: '', uid: '',
+        address: '', email: '', phone: '', iban: '', uid: '', steuernummer: '',
         bank_name: '', bic: '', gisa: '', small_business: false,
         ...(data.user?.user_metadata?.company ?? {}),
       })
@@ -336,10 +336,17 @@ export function SettingsView() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <Label text="UID / Steuernummer" />
+                  <Label text="UID-Nummer (ATU / VAT ID)" />
                   <input type="text" value={company.uid} onChange={e => setCompany(c => ({ ...c, uid: e.target.value }))}
                     placeholder="ATU00000000" className={inputCls} />
                 </div>
+                <div>
+                  <Label text="Steuernummer (Finanzamt)" />
+                  <input type="text" value={company.steuernummer} onChange={e => setCompany(c => ({ ...c, steuernummer: e.target.value }))}
+                    placeholder="12/345/67890" className={inputCls} />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <Label text="GISA-Zahl" />
                   <input type="text" value={company.gisa} onChange={e => setCompany(c => ({ ...c, gisa: e.target.value }))}
@@ -352,7 +359,7 @@ export function SettingsView() {
                   className="w-4 h-4 rounded accent-accent" />
                 <span className="text-sm text-dark/70 font-medium">Kleinunternehmer (§ 6 Abs. 1 Z 27 UStG) - keine USt. auf Rechnungen</span>
               </label>
-              {companyMsg && <p className="text-xs text-white/40">{companyMsg}</p>}
+              {companyMsg && <p className="text-xs text-dark/50">{companyMsg}</p>}
               <button type="submit" disabled={companySaving}
                 className="w-full bg-accent hover:opacity-90 disabled:opacity-30 text-white font-black text-sm py-3 rounded-xl transition-all active:scale-[0.98]">
                 {companySaving ? <Loader2 size={14} className="animate-spin mx-auto" /> : 'Firmendaten speichern'}

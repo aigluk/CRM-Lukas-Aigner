@@ -10,6 +10,7 @@ export interface CompanyInfo {
   phone?: string
   iban?: string
   uid?: string
+  steuernummer?: string
   bank_name?: string
   bic?: string
   gisa?: string
@@ -48,7 +49,7 @@ const T = {
       quote: 'Die Leistungserbringung erfolgt - bei Auftragserteilung - auf Grundlage meiner Allgemeinen Geschäftsbedingungen (AGB), die die Rahmenbedingungen der Zusammenarbeit festlegen.\nDieses Angebot bezieht sich auf diese Bedingungen.\nDie AGB sowie die Datenschutzerklärung werden auf Wunsch jederzeit gerne in geeigneter Form zur Verfügung gestellt.',
       storno: 'Die AGB sowie die Datenschutzerklärung werden auf Wunsch jederzeit gerne in geeigneter Form zur Verfügung gestellt.',
     },
-    bank: 'Bank:', iban: 'IBAN.:', bic: 'BIC.:', gisa: 'GISA-Zahl:', uid: 'UID-Nr.:',
+    bank: 'Bank:', iban: 'IBAN.:', bic: 'BIC.:', gisa: 'GISA-Zahl:', uid: 'UID-Nr.:', steuernummer: 'Steu.-Nr.:',
   },
   en: {
     docTitle: { invoice: 'Invoice', quote: 'Quote', storno: 'Credit Note' },
@@ -74,7 +75,7 @@ const T = {
       quote: 'Should this quote be accepted, services will be provided on the basis of my General Terms and Conditions (GTC), which govern the framework of our cooperation.\nThis quote is subject to these terms.\nThe GTC and privacy policy are available on request at any time in a suitable format.',
       storno: 'The GTC and privacy policy are available on request at any time in a suitable format.',
     },
-    bank: 'Bank:', iban: 'IBAN:', bic: 'BIC:', gisa: 'GISA No.:', uid: 'VAT ID:',
+    bank: 'Bank:', iban: 'IBAN:', bic: 'BIC:', gisa: 'GISA No.:', uid: 'VAT ID:', steuernummer: 'Tax No.:',
   },
 } as const
 
@@ -314,6 +315,7 @@ export function DocumentPdf({ doc, company }: { doc: AccountingDocument; company
             </View>
             <View style={[styles.bottomCol, { alignItems: 'flex-end' }]}>
               {company.uid && <Text style={styles.bottomLineMuted}>{tr.uid} {company.uid}</Text>}
+              {company.steuernummer && <Text style={styles.bottomLineMuted}>{tr.steuernummer} {company.steuernummer}</Text>}
               {company.gisa && <Text style={styles.bottomLineMuted}>{tr.gisa} {company.gisa}</Text>}
               {company.bank_name && <Text style={styles.bottomLineMuted}>{company.bank_name}</Text>}
               {company.iban && <Text style={styles.bottomLineMuted}>{tr.iban} {company.iban}</Text>}
