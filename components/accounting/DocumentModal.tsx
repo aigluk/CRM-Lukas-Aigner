@@ -292,7 +292,7 @@ export function DocumentModal({
               <input type="text" value={clientCountry} onChange={e => setClientCountry(e.target.value)} placeholder="Österreich" className={inputCls} />
             </div>
             <div>
-              <label className={labelCls}>UID / Firmenbuchnr.</label>
+              <label className={labelCls}>UID / VAT ID / Steuernr.</label>
               <input type="text" value={clientVat} onChange={e => setClientVat(e.target.value)} placeholder="ATU00000000" className={inputCls} />
             </div>
           </div>

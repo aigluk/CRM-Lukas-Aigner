@@ -54,6 +54,7 @@ export function StornoModal({
   const [manualTaxRate, setManualTaxRate] = useState(20)
   const [manualTaxAdded, setManualTaxAdded] = useState(true)
 
+  const [existingVatOverride, setExistingVatOverride] = useState('')
   const [issueDate, setIssueDate] = useState(new Date().toISOString().slice(0, 10))
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
@@ -101,7 +102,7 @@ export function StornoModal({
           client_name:     effectiveClientName ?? selectedInvoice.client_name,
           client_address:  effectiveClientAddress,
           client_country:  effectiveClientCountry,
-          client_vat:      effectiveClientVat,
+          client_vat:      existingVatOverride.trim() || effectiveClientVat,
           client_email:    effectiveClientEmail,
           line_items:      negatedItems,
           tax_rate:        selectedInvoice.tax_rate,
@@ -246,12 +247,16 @@ export function StornoModal({
                         <span className="text-xs text-dark/70">{effectiveClientCountry}</span>
                       </div>
                     )}
-                    {effectiveClientVat && (
-                      <div className="flex gap-3">
-                        <span className="text-xs text-dark/40 w-20 shrink-0">Ust. Nr.</span>
-                        <span className="text-xs text-dark/70">{effectiveClientVat}</span>
-                      </div>
-                    )}
+                    <div className="flex gap-3 items-center">
+                      <span className="text-xs text-dark/40 w-20 shrink-0">UID / VAT</span>
+                      <input
+                        type="text"
+                        value={existingVatOverride || effectiveClientVat || ''}
+                        onChange={e => setExistingVatOverride(e.target.value)}
+                        placeholder={effectiveClientVat || 'ATU00000000 / VAT ID...'}
+                        className="flex-1 bg-white rounded-lg px-2.5 py-1 text-xs text-dark placeholder-dark/25 outline-none focus:ring-1 focus:ring-accent transition-all"
+                      />
+                    </div>
                   </div>
 
                   <p className="text-xs font-black text-dark/40 uppercase tracking-widest mb-2">Stornopositionen</p>

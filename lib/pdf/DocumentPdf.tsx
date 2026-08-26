@@ -181,6 +181,10 @@ export function DocumentPdf({ doc, company }: { doc: AccountingDocument; company
   const tr = T[lang]
   const addressLines = (company.address || '').split('\n').filter(Boolean)
 
+  const DACH = ['österreich', 'austria', 'at', 'deutschland', 'germany', 'de', 'schweiz', 'switzerland', 'ch', 'liechtenstein', 'li']
+  const clientCountryNorm = (doc.client_country || '').toLowerCase().trim()
+  const vatLabel = clientCountryNorm && !DACH.includes(clientCountryNorm) ? 'VAT ID:' : tr.vat
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -212,7 +216,7 @@ export function DocumentPdf({ doc, company }: { doc: AccountingDocument; company
             )}
             {doc.client_vat && (
               <View style={styles.metaLine}>
-                <Text style={styles.metaLabel}>{tr.vat}</Text>
+                <Text style={styles.metaLabel}>{vatLabel}</Text>
                 <Text style={styles.metaValue}>{doc.client_vat}</Text>
               </View>
             )}
