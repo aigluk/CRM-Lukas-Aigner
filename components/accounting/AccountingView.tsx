@@ -59,18 +59,18 @@ function ListMonthDropdown({ period, onSelect }: { period: ListPeriod; onSelect:
       <button
         onClick={() => setOpen(o => !o)}
         className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1 ${
-          isActive ? 'bg-accent text-white' : 'bg-dark text-white/40 hover:text-white/70'
+          isActive ? 'bg-accent text-white' : 'bg-panel-2 text-dark/60 hover:text-dark'
         }`}
       >
         {isActive ? `${MONTHS_SHORT[activeMonth]} ${(period as MonthPeriod).year}` : 'Monat'}
         <ChevronDown size={11} />
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1 bg-[#2a2a2a] rounded-xl z-20 shadow-xl border border-white/8 p-2 min-w-40">
+        <div className="absolute right-0 top-full mt-1 bg-white rounded-xl z-20 shadow-md border border-rim p-2 min-w-40">
           <div className="flex items-center justify-between mb-2 px-1">
-            <button onClick={() => setPickerYear(y => y - 1)} className="text-white/40 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/8"><ChevronLeft size={13} /></button>
-            <span className="text-xs font-bold text-white/70">{pickerYear}</span>
-            <button onClick={() => setPickerYear(y => y + 1)} className="text-white/40 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/8"><ChevronRight size={13} /></button>
+            <button onClick={() => setPickerYear(y => y - 1)} className="text-dark/40 hover:text-dark transition-colors p-1 rounded-lg hover:bg-panel-2"><ChevronLeft size={13} /></button>
+            <span className="text-xs font-bold text-dark/60">{pickerYear}</span>
+            <button onClick={() => setPickerYear(y => y + 1)} className="text-dark/40 hover:text-dark transition-colors p-1 rounded-lg hover:bg-panel-2"><ChevronRight size={13} /></button>
           </div>
           <div className="grid grid-cols-4 gap-0.5">
             {MONTHS_SHORT.map((m, i) => (
@@ -78,7 +78,7 @@ function ListMonthDropdown({ period, onSelect }: { period: ListPeriod; onSelect:
                 key={m}
                 onClick={() => { onSelect({ month: i, year: pickerYear }); setOpen(false) }}
                 className={`text-[11px] font-semibold py-1.5 rounded-lg transition-all ${
-                  isActive && i === activeMonth && (period as MonthPeriod).year === pickerYear ? 'bg-accent text-white' : 'text-white/55 hover:text-white hover:bg-white/8'
+                  isActive && i === activeMonth && (period as MonthPeriod).year === pickerYear ? 'bg-accent text-white' : 'text-dark/55 hover:text-dark hover:bg-panel-2'
                 }`}
               >
                 {m}
@@ -103,19 +103,19 @@ function ListYearDropdown({ year, isActive, onSelect }: { year: number; isActive
       <button
         onClick={() => { onSelect(year); setOpen(o => !o) }}
         className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1 ${
-          isActive ? 'bg-accent text-white' : 'bg-dark text-white/40 hover:text-white/70'
+          isActive ? 'bg-accent text-white' : 'bg-panel-2 text-dark/60 hover:text-dark'
         }`}
       >
         {year} <ChevronDown size={11} />
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1 bg-[#2a2a2a] rounded-xl overflow-hidden z-20 shadow-xl border border-white/8 min-w-20">
+        <div className="absolute right-0 top-full mt-1 bg-white rounded-xl overflow-hidden z-20 shadow-md border border-rim min-w-20">
           {years.map(y => (
             <button
               key={y}
               onClick={() => { onSelect(y); setOpen(false) }}
               className={`block w-full text-left px-4 py-2.5 text-xs font-semibold transition-all ${
-                y === year && isActive ? 'text-accent' : 'text-white/60 hover:text-white hover:bg-white/5'
+                y === year && isActive ? 'text-accent' : 'text-dark/60 hover:text-dark hover:bg-panel-2'
               }`}
             >
               {y}
@@ -133,7 +133,7 @@ function ListPeriodFilter({ period, onChange }: { period: ListPeriod; onChange: 
     <div className="flex items-center gap-1.5 flex-wrap">
       <button
         onClick={() => onChange('all')}
-        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${period === 'all' ? 'bg-accent text-white' : 'bg-dark text-white/40 hover:text-white/70'}`}
+        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${period === 'all' ? 'bg-accent text-white' : 'bg-panel-2 text-dark/60 hover:text-dark'}`}
       >
         Alle
       </button>
@@ -172,12 +172,12 @@ function estimateIncomeTaxAT(taxable: number): number {
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'overview',           label: 'Übersicht' },
-  { id: 'invoices',           label: 'Rechnungen' },
   { id: 'quotes',             label: 'Angebote' },
   { id: 'service_contracts',  label: 'Dienstleistungsverträge' },
   { id: 'fulfillment',        label: 'Fulfillment' },
   { id: 'sales_partners',     label: 'Vertriebspartner' },
-  { id: 'receipts',           label: 'Zahlungen' },
+  { id: 'invoices',           label: 'Ausgangsrechnungen' },
+  { id: 'receipts',           label: 'Eingangsrechnungen' },
   { id: 'subscriptions',      label: 'Abos' },
   { id: 'salaries',           label: 'Gehälter' },
   { id: 'closings',           label: 'Abschlüsse' },
@@ -205,8 +205,8 @@ const STATUS_LABELS: Record<DocStatus, string> = {
   draft: 'Entwurf', sent: 'Versendet', paid: 'Bezahlt', overdue: 'Überfällig',
 }
 const STATUS_STYLES: Record<DocStatus, string> = {
-  draft:   'bg-white/8 text-white/40',
-  sent:    'bg-white/14 text-white/70',
+  draft:   'bg-dark/6 text-dark/45',
+  sent:    'bg-dark/12 text-dark/60',
   paid:    'bg-accent-green/20 text-accent-green',
   overdue: 'bg-accent/20 text-accent',
 }
@@ -241,11 +241,11 @@ function StatusPicker({ status, onChange }: { status: DocStatus; onChange: (s: D
         <ChevronDown size={10} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className="absolute top-full right-0 mt-1 z-20 bg-panel-hover rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.6)] border border-white/10 p-1 min-w-32">
+        <div className="absolute top-full right-0 mt-1 z-20 bg-white rounded-xl shadow-md border border-rim p-1 min-w-32">
           {(Object.keys(STATUS_LABELS) as DocStatus[]).map(s => (
             <button
               key={s} type="button" onClick={() => { onChange(s); setOpen(false) }}
-              className={`w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-white/8 transition-colors ${s === status ? 'text-accent font-bold' : 'text-white/60'}`}
+              className={`w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-panel-2 transition-colors ${s === status ? 'text-accent font-bold' : 'text-dark/60'}`}
             >
               {STATUS_LABELS[s]}
             </button>
@@ -654,7 +654,7 @@ export function AccountingView() {
 
   function deleteReceipt(id: string) {
     setConfirmDelete({
-      message: 'Zahlung wirklich löschen?',
+      message: 'Eingangsrechnung wirklich löschen?',
       action: async () => {
         setReceipts(prev => prev.filter(r => r.id !== id))
         await fetch(`/api/accounting/receipts?id=${id}`, { method: 'DELETE' })
@@ -684,7 +684,7 @@ export function AccountingView() {
     if (!hasContent) {
       return (
         <div className={`bg-panel rounded-2xl py-16 text-center ${className ?? ''}`}>
-          <p className="text-white/40 text-sm font-medium">Noch keine {type === 'invoice' ? 'Rechnungen' : 'Angebote'}.</p>
+          <p className="text-dark/40 text-sm font-medium">Noch keine {type === 'invoice' ? 'Ausgangsrechnungen' : 'Angebote'}.</p>
         </div>
       )
     }
@@ -708,29 +708,29 @@ export function AccountingView() {
                   title="Vorschau anzeigen"
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <p className="text-sm font-semibold text-white truncate">{doc.client_name}</p>
+                    <p className="text-sm font-semibold text-dark truncate">{doc.client_name}</p>
                     {isStorno && (
                       <span className="shrink-0 text-[10px] font-black px-1.5 py-0.5 rounded-md bg-accent/15 text-accent uppercase tracking-wide">Storno</span>
                     )}
                   </div>
-                  <p className="text-xs text-white/35 mt-0.5">
+                  <p className="text-xs text-dark/45 mt-0.5">
                     {doc.doc_number} · {fmtDate(doc.issue_date)}
                     {isStorno && doc.storno_of_number ? ` · Storno von ${doc.storno_of_number}` : ''}
                   </p>
                 </button>
-                <p className={`text-sm font-bold shrink-0 hidden sm:block ${isStorno ? 'text-accent' : 'text-white'}`}>{fmtMoney(total)}</p>
+                <p className={`text-sm font-bold shrink-0 hidden sm:block ${isStorno ? 'text-accent' : 'text-dark'}`}>{fmtMoney(total)}</p>
                 <StatusPicker status={doc.status} onChange={s => updateDocStatus(doc.id, s)} />
                 <button
                   onClick={() => setPreviewDoc(doc)}
                   title="Vorschau"
-                  className="w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 flex items-center justify-center text-white/40 hover:text-white transition-all shrink-0"
+                  className="w-8 h-8 rounded-full bg-panel-2 hover:bg-panel-hover flex items-center justify-center text-dark/45 hover:text-dark transition-all shrink-0"
                 >
                   <Eye size={13} />
                 </button>
                 <a
                   href={`/api/accounting/documents/${doc.id}/pdf?dl=1`}
                   title="PDF herunterladen"
-                  className="hidden sm:flex w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 items-center justify-center text-white/40 hover:text-white transition-all shrink-0"
+                  className="hidden sm:flex w-8 h-8 rounded-full bg-panel-2 hover:bg-panel-hover items-center justify-center text-dark/45 hover:text-dark transition-all shrink-0"
                 >
                   <Download size={13} />
                 </a>
@@ -738,7 +738,7 @@ export function AccountingView() {
                   <button
                     onClick={() => setDocModal({ type: doc.doc_type, doc })}
                     title="Bearbeiten"
-                    className="flex w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 items-center justify-center text-white/40 hover:text-white transition-all shrink-0"
+                    className="flex w-8 h-8 rounded-full bg-panel-2 hover:bg-panel-hover items-center justify-center text-dark/45 hover:text-dark transition-all shrink-0"
                   >
                     <FileText size={13} />
                   </button>
@@ -747,7 +747,7 @@ export function AccountingView() {
                   <button
                     onClick={() => setImportedEditDoc(doc)}
                     title="Bearbeiten"
-                    className="flex w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 items-center justify-center text-white/40 hover:text-white transition-all shrink-0"
+                    className="flex w-8 h-8 rounded-full bg-panel-2 hover:bg-panel-hover items-center justify-center text-dark/45 hover:text-dark transition-all shrink-0"
                   >
                     <FileText size={13} />
                   </button>
@@ -756,7 +756,7 @@ export function AccountingView() {
                   <button
                     onClick={() => setStornoModal({ invoice: doc })}
                     title="Stornorechnung erstellen"
-                    className="flex w-8 h-8 rounded-full bg-white/6 hover:bg-accent/15 items-center justify-center text-white/30 hover:text-accent transition-all shrink-0 text-[10px] font-black"
+                    className="flex w-8 h-8 rounded-full bg-panel-2 hover:bg-accent/15 items-center justify-center text-dark/35 hover:text-accent transition-all shrink-0 text-[10px] font-black"
                   >
                     ST
                   </button>
@@ -764,7 +764,7 @@ export function AccountingView() {
                 <button
                   onClick={() => deleteDoc(doc.id)}
                   title="Löschen"
-                  className="w-8 h-8 rounded-full bg-white/6 hover:bg-accent/20 flex items-center justify-center text-white/30 hover:text-accent transition-all shrink-0"
+                  className="w-8 h-8 rounded-full bg-panel-2 hover:bg-accent/20 flex items-center justify-center text-dark/35 hover:text-accent transition-all shrink-0"
                 >
                   <Trash2 size={13} />
                 </button>
@@ -780,7 +780,7 @@ export function AccountingView() {
     if (items.length === 0) {
       return (
         <div className={`bg-panel rounded-2xl py-16 text-center ${className ?? ''}`}>
-          <p className="text-white/40 text-sm font-medium">Noch keine {CONTRACT_TYPE_LABELS[type]}e.</p>
+          <p className="text-dark/40 text-sm font-medium">Noch keine {CONTRACT_TYPE_LABELS[type]}e.</p>
         </div>
       )
     }
@@ -800,34 +800,34 @@ export function AccountingView() {
                 className="min-w-0 flex-1 text-left"
                 title="Vorschau anzeigen"
               >
-                <p className="text-sm font-semibold text-white truncate">{c.party_name}</p>
-                <p className="text-xs text-white/35 mt-0.5">{c.contract_number} · {fmtDate(c.start_date)}</p>
+                <p className="text-sm font-semibold text-dark truncate">{c.party_name}</p>
+                <p className="text-xs text-dark/45 mt-0.5">{c.contract_number} · {fmtDate(c.start_date)}</p>
               </button>
               <button
                 onClick={() => setPreviewContract(c)}
                 title="Vorschau"
-                className="w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 flex items-center justify-center text-white/40 hover:text-white transition-all shrink-0"
+                className="w-8 h-8 rounded-full bg-panel-2 hover:bg-panel-hover flex items-center justify-center text-dark/45 hover:text-dark transition-all shrink-0"
               >
                 <Eye size={13} />
               </button>
               <a
                 href={`/api/accounting/contracts/${c.id}/pdf?dl=1`}
                 title="PDF herunterladen"
-                className="w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 flex items-center justify-center text-white/40 hover:text-white transition-all shrink-0"
+                className="w-8 h-8 rounded-full bg-panel-2 hover:bg-panel-hover flex items-center justify-center text-dark/45 hover:text-dark transition-all shrink-0"
               >
                 <Download size={13} />
               </a>
               <button
                 onClick={() => setContractModal({ type, contract: c })}
                 title="Bearbeiten"
-                className="w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 flex items-center justify-center text-white/40 hover:text-white transition-all shrink-0"
+                className="w-8 h-8 rounded-full bg-panel-2 hover:bg-panel-hover flex items-center justify-center text-dark/45 hover:text-dark transition-all shrink-0"
               >
                 <FileText size={13} />
               </button>
               <button
                 onClick={() => deleteContract(c.id)}
                 title="Löschen"
-                className="w-8 h-8 rounded-full bg-white/6 hover:bg-accent/20 flex items-center justify-center text-white/30 hover:text-accent transition-all shrink-0"
+                className="w-8 h-8 rounded-full bg-panel-2 hover:bg-accent/20 flex items-center justify-center text-dark/35 hover:text-accent transition-all shrink-0"
               >
                 <Trash2 size={13} />
               </button>
@@ -843,15 +843,15 @@ export function AccountingView() {
       <div className="shrink-0">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-black text-white tracking-tight leading-none">Buchhaltung</h1>
-          <p className="text-sm text-white/30 mt-2 font-medium">Rechnungen, Angebote & Zahlungen</p>
+          <h1 className="text-3xl font-black text-dark tracking-tight leading-none">Buchhaltung</h1>
+          <p className="text-sm text-dark/45 mt-2 font-medium">Ausgangsrechnungen, Angebote & Eingangsrechnungen</p>
         </div>
         {tab === 'invoices' && (
           <div className="flex items-center gap-2">
-            <button onClick={() => setImportModal(true)} className="flex items-center gap-2 bg-panel hover:bg-panel-hover text-white/60 hover:text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95">
+            <button onClick={() => setImportModal(true)} className="flex items-center gap-2 bg-panel hover:bg-panel-hover text-dark/60 hover:text-dark px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95">
               <Upload size={16} /><span className="hidden sm:inline">Importieren</span>
             </button>
-            <button onClick={() => setStornoModal({})} className="flex items-center gap-2 bg-panel hover:bg-panel-hover text-white/60 hover:text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95">
+            <button onClick={() => setStornoModal({})} className="flex items-center gap-2 bg-panel hover:bg-panel-hover text-dark/60 hover:text-dark px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95">
               <span className="text-xs font-black">ST</span><span className="hidden sm:inline">Stornorechnung</span>
             </button>
             <button onClick={() => setDocModal({ type: 'invoice' })} className="flex items-center gap-2 bg-accent hover:bg-accent-hover text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95">
@@ -866,7 +866,7 @@ export function AccountingView() {
         )}
         {tab === 'receipts' && (
           <button onClick={() => setReceiptModal(true)} className="flex items-center gap-2 bg-accent hover:bg-accent-hover text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95">
-            <Plus size={16} /><span className="hidden sm:inline">Zahlung hinzufügen</span>
+            <Plus size={16} /><span className="hidden sm:inline">Eingangsrechnung</span>
           </button>
         )}
         {tab === 'subscriptions' && (
@@ -895,7 +895,7 @@ export function AccountingView() {
           <button
             key={t.id} onClick={() => setTab(t.id)}
             className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${
-              tab === t.id ? 'bg-accent text-white' : 'bg-panel text-white/40 hover:text-white'
+              tab === t.id ? 'bg-accent text-white' : 'bg-panel text-dark/50 hover:text-dark'
             }`}
           >
             {t.label}
@@ -906,7 +906,7 @@ export function AccountingView() {
       {(tab === 'overview' || tab === 'invoices' || tab === 'quotes' || tab === 'receipts' || tab === 'service_contracts' || tab === 'fulfillment' || tab === 'sales_partners') && (
         <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between mb-4">
           <div className="relative flex-1 min-w-0 sm:max-w-xs">
-            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none" />
+            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-dark/30 pointer-events-none" />
             <input
               type="text"
               value={search}
@@ -922,7 +922,7 @@ export function AccountingView() {
 
       <div className="flex-1 min-h-0 flex flex-col">
       {loading ? (
-        <p className="text-sm text-white/30 text-center py-16 font-medium">Lädt…</p>
+        <p className="text-sm text-dark/40 text-center py-16 font-medium">Lädt…</p>
       ) : tab === 'overview' ? (
         <div className="flex-1 min-h-0 flex flex-col gap-5">
           <div className="shrink-0">
@@ -931,7 +931,7 @@ export function AccountingView() {
                 <button
                   onClick={() => setKpiVisible(false)}
                   title="Verbergen"
-                  className="w-7 h-7 rounded-full bg-white/6 hover:bg-white/12 flex items-center justify-center text-white/40 hover:text-white transition-all"
+                  className="w-7 h-7 rounded-full bg-panel-2 hover:bg-panel-hover flex items-center justify-center text-dark/45 hover:text-dark transition-all"
                 >
                   <EyeOff size={13} />
                 </button>
@@ -956,7 +956,7 @@ export function AccountingView() {
           </div>
           <div className="bg-panel rounded-2xl flex-1 min-h-0 flex flex-col overflow-hidden">
             <div className="shrink-0 px-6 pt-5 pb-0">
-              <h2 className="text-sm font-black text-white mb-4">Letzte Zahlungen & Rechnungen</h2>
+              <h2 className="text-sm font-black text-dark mb-4">Letzte Ein- & Ausgangsrechnungen</h2>
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-6">
               {overviewItems.slice(0, 20).map((item: any, i) => (
@@ -966,10 +966,10 @@ export function AccountingView() {
                   className={`flex items-center justify-between gap-3 py-2.5 w-full text-left rounded-xl px-2 -mx-2 hover:bg-panel-hover transition-colors ${i > 0 ? 'border-t border-panel-2' : ''}`}
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-white truncate">
+                    <p className="text-sm font-medium text-dark truncate">
                       {item._isReceipt ? (item.vendor || RECEIPT_TYPE_LABELS[item.receipt_type as ReceiptType]) : item.client_name}
                     </p>
-                    <p className="text-xs text-white/30 mt-0.5">{fmtDate(item._isReceipt ? item.date : item.issue_date)}</p>
+                    <p className="text-xs text-dark/40 mt-0.5">{fmtDate(item._isReceipt ? item.date : item.issue_date)}</p>
                   </div>
                   <p className={`text-sm font-bold shrink-0 transition-all ${item._isReceipt ? 'text-accent' : 'text-accent-green'} ${!kpiVisible ? 'blur-sm select-none' : ''}`}>
                     {item._isReceipt ? '−' : '+'}{fmtMoney(item._isReceipt ? item.amount : docTotal(item))}
@@ -977,7 +977,7 @@ export function AccountingView() {
                 </button>
               ))}
               {overviewItems.length === 0 && (
-                <p className="text-sm text-white/35 text-center py-6 font-medium">Noch keine Einträge.</p>
+                <p className="text-sm text-dark/40 text-center py-6 font-medium">Noch keine Einträge.</p>
               )}
             </div>
           </div>
@@ -985,26 +985,26 @@ export function AccountingView() {
       ) : tab === 'subscriptions' ? (
         subscriptions.length === 0 ? (
           <div className="bg-panel rounded-2xl py-16 text-center flex-1 min-h-0">
-            <p className="text-white/40 text-sm font-medium">Noch keine Abos.</p>
+            <p className="text-dark/40 text-sm font-medium">Noch keine Abos.</p>
           </div>
         ) : (
           <div className="bg-panel rounded-2xl flex-1 min-h-0 overflow-y-auto">
             <ul>
               {subscriptions.map((s, i) => (
                 <li key={s.id} className={`flex items-center gap-3 px-4 sm:px-5 py-3.5 ${i < subscriptions.length - 1 ? 'border-b border-panel-2' : ''} ${s.active ? '' : 'opacity-40'}`}>
-                  <div className="w-9 h-9 rounded-xl bg-white/8 text-white/50 flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-panel-2 text-dark/50 flex items-center justify-center shrink-0">
                     <RefreshCw size={14} />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-white truncate">{s.name}</p>
-                    <p className="text-xs text-white/35 mt-0.5">{SUBSCRIPTION_INTERVAL_LABELS[s.interval]} · seit {fmtDate(s.start_date)}</p>
+                    <p className="text-sm font-semibold text-dark truncate">{s.name}</p>
+                    <p className="text-xs text-dark/45 mt-0.5">{SUBSCRIPTION_INTERVAL_LABELS[s.interval]} · seit {fmtDate(s.start_date)}</p>
                   </div>
                   <p className="text-sm font-bold text-accent shrink-0">{fmtMoney(s.amount)}</p>
                   <button
                     onClick={() => toggleSubscriptionActive(s)}
                     title={s.active ? 'Pausieren' : 'Aktivieren'}
                     className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shrink-0 ${
-                      s.active ? 'bg-accent-green/15 text-accent-green hover:bg-accent-green/25' : 'bg-white/6 text-white/30 hover:bg-white/12'
+                      s.active ? 'bg-accent-green/15 text-accent-green hover:bg-accent-green/25' : 'bg-panel-2 text-dark/35 hover:bg-panel-hover'
                     }`}
                   >
                     {s.active ? <Eye size={13} /> : <EyeOff size={13} />}
@@ -1012,14 +1012,14 @@ export function AccountingView() {
                   <button
                     onClick={() => setSubscriptionModal({ sub: s })}
                     title="Bearbeiten"
-                    className="w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 flex items-center justify-center text-white/40 hover:text-white transition-all shrink-0"
+                    className="w-8 h-8 rounded-full bg-panel-2 hover:bg-panel-hover flex items-center justify-center text-dark/45 hover:text-dark transition-all shrink-0"
                   >
                     <Pencil size={13} />
                   </button>
                   <button
                     onClick={() => deleteSubscription(s.id)}
                     title="Löschen"
-                    className="w-8 h-8 rounded-full bg-white/6 hover:bg-accent/20 flex items-center justify-center text-white/30 hover:text-accent transition-all shrink-0"
+                    className="w-8 h-8 rounded-full bg-panel-2 hover:bg-accent/20 flex items-center justify-center text-dark/35 hover:text-accent transition-all shrink-0"
                   >
                     <Trash2 size={13} />
                   </button>
@@ -1031,8 +1031,8 @@ export function AccountingView() {
       ) : tab === 'salaries' ? (
         salaries.length === 0 ? (
           <div className="bg-panel rounded-2xl py-16 text-center flex-1 min-h-0">
-            <p className="text-white/40 text-sm font-medium">Noch keine Gehälter erfasst.</p>
-            <p className="text-white/25 text-xs mt-1">Trage deine Lohnzettel (L16) hier ein.</p>
+            <p className="text-dark/40 text-sm font-medium">Noch keine Gehälter erfasst.</p>
+            <p className="text-dark/30 text-xs mt-1">Trage deine Lohnzettel (L16) hier ein.</p>
           </div>
         ) : (
           <div className="bg-panel rounded-2xl flex-1 min-h-0 overflow-y-auto">
@@ -1041,33 +1041,33 @@ export function AccountingView() {
                 <li key={s.id} className={`flex items-center gap-3 px-4 sm:px-5 py-3.5 ${i < salaries.length - 1 ? 'border-b border-panel-2' : ''}`}>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 min-w-0">
-                      <p className="text-sm font-semibold text-white truncate">{s.employer_name}</p>
-                      <span className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-white/8 text-white/35">
+                      <p className="text-sm font-semibold text-dark truncate">{s.employer_name}</p>
+                      <span className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-dark/6 text-dark/45">
                         {SALARY_TYPE_LABELS[s.entry_type]}
                       </span>
                     </div>
-                    <p className="text-xs text-white/35 mt-0.5">
+                    <p className="text-xs text-dark/45 mt-0.5">
                       {s.reference_number ?? `GH-${s.period_year}`} · {s.issue_date ? new Date(s.issue_date).toLocaleDateString('de-AT', { day: '2-digit', month: '2-digit', year: 'numeric' }) : s.period_year}{s.notes ? ` · ${s.notes}` : ''}
                     </p>
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-sm font-bold text-accent-green">{fmtMoney(s.gross_amount)}</p>
                     {s.tax_withheld > 0 && (
-                      <p className="text-xs text-white/30 mt-0.5">LSt {fmtMoney(s.tax_withheld)}</p>
+                      <p className="text-xs text-dark/40 mt-0.5">LSt {fmtMoney(s.tax_withheld)}</p>
                     )}
                   </div>
                   {s.file_path && (
                     <button onClick={() => setSalaryPreview(s)} title="Lohnzettel ansehen"
-                      className="w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 flex items-center justify-center text-white/40 hover:text-white transition-all shrink-0">
+                      className="w-8 h-8 rounded-full bg-panel-2 hover:bg-panel-hover flex items-center justify-center text-dark/45 hover:text-dark transition-all shrink-0">
                       <Eye size={13} />
                     </button>
                   )}
                   <button onClick={() => setSalaryModal({ entry: s })} title="Bearbeiten"
-                    className="w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 flex items-center justify-center text-white/40 hover:text-white transition-all shrink-0">
+                    className="w-8 h-8 rounded-full bg-panel-2 hover:bg-panel-hover flex items-center justify-center text-dark/45 hover:text-dark transition-all shrink-0">
                     <Pencil size={13} />
                   </button>
                   <button onClick={() => deleteSalary(s.id)} title="Löschen"
-                    className="w-8 h-8 rounded-full bg-white/6 hover:bg-accent/20 flex items-center justify-center text-white/30 hover:text-accent transition-all shrink-0">
+                    className="w-8 h-8 rounded-full bg-panel-2 hover:bg-accent/20 flex items-center justify-center text-dark/35 hover:text-accent transition-all shrink-0">
                     <Trash2 size={13} />
                   </button>
                 </li>
@@ -1079,7 +1079,7 @@ export function AccountingView() {
         <div className="flex-1 min-h-0 flex flex-col gap-5">
           <div className="bg-panel rounded-2xl p-5 shrink-0">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-black text-white">Zeitraum</h2>
+              <h2 className="text-sm font-black text-dark">Zeitraum</h2>
               <button
                 onClick={exportClosingPdf}
                 disabled={exportingPdf}
@@ -1094,7 +1094,7 @@ export function AccountingView() {
                 <button
                   key={m} onClick={() => setPeriodMode(m)}
                   className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
-                    periodMode === m ? 'bg-accent text-white' : 'bg-dark text-white/35 hover:text-white/70'
+                    periodMode === m ? 'bg-accent text-white' : 'bg-panel-2 text-dark/55 hover:text-dark'
                   }`}
                 >
                   {l}
@@ -1106,7 +1106,7 @@ export function AccountingView() {
                 <button
                   key={m} onClick={() => setPeriodMonth(m)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                    periodMonth === m ? 'bg-accent text-white' : 'bg-dark text-white/35 hover:text-white/70'
+                    periodMonth === m ? 'bg-accent text-white' : 'bg-panel-2 text-dark/55 hover:text-dark'
                   }`}
                 >
                   {new Date(2000, m, 1).toLocaleDateString('de-AT', { month: 'short' })}
@@ -1116,7 +1116,7 @@ export function AccountingView() {
                 <button
                   key={q} onClick={() => setPeriodQuarter(q)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-                    periodQuarter === q ? 'bg-accent text-white' : 'bg-dark text-white/35 hover:text-white/70'
+                    periodQuarter === q ? 'bg-accent text-white' : 'bg-panel-2 text-dark/55 hover:text-dark'
                   }`}
                 >
                   Q{q + 1}
@@ -1125,9 +1125,33 @@ export function AccountingView() {
               <ListYearDropdown year={periodYear} isActive onSelect={setPeriodYear} />
             </div>
           </div>
-          <div className="flex-1 min-h-0 flex flex-col">
-            <p className="shrink-0 text-xs text-white/30 mb-2 px-1">Abschluss · {closing.label} · {closing.invoiceCount} bezahlte Rechnung(en)</p>
-            <DocList docs={closing.periodInvoices} type="invoice" className="flex-1 min-h-0 overflow-y-auto" />
+          <div className="flex-1 min-h-0 flex flex-col gap-4 overflow-y-auto">
+            <div>
+              <p className="text-xs font-bold text-dark/45 mb-2 px-1 uppercase tracking-wide">Ausgangsrechnungen · {closing.invoiceCount} bezahlt</p>
+              <DocList docs={closing.periodInvoices} type="invoice" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-dark/45 mb-2 px-1 uppercase tracking-wide">Eingangsrechnungen · {closing.receiptCount} Einträge</p>
+              {closing.expenseItems.filter(e => e.date !== undefined).length === 0 ? (
+                <div className="bg-panel rounded-2xl py-8 text-center">
+                  <p className="text-dark/40 text-sm font-medium">Keine Eingangsrechnungen in diesem Zeitraum.</p>
+                </div>
+              ) : (
+                <div className="bg-panel rounded-2xl">
+                  <ul>
+                    {closing.expenseItems.filter(e => e.date !== undefined).map((e, i, arr) => (
+                      <li key={i} className={`flex items-center gap-3 px-4 sm:px-5 py-3.5 ${i < arr.length - 1 ? 'border-b border-panel-2' : ''}`}>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-dark truncate">{e.label}</p>
+                          {e.date && <p className="text-xs text-dark/45 mt-0.5">{fmtDate(e.date)}</p>}
+                        </div>
+                        <p className="text-sm font-bold text-accent shrink-0">{fmtMoney(e.amount)}</p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       ) : tab === 'invoices' ? (
@@ -1143,25 +1167,25 @@ export function AccountingView() {
       ) : (
         <div className="bg-panel rounded-2xl flex-1 min-h-0 overflow-y-auto">
           {listReceipts.length === 0 ? (
-            <div className="py-16 text-center"><p className="text-white/40 text-sm font-medium">Noch keine Zahlungen.</p></div>
+            <div className="py-16 text-center"><p className="text-dark/40 text-sm font-medium">Noch keine Eingangsrechnungen.</p></div>
           ) : (
             <ul>
               {listReceipts.map((r, i) => (
                 <li key={r.id} className={`flex items-center gap-3 px-4 sm:px-5 py-3.5 ${i < listReceipts.length - 1 ? 'border-b border-panel-2' : ''}`}>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 min-w-0">
-                      <p className="text-sm font-semibold text-white truncate">{r.vendor || RECEIPT_TYPE_LABELS[r.receipt_type]}</p>
-                      <span className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-white/8 text-white/35">
+                      <p className="text-sm font-semibold text-dark truncate">{r.vendor || RECEIPT_TYPE_LABELS[r.receipt_type]}</p>
+                      <span className="shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-dark/6 text-dark/45">
                         {RECEIPT_TYPE_LABELS[r.receipt_type]}
                       </span>
                     </div>
-                    <p className="text-xs text-white/35 mt-0.5">{fmtDate(r.date)}{r.category ? ` · ${r.category}` : ''}</p>
+                    <p className="text-xs text-dark/45 mt-0.5">{fmtDate(r.date)}{r.category ? ` · ${r.category}` : ''}</p>
                   </div>
                   <p className="text-sm font-bold text-accent shrink-0">{fmtMoney(r.amount)}</p>
                   <button
                     onClick={() => setPreviewReceipt(r)}
                     title="Vorschau"
-                    className={`w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 flex items-center justify-center transition-all shrink-0 ${r.file_path ? 'text-white/40 hover:text-white' : 'text-white/15 cursor-default'}`}
+                    className={`w-8 h-8 rounded-full bg-panel-2 hover:bg-panel-hover flex items-center justify-center transition-all shrink-0 ${r.file_path ? 'text-dark/45 hover:text-dark' : 'text-dark/15 cursor-default'}`}
                     disabled={!r.file_path}
                   >
                     <ImageIcon size={13} />
@@ -1169,14 +1193,14 @@ export function AccountingView() {
                   <button
                     onClick={() => setEditReceipt(r)}
                     title="Bearbeiten"
-                    className="w-8 h-8 rounded-full bg-white/6 hover:bg-white/12 flex items-center justify-center text-white/40 hover:text-white transition-all shrink-0"
+                    className="w-8 h-8 rounded-full bg-panel-2 hover:bg-panel-hover flex items-center justify-center text-dark/45 hover:text-dark transition-all shrink-0"
                   >
                     <Pencil size={13} />
                   </button>
                   <button
                     onClick={() => deleteReceipt(r.id)}
                     title="Löschen"
-                    className="w-8 h-8 rounded-full bg-white/6 hover:bg-accent/20 flex items-center justify-center text-white/30 hover:text-accent transition-all shrink-0"
+                    className="w-8 h-8 rounded-full bg-panel-2 hover:bg-accent/20 flex items-center justify-center text-dark/35 hover:text-accent transition-all shrink-0"
                   >
                     <Trash2 size={13} />
                   </button>
