@@ -301,13 +301,13 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
       <div className="shrink-0">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-black text-white tracking-tight leading-none">Leads</h1>
-            <p className="text-sm text-white/30 mt-2 font-medium">{leads.length} Einträge gesamt</p>
+            <h1 className="text-3xl font-black text-dark tracking-tight leading-none">Leads</h1>
+            <p className="text-sm text-dark/40 mt-2 font-medium">{leads.length} Einträge gesamt</p>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowImport(true)}
-              className="flex items-center gap-2 bg-panel hover:bg-panel-hover text-white/60 hover:text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95"
+              className="flex items-center gap-2 bg-panel hover:bg-panel-hover text-dark/60 hover:text-dark px-4 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95"
             >
               <Upload size={16} />
               <span className="hidden sm:inline">Importieren</span>
@@ -332,13 +332,13 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
         {/* Search + bulk action bar */}
         <div className="mt-5 flex gap-2 items-center">
         <div className="relative flex-1 min-w-0">
-          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/25 pointer-events-none" />
+          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-dark/30 pointer-events-none" />
           <input
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Suchen..."
-            className="w-full bg-panel rounded-xl pl-9 pr-4 py-2.5 text-sm text-white placeholder-white/25 outline-none focus:ring-1 focus:ring-accent transition-all"
+            className="w-full bg-panel rounded-xl pl-9 pr-4 py-2.5 text-sm text-dark placeholder-dark/30 outline-none focus:ring-1 focus:ring-accent transition-all"
           />
         </div>
 
@@ -347,34 +347,34 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
           <button
             onClick={() => setBrancheOpen(o => !o)}
             className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${
-              brancheFilter ? 'bg-accent text-white' : 'bg-panel text-white/40 hover:text-white/70'
+              brancheFilter ? 'bg-accent text-white' : 'bg-panel text-dark/50 hover:text-dark'
             }`}
           >
             <span className="max-w-28 truncate">{brancheFilter || 'Branche'}</span>
             <ChevronDown size={13} className={`shrink-0 transition-transform ${brancheOpen ? 'rotate-180' : ''}`} />
           </button>
           {brancheOpen && (
-            <div className="absolute top-full left-0 mt-1 z-50 bg-panel-hover rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.6)] border border-white/10 p-1 min-w-44 max-h-72 overflow-y-auto">
+            <div className="absolute top-full left-0 mt-1 z-50 bg-white rounded-xl shadow-md border border-rim p-1 min-w-44 max-h-72 overflow-y-auto">
               <button
                 onClick={() => { setBrancheFilter(''); setBrancheOpen(false) }}
-                className={`w-full text-left px-3 py-2.5 text-sm rounded-lg hover:bg-white/8 transition-colors ${!brancheFilter ? 'text-white font-bold' : 'text-white/50'}`}
+                className={`w-full text-left px-3 py-2.5 text-sm rounded-lg hover:bg-panel-2 transition-colors ${!brancheFilter ? 'text-dark font-bold' : 'text-dark/50'}`}
               >
                 Alle Branchen
               </button>
-              {branches.length > 0 && <div className="border-t border-white/8 my-1" />}
+              {branches.length > 0 && <div className="border-t border-rim my-1" />}
               {branches.map(b => (
                 <button
                   key={b}
                   onClick={() => { setBrancheFilter(b); setBrancheOpen(false) }}
-                  className={`w-full text-left px-3 py-2.5 text-sm rounded-lg hover:bg-white/8 transition-colors ${
-                    brancheFilter === b ? 'text-accent font-bold' : 'text-white/60'
+                  className={`w-full text-left px-3 py-2.5 text-sm rounded-lg hover:bg-panel-2 transition-colors ${
+                    brancheFilter === b ? 'text-accent font-bold' : 'text-dark/60'
                   }`}
                 >
                   {b}
                 </button>
               ))}
               {branches.length === 0 && (
-                <p className="px-3 py-2.5 text-xs text-white/25">Keine Branchen in Leads.</p>
+                <p className="px-3 py-2.5 text-xs text-dark/30">Keine Branchen in Leads.</p>
               )}
             </div>
           )}
@@ -382,7 +382,7 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
 
         {selectionCount > 0 ? (
           <div className="flex items-center gap-2 flex-1">
-            <span className="text-xs text-white/50 font-medium">{selectionCount} ausgewählt</span>
+            <span className="text-xs text-dark/60 font-medium">{selectionCount} ausgewählt</span>
             <button
               onClick={handleBulkDelete}
               disabled={deleting}
@@ -393,13 +393,13 @@ export function LeadsView({ initialLeads }: { initialLeads: Lead[] }) {
             </button>
             <button
               onClick={() => setSelectedIds(new Set())}
-              className="p-1.5 text-white/30 hover:text-white rounded-lg transition-colors"
+              className="p-1.5 text-dark/30 hover:text-dark rounded-lg transition-colors"
             >
               <X size={14} />
             </button>
           </div>
         ) : (
-          <div className="flex items-center text-xs text-white/35 font-medium">
+          <div className="flex items-center text-xs text-dark/50 font-medium">
             {filtered.length} {filtered.length === 1 ? 'Lead' : 'Leads'}
           </div>
         )}

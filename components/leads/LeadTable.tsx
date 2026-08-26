@@ -71,7 +71,7 @@ function Circle({
         selected ? (onAccent ? 'bg-white' : 'bg-accent') :
         partial  ? (onAccent ? 'bg-white/70' : 'bg-accent/45') :
         onAccent ? 'border-2 border-white/55 hover:border-white/85' :
-                   'bg-white/10 hover:bg-white/20'
+                   'border-2 border-rim hover:border-accent/40 hover:bg-accent/5'
       }`}
     />
   )
@@ -131,7 +131,7 @@ export function LeadTable({
   if (leads.length === 0) {
     return (
       <div className="bg-panel rounded-b-2xl py-16 text-center flex-1 min-h-0">
-        <p className="text-white/40 text-sm font-medium">Keine Leads in dieser Kategorie.</p>
+        <p className="text-dark/40 text-sm font-medium">Keine Leads in dieser Kategorie.</p>
       </div>
     )
   }
@@ -177,8 +177,8 @@ export function LeadTable({
 
               {/* Company + person / city */}
               <div className="min-w-0" onClick={() => onLeadClick(lead)}>
-                <p className="text-sm font-semibold text-white truncate leading-snug">{lead.name}</p>
-                <p className="text-xs text-white/35 truncate mt-0.5 leading-snug">
+                <p className="text-sm font-semibold text-dark truncate leading-snug">{lead.name}</p>
+                <p className="text-xs text-dark/40 truncate mt-0.5 leading-snug">
                   {[lead.ceos || lead.owner, lead.city || lead.region].filter(Boolean).join(' · ') || '-'}
                 </p>
               </div>
@@ -202,8 +202,8 @@ export function LeadTable({
                       lead.handler
                         ? lead.handler === currentUsername
                           ? 'bg-accent/20 text-accent hover:bg-accent/30'
-                          : 'bg-white/12 text-white/70 hover:bg-white/18'
-                        : 'bg-white/5 text-white/25 hover:bg-white/10 hover:text-white/40'
+                          : 'bg-panel-2 text-dark/65 hover:bg-panel-hover'
+                        : 'bg-panel-2 text-dark/35 hover:bg-panel-hover hover:text-dark/55'
                     }`}
                   >
                     <User size={10} className="shrink-0" />
@@ -211,16 +211,16 @@ export function LeadTable({
                   </button>
 
                   {openHandlerFor === lead.id && (
-                    <div className="absolute top-full left-0 mt-1 z-200 bg-panel-hover rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.6)] border border-white/10 p-1 min-w-37.5">
+                    <div className="absolute top-full left-0 mt-1 z-200 bg-white rounded-xl shadow-md border border-rim p-1 min-w-37.5">
                       {users.length === 0 && (
-                        <p className="px-3 py-2.5 text-xs text-white/30">Erst Benutzernamen in Einstellungen setzen.</p>
+                        <p className="px-3 py-2.5 text-xs text-dark/40">Erst Benutzernamen in Einstellungen setzen.</p>
                       )}
                       {users.map(u => (
                         <button
                           key={u.id}
                           onClick={() => { onSetHandler?.(lead.id, lead.handler === u.username ? null : u.username); setOpenHandlerFor(null) }}
-                          className={`w-full text-left px-3 py-2.5 text-sm rounded-lg hover:bg-white/8 transition-colors flex items-center gap-2 ${
-                            lead.handler === u.username ? 'text-accent font-bold' : 'text-white/60'
+                          className={`w-full text-left px-3 py-2.5 text-sm rounded-lg hover:bg-panel-2 transition-colors flex items-center gap-2 ${
+                            lead.handler === u.username ? 'text-accent font-bold' : 'text-dark/60'
                           }`}
                         >
                           <User size={11} className="shrink-0 opacity-40" />
@@ -230,7 +230,7 @@ export function LeadTable({
                       {lead.handler && (
                         <button
                           onClick={() => { onSetHandler?.(lead.id, null); setOpenHandlerFor(null) }}
-                          className="w-full text-left px-3 py-2 mt-0.5 text-xs text-white/30 hover:bg-white/8 hover:text-accent transition-colors border-t border-white/8 rounded-b-lg"
+                          className="w-full text-left px-3 py-2 mt-0.5 text-xs text-dark/40 hover:bg-panel-2 hover:text-accent transition-colors border-t border-rim-subtle rounded-b-lg"
                         >
                           Entfernen
                         </button>
@@ -252,8 +252,8 @@ export function LeadTable({
                     <Phone size={13} className="text-white" strokeWidth={2.5} />
                   </a>
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
-                    <Phone size={13} className="text-white/12" />
+                  <div className="w-8 h-8 rounded-full bg-panel-2 flex items-center justify-center">
+                    <Phone size={13} className="text-dark/20" />
                   </div>
                 )}
               </div>
@@ -266,11 +266,11 @@ export function LeadTable({
                     title="WhatsApp / Kontakt teilen"
                     className="w-8 h-8 rounded-full bg-accent-green flex items-center justify-center hover:opacity-85 transition-all active:scale-90"
                   >
-                    <Share2 size={12} className="text-dark" strokeWidth={2.5} />
+                    <Share2 size={12} className="text-white" strokeWidth={2.5} />
                   </button>
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
-                    <Share2 size={12} className="text-white/12" />
+                  <div className="w-8 h-8 rounded-full bg-panel-2 flex items-center justify-center">
+                    <Share2 size={12} className="text-dark/20" />
                   </div>
                 )}
               </div>
@@ -284,13 +284,13 @@ export function LeadTable({
                     rel="noopener noreferrer"
                     onClick={e => e.stopPropagation()}
                     title={lead.website}
-                    className="w-8 h-8 rounded-full bg-white/12 flex items-center justify-center hover:bg-white/20 transition-all active:scale-90"
+                    className="w-8 h-8 rounded-full bg-panel-2 flex items-center justify-center hover:bg-panel-hover transition-all active:scale-90"
                   >
-                    <Globe size={13} className="text-white" strokeWidth={2.5} />
+                    <Globe size={13} className="text-dark/60" strokeWidth={2.5} />
                   </a>
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
-                    <Globe size={13} className="text-white/12" />
+                  <div className="w-8 h-8 rounded-full bg-panel-2 flex items-center justify-center">
+                    <Globe size={13} className="text-dark/20" />
                   </div>
                 )}
               </div>
@@ -301,16 +301,16 @@ export function LeadTable({
                   onClick={e => { e.stopPropagation(); onQuickNote?.(lead) }}
                   title={hasNotes ? 'Notiz bearbeiten' : 'Notiz hinzufügen'}
                   className={`w-8 h-8 rounded-full flex items-center justify-center transition-all active:scale-90 ${
-                    hasNotes ? 'bg-accent/15 hover:bg-accent/25' : 'bg-white/5 hover:bg-white/12'
+                    hasNotes ? 'bg-accent/15 hover:bg-accent/25' : 'bg-panel-2 hover:bg-panel-hover'
                   }`}
                 >
-                  <StickyNote size={12} className={hasNotes ? 'text-accent' : 'text-white/25'} />
+                  <StickyNote size={12} className={hasNotes ? 'text-accent' : 'text-dark/30'} />
                 </button>
               </div>
 
               {/* Chevron */}
               <div className="flex justify-end" onClick={() => onLeadClick(lead)}>
-                <ChevronRight size={14} className="text-white/20 group-hover:text-white/50 transition-colors" />
+                <ChevronRight size={14} className="text-dark/20 group-hover:text-dark/50 transition-colors" />
               </div>
             </li>
           )
