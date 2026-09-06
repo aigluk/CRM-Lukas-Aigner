@@ -266,12 +266,12 @@ const KPI_TONE_STYLES = {
 function KpiCard({ icon, label, value, tone = 'default' }: { icon: React.ReactNode; label: string; value: string; tone?: keyof typeof KPI_TONE_STYLES }) {
   const s = KPI_TONE_STYLES[tone]
   return (
-    <div className={`${s.cardBg} flex-1 min-w-0 p-3.5 sm:p-5`}>
-      <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 sm:mb-4 ${s.iconBg} ${s.iconColor}`}>
+    <div className={`${s.cardBg} flex-1 min-w-0 p-3 sm:p-5`}>
+      <div className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center mb-2.5 sm:mb-4 ${s.iconBg} ${s.iconColor}`}>
         {icon}
       </div>
-      <p className={`text-xl sm:text-2xl font-black leading-none ${s.textColor}`}>{value}</p>
-      <p className={`text-[11px] sm:text-xs font-medium mt-2 leading-tight ${s.labelColor}`}>{label}</p>
+      <p className={`text-base sm:text-2xl font-black leading-none wrap-break-word hyphens-auto ${s.textColor}`}>{value}</p>
+      <p className={`text-[10px] sm:text-xs font-medium mt-1.5 sm:mt-2 leading-tight ${s.labelColor}`}>{label}</p>
     </div>
   )
 }
@@ -443,6 +443,17 @@ export function AccountingView() {
     const expenses = expensesReceipts + expensesSubs
     return { incomePaid, incomeOpen, expenses, profit: incomePaid - expenses }
   }, [invoices, receipts, subscriptions, listPeriod])
+
+  const salaryTotals = useMemo(() => {
+    const filtered = salaries.filter(s => {
+      if (listPeriod === 'all') return true
+      if (typeof listPeriod === 'number') return s.period_year === listPeriod
+      return s.period_year === (listPeriod as MonthPeriod).year
+    })
+    const gross = filtered.reduce((sum, s) => sum + s.gross_amount, 0)
+    const taxWithheld = filtered.reduce((sum, s) => sum + s.tax_withheld, 0)
+    return { gross, taxWithheld, net: gross - taxWithheld, count: filtered.length }
+  }, [salaries, listPeriod])
 
   const closing = useMemo(() => {
     let inPeriod: (isoDate: string) => boolean
@@ -961,7 +972,7 @@ export function AccountingView() {
               </div>
             )}
             {kpiVisible ? (
-              <div className="flex rounded-2xl overflow-hidden">
+              <div className="grid grid-cols-2 sm:flex rounded-2xl overflow-hidden gap-px sm:gap-0 bg-rim-subtle sm:bg-transparent">
                 <KpiCard icon={<TrendingUp size={16} />} label="Einnahmen (bezahlt)" value={fmtMoney(totals.incomePaid)} tone="default" />
                 <KpiCard icon={<Wallet size={16} />} label="Offene Rechnungen" value={fmtMoney(totals.incomeOpen)} tone="gray" />
                 <KpiCard icon={<TrendingDown size={16} />} label="Ausgaben" value={fmtMoney(totals.expenses)} tone="accent" />
@@ -977,6 +988,36 @@ export function AccountingView() {
               </button>
             )}
           </div>
+          {/* Gesamteinkünfte — zeigt Betrieb + § 25 Lohnzettel kombiniert */}
+          {salaryTotals.count > 0 && (
+            <div className="bg-panel rounded-2xl px-5 py-4 shrink-0">
+              <p className="text-[11px] font-black text-dark/40 uppercase tracking-widest mb-3.5">Gesamteinkünfte</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
+                <div>
+                  <p className="text-[11px] font-semibold text-dark/40 mb-1">Betriebsgewinn</p>
+                  <p className={`text-sm sm:text-lg font-black leading-none wrap-break-word hyphens-auto ${totals.profit >= 0 ? 'text-dark' : 'text-accent'} ${!kpiVisible ? 'blur-sm select-none' : ''}`}>
+                    {fmtMoney(totals.profit)}
+                  </p>
+                  <p className="text-[10px] text-dark/30 mt-1">Einnahmen − Ausgaben</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold text-dark/40 mb-1">§ 25 Einkünfte</p>
+                  <p className={`text-sm sm:text-lg font-black leading-none wrap-break-word hyphens-auto text-dark ${!kpiVisible ? 'blur-sm select-none' : ''}`}>
+                    {fmtMoney(salaryTotals.gross)}
+                  </p>
+                  <p className={`text-[10px] text-dark/30 mt-1 ${!kpiVisible ? 'blur-sm select-none' : ''}`}>LSt −{fmtMoney(salaryTotals.taxWithheld)}</p>
+                </div>
+                <div className="col-span-2 sm:col-span-1 bg-accent-green/20 rounded-xl px-3 py-2.5">
+                  <p className="text-[11px] font-semibold text-dark/50 mb-1">Gesamt netto</p>
+                  <p className={`text-sm sm:text-lg font-black leading-none text-dark ${!kpiVisible ? 'blur-sm select-none' : ''}`}>
+                    {fmtMoney(totals.profit + salaryTotals.net)}
+                  </p>
+                  <p className="text-[10px] text-dark/30 mt-1">Betrieb + Lohnzettel</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="bg-panel rounded-2xl flex-1 min-h-0 flex flex-col overflow-hidden">
             <div className="shrink-0 px-6 pt-5 pb-0">
               <h2 className="text-sm font-black text-dark mb-4">Letzte Ein- & Ausgangsrechnungen</h2>
