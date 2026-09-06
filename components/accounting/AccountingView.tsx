@@ -972,11 +972,12 @@ export function AccountingView() {
       )}
       </div>{/* /shrink-0 */}
 
-      <div className="flex-1 min-h-0 flex flex-col">
+      {/* Mobile: dieser Bereich scrollt selbst. Desktop: nested scroll via flex-col */}
+      <div className="flex-1 min-h-0 overflow-y-auto sm:overflow-visible sm:flex sm:flex-col">
       {loading ? (
         <p className="text-sm text-dark/40 text-center py-16 font-medium">Lädt…</p>
       ) : tab === 'overview' ? (
-        <div className="flex-1 min-h-0 flex flex-col gap-5">
+        <div className="flex flex-col gap-5 sm:flex-1 sm:min-h-0">
           <div className="shrink-0">
             {kpiVisible && (
               <div className="flex items-center justify-end mb-3">
@@ -1036,11 +1037,11 @@ export function AccountingView() {
             </div>
           )}
 
-          <div className="bg-panel rounded-2xl flex-1 min-h-0 flex flex-col overflow-hidden">
+          <div className="bg-panel rounded-2xl sm:flex-1 sm:min-h-0 sm:flex sm:flex-col sm:overflow-hidden">
             <div className="shrink-0 px-6 pt-5 pb-0">
               <h2 className="text-sm font-black text-dark mb-4">Letzte Ein- & Ausgangsrechnungen</h2>
             </div>
-            <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-6">
+            <div className="px-6 pb-6 sm:flex-1 sm:min-h-0 sm:overflow-y-auto">
               {overviewItems.slice(0, 20).map((item: any, i) => (
                 <button
                   key={item.id}

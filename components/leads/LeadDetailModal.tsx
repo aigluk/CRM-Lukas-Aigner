@@ -312,20 +312,20 @@ export function LeadDetailModal({
           {callMode && (
             <div className="bg-panel-2 rounded-2xl p-5 space-y-4">
               <p className="text-xs font-black text-accent">Schnellaktionen</p>
-              <ul className="space-y-2">
+              <ul className="space-y-1">
                 {CALL_ITEMS.map(item => {
                   const done = checked.has(item)
                   return (
                     <li key={item}>
                       <button
                         onClick={() => toggleCheck(item)}
-                        className="flex items-center gap-3 w-full group"
+                        className={`flex items-center gap-3 w-full min-h-13 px-3 -mx-3 rounded-xl transition-colors active:scale-[0.98] ${done ? 'bg-accent-green/10' : 'hover:bg-white/60'}`}
                       >
                         {done
-                          ? <CheckSquare size={16} className="text-accent-green shrink-0" />
-                          : <Square size={16} className="text-dark/20 group-hover:text-dark/40 shrink-0 transition-colors" />
+                          ? <CheckSquare size={24} className="text-accent-green shrink-0" />
+                          : <Square size={24} className="text-dark/25 shrink-0 transition-colors" />
                         }
-                        <span className={`text-sm transition-colors ${done ? 'text-dark/40 line-through' : 'text-dark/80'}`}>
+                        <span className={`text-sm font-medium transition-colors text-left ${done ? 'text-dark/40 line-through' : 'text-dark/80'}`}>
                           {item}
                         </span>
                       </button>
