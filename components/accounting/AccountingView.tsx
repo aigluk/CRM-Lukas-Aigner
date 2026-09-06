@@ -433,16 +433,32 @@ export function AccountingView() {
   const totals = useMemo(() => {
     const regularInvoices = invoices.filter(d => d.doc_type === 'invoice')
     const stornos = invoices.filter(d => d.doc_type === 'storno')
-    const stornoAdjustment = stornos.filter(d => inListPeriod(d.issue_date, listPeriod)).reduce((s, d) => s + docTotal(d), 0)
-    // Gesamtumsatz = alle Ausgangsrechnungen (bezahlt + offen + überfällig), Entwürfe ausgeschlossen
+
+    // Gesamtumsatz = Summe ALLER regulären Ausgangsrechnungen (bezahlt + offen + überfällig)
+    // Entwürfe und Stornos ausgeschlossen — entspricht der händischen Summe im Rechnungs-Tab
     const inPeriodInvoices = regularInvoices.filter(d => d.status !== 'draft' && inListPeriod(d.issue_date, listPeriod))
-    const totalRevenue = inPeriodInvoices.reduce((s, d) => s + docTotal(d), 0) + stornoAdjustment
-    const incomePaid = inPeriodInvoices.filter(d => d.status === 'paid').reduce((s, d) => s + docTotal(d), 0) + stornoAdjustment
+    const totalRevenue = inPeriodInvoices.reduce((s, d) => s + docTotal(d), 0)
+
+    const paidInvoices = inPeriodInvoices.filter(d => d.status === 'paid')
+    const incomePaidBase = paidInvoices.reduce((s, d) => s + docTotal(d), 0)
+
+    // Storno-Abzug NUR wenn die Original-Rechnung tatsächlich bezahlt wurde.
+    // War die Rechnung nie bezahlt und wird storniert, gab es keine Einnahme → kein Abzug.
+    const stornoAdjustment = stornos
+      .filter(d => inListPeriod(d.issue_date, listPeriod))
+      .reduce((s, d) => {
+        const originalWasPaid = regularInvoices.some(
+          inv => inv.doc_number === d.storno_of_number && inv.status === 'paid'
+        )
+        return originalWasPaid ? s + docTotal(d) : s
+      }, 0)
+
+    const incomePaid = incomePaidBase + stornoAdjustment
     const incomeOpen = inPeriodInvoices.filter(d => d.status !== 'paid').reduce((s, d) => s + docTotal(d), 0)
+
     const expensesReceipts = receipts.filter(r => r.receipt_type === 'expense' && inListPeriod(r.date, listPeriod)).reduce((s, r) => s + r.amount, 0)
     const expensesSubs = subscriptions.reduce((s, sub) => s + subscriptionContribution(sub, listPeriod), 0)
     const expenses = expensesReceipts + expensesSubs
-    // Gewinn auf Basis tatsächlich bezahlter Rechnungen (Einnahmen-Ausgaben-Rechnung)
     return { totalRevenue, incomePaid, incomeOpen, expenses, profit: incomePaid - expenses }
   }, [invoices, receipts, subscriptions, listPeriod])
 
