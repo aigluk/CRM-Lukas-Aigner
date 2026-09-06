@@ -431,17 +431,19 @@ export function AccountingView() {
   }
 
   const totals = useMemo(() => {
-    // Stornos are always effective immediately — counted regardless of their own status.
-    // Regular invoices count only when paid (for the paid bucket) or otherwise (open bucket).
     const regularInvoices = invoices.filter(d => d.doc_type === 'invoice')
     const stornos = invoices.filter(d => d.doc_type === 'storno')
     const stornoAdjustment = stornos.filter(d => inListPeriod(d.issue_date, listPeriod)).reduce((s, d) => s + docTotal(d), 0)
-    const incomePaid = regularInvoices.filter(d => d.status === 'paid' && inListPeriod(d.issue_date, listPeriod)).reduce((s, d) => s + docTotal(d), 0) + stornoAdjustment
-    const incomeOpen = regularInvoices.filter(d => d.status !== 'paid' && inListPeriod(d.issue_date, listPeriod)).reduce((s, d) => s + docTotal(d), 0)
+    // Gesamtumsatz = alle Ausgangsrechnungen (bezahlt + offen + überfällig), Entwürfe ausgeschlossen
+    const inPeriodInvoices = regularInvoices.filter(d => d.status !== 'draft' && inListPeriod(d.issue_date, listPeriod))
+    const totalRevenue = inPeriodInvoices.reduce((s, d) => s + docTotal(d), 0) + stornoAdjustment
+    const incomePaid = inPeriodInvoices.filter(d => d.status === 'paid').reduce((s, d) => s + docTotal(d), 0) + stornoAdjustment
+    const incomeOpen = inPeriodInvoices.filter(d => d.status !== 'paid').reduce((s, d) => s + docTotal(d), 0)
     const expensesReceipts = receipts.filter(r => r.receipt_type === 'expense' && inListPeriod(r.date, listPeriod)).reduce((s, r) => s + r.amount, 0)
     const expensesSubs = subscriptions.reduce((s, sub) => s + subscriptionContribution(sub, listPeriod), 0)
     const expenses = expensesReceipts + expensesSubs
-    return { incomePaid, incomeOpen, expenses, profit: incomePaid - expenses }
+    // Gewinn auf Basis tatsächlich bezahlter Rechnungen (Einnahmen-Ausgaben-Rechnung)
+    return { totalRevenue, incomePaid, incomeOpen, expenses, profit: incomePaid - expenses }
   }, [invoices, receipts, subscriptions, listPeriod])
 
   const salaryTotals = useMemo(() => {
@@ -973,10 +975,10 @@ export function AccountingView() {
             )}
             {kpiVisible ? (
               <div className="grid grid-cols-2 sm:flex rounded-2xl overflow-hidden gap-px sm:gap-0 bg-rim-subtle sm:bg-transparent">
-                <KpiCard icon={<TrendingUp size={16} />} label="Einnahmen (bezahlt)" value={fmtMoney(totals.incomePaid)} tone="default" />
-                <KpiCard icon={<Wallet size={16} />} label="Offene Rechnungen" value={fmtMoney(totals.incomeOpen)} tone="gray" />
+                <KpiCard icon={<TrendingUp size={16} />} label="Gesamtumsatz" value={fmtMoney(totals.totalRevenue)} tone="default" />
+                <KpiCard icon={<Wallet size={16} />} label="Davon offen" value={fmtMoney(totals.incomeOpen)} tone="gray" />
                 <KpiCard icon={<TrendingDown size={16} />} label="Ausgaben" value={fmtMoney(totals.expenses)} tone="accent" />
-                <KpiCard icon={<TrendingUp size={16} />} label="Gewinn" value={fmtMoney(totals.profit)} tone={totals.profit >= 0 ? 'green' : 'accent'} />
+                <KpiCard icon={<TrendingUp size={16} />} label="Gewinn (bezahlt)" value={fmtMoney(totals.profit)} tone={totals.profit >= 0 ? 'green' : 'accent'} />
               </div>
             ) : (
               <button
