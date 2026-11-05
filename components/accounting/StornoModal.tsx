@@ -57,6 +57,8 @@ export function StornoModal({
   const [existingVatOverride, setExistingVatOverride] = useState('')
   const [issueDate, setIssueDate] = useState(new Date().toISOString().slice(0, 10))
   const [notes, setNotes] = useState('')
+  // Geldfluss: wurde Geld an den Kunden rückerstattet? Sonst neutraler Beleg ohne Einfluss auf Umsatz/Gewinn.
+  const [moneyFlow, setMoneyFlow] = useState<'none' | 'refunded' | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -68,6 +70,7 @@ export function StornoModal({
   }, [])
 
   const selectedInvoice = invoices.find(d => d.id === selectedId) ?? preselectedInvoice ?? null
+  const effectiveMoneyFlow = moneyFlow ?? (mode === 'existing' && selectedInvoice?.status === 'paid' ? 'refunded' : 'none')
 
   const resolvedCustomer = selectedInvoice?.customer_id
     ? customers.find(c => c.id === selectedInvoice.customer_id) ?? null
@@ -110,7 +113,7 @@ export function StornoModal({
           storno_of_number: selectedInvoice.doc_number,
           storno_of_date:   selectedInvoice.issue_date,
           storno_of_name:   null,
-          status:          'draft',
+          status:          effectiveMoneyFlow === 'refunded' ? 'paid' : 'sent',
         }
       } else {
         if (!manualRefNumber.trim()) { setError('Bitte die Rechnungsnummer der Originalrechnung angeben.'); setSaving(false); return }
@@ -134,7 +137,7 @@ export function StornoModal({
           storno_of_number: manualRefNumber.trim(),
           storno_of_date:   manualRefDate || null,
           storno_of_name:   manualRefName.trim() || null,
-          status:          'draft',
+          status:          effectiveMoneyFlow === 'refunded' ? 'paid' : 'sent',
         }
       }
 
@@ -424,6 +427,25 @@ export function StornoModal({
             <div>
               <label className={labelCls}>Stornodatum</label>
               <DatePicker value={issueDate} onChange={setIssueDate} />
+            </div>
+          </div>
+          <div>
+            <label className={labelCls}>Geldfluss</label>
+            <div className="grid grid-cols-2 gap-2">
+              {([
+                ['none', 'Kein Geldfluss', 'Rechnung nie bezahlt. Wirkt nicht auf Umsatz oder Gewinn.'],
+                ['refunded', 'Rückerstattet', 'Kunde hat bezahlt, Betrag wurde zurücküberwiesen. Mindert die Einnahmen.'],
+              ] as const).map(([value, title, desc]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setMoneyFlow(value)}
+                  className={`text-left rounded-xl px-3.5 py-2.5 transition-all ${effectiveMoneyFlow === value ? 'bg-accent/15 ring-1 ring-accent' : 'bg-panel-2 hover:bg-panel-hover'}`}
+                >
+                  <p className={`text-xs font-bold ${effectiveMoneyFlow === value ? 'text-accent' : 'text-dark'}`}>{title}</p>
+                  <p className="text-[11px] text-dark/45 mt-0.5 leading-snug">{desc}</p>
+                </button>
+              ))}
             </div>
           </div>
           <div>

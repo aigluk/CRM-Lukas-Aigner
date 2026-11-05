@@ -204,6 +204,15 @@ type PeriodMode = 'month' | 'quarter' | 'year'
 const STATUS_LABELS: Record<DocStatus, string> = {
   draft: 'Entwurf', sent: 'Versendet', paid: 'Bezahlt', overdue: 'Überfällig',
 }
+// Stornos: der Status beschreibt den Geldfluss, nicht den Versand.
+// 'paid' = Geld wurde an den Kunden rückerstattet (mindert die Einnahmen),
+// 'sent' = es ist nie Geld geflossen (neutral, nur Beleg im System).
+const STORNO_STATUS_LABELS: Partial<Record<DocStatus, string>> = {
+  draft: 'Entwurf', sent: 'Kein Geldfluss', paid: 'Rückerstattet',
+}
+function stornoAffectsIncome(doc: AccountingDocument): boolean {
+  return doc.doc_type === 'storno' && doc.status === 'paid'
+}
 const STATUS_STYLES: Record<DocStatus, string> = {
   draft:   'bg-dark/6 text-dark/45',
   sent:    'bg-dark/12 text-dark/60',
@@ -226,7 +235,8 @@ function docTotal(doc: AccountingDocument): number {
   return subtotal * (1 + doc.tax_rate / 100)
 }
 
-function StatusPicker({ status, onChange }: { status: DocStatus; onChange: (s: DocStatus) => void }) {
+function StatusPicker({ status, onChange, storno = false }: { status: DocStatus; onChange: (s: DocStatus) => void; storno?: boolean }) {
+  const labels = storno ? STORNO_STATUS_LABELS : STATUS_LABELS
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   useClickOutside(ref, () => setOpen(false))
@@ -237,17 +247,17 @@ function StatusPicker({ status, onChange }: { status: DocStatus; onChange: (s: D
         type="button" onClick={() => setOpen(o => !o)}
         className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-bold whitespace-nowrap transition-all ${STATUS_STYLES[status]}`}
       >
-        {STATUS_LABELS[status]}
+        {labels[status] ?? STATUS_LABELS[status]}
         <ChevronDown size={10} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
         <div className="absolute top-full right-0 mt-1 z-20 bg-white rounded-xl shadow-md border border-rim p-1 min-w-32">
-          {(Object.keys(STATUS_LABELS) as DocStatus[]).map(s => (
+          {(Object.keys(labels) as DocStatus[]).map(s => (
             <button
               key={s} type="button" onClick={() => { onChange(s); setOpen(false) }}
               className={`w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-panel-2 transition-colors ${s === status ? 'text-accent font-bold' : 'text-dark/60'}`}
             >
-              {STATUS_LABELS[s]}
+              {labels[s]}
             </button>
           ))}
         </div>
@@ -442,16 +452,11 @@ export function AccountingView() {
     const paidInvoices = inPeriodInvoices.filter(d => d.status === 'paid')
     const incomePaidBase = paidInvoices.reduce((s, d) => s + docTotal(d), 0)
 
-    // Storno-Abzug NUR wenn die Original-Rechnung tatsächlich bezahlt wurde.
-    // War die Rechnung nie bezahlt und wird storniert, gab es keine Einnahme → kein Abzug.
+    // Storno-Abzug NUR wenn tatsächlich Geld rückerstattet wurde (Status "Rückerstattet").
+    // "Kein Geldfluss" = Durchläufer: Beleg bleibt im System, wirkt aber nicht auf Umsatz/Gewinn.
     const stornoAdjustment = stornos
-      .filter(d => inListPeriod(d.issue_date, listPeriod))
-      .reduce((s, d) => {
-        const originalWasPaid = regularInvoices.some(
-          inv => inv.doc_number === d.storno_of_number && inv.status === 'paid'
-        )
-        return originalWasPaid ? s + docTotal(d) : s
-      }, 0)
+      .filter(d => stornoAffectsIncome(d) && inListPeriod(d.issue_date, listPeriod))
+      .reduce((s, d) => s + docTotal(d), 0)
 
     const incomePaid = incomePaidBase + stornoAdjustment
     const incomeOpen = inPeriodInvoices.filter(d => d.status !== 'paid').reduce((s, d) => s + docTotal(d), 0)
@@ -488,7 +493,9 @@ export function AccountingView() {
       label = `${periodYear}`
     }
 
-    const periodInvoices = invoices.filter(d => d.status === 'paid' && inPeriod(d.issue_date))
+    // Zufluss-/Abflussprinzip (§ 4 Abs. 3 / § 19 EStG): nur bezahlte Rechnungen und tatsächlich rückerstattete Stornos
+    const countsAsCashflow = (d: AccountingDocument) => d.doc_type === 'storno' ? stornoAffectsIncome(d) : d.status === 'paid'
+    const periodInvoices = invoices.filter(d => countsAsCashflow(d) && inPeriod(d.issue_date))
     const revenueGross = periodInvoices.reduce((s, d) => s + docTotal(d), 0)
     const revenueNet = periodInvoices.reduce((s, d) => s + (d.line_items ?? []).reduce((x, i) => x + i.qty * i.unit_price, 0), 0)
     const vatCollected = revenueGross - revenueNet
@@ -567,7 +574,7 @@ export function AccountingView() {
 
     // Kleinunternehmer-Grenze bezieht sich immer auf das volle Kalenderjahr, unabhängig vom gewählten Zeitraum
     const ytdRevenueGross = invoices
-      .filter(d => d.status === 'paid' && new Date(d.issue_date).getFullYear() === periodYear)
+      .filter(d => countsAsCashflow(d) && new Date(d.issue_date).getFullYear() === periodYear)
       .reduce((s, d) => s + docTotal(d), 0)
 
     const annualizeFactor = periodMode === 'month' ? 12 : periodMode === 'quarter' ? 4 : 1
@@ -771,7 +778,7 @@ export function AccountingView() {
                   </p>
                 </button>
                 <p className={`text-sm font-bold shrink-0 hidden sm:block ${isStorno ? 'text-accent' : 'text-dark'}`}>{fmtMoney(total)}</p>
-                <StatusPicker status={doc.status} onChange={s => updateDocStatus(doc.id, s)} />
+                <StatusPicker status={doc.status} storno={isStorno} onChange={s => updateDocStatus(doc.id, s)} />
                 <button
                   onClick={() => setPreviewDoc(doc)}
                   title="Vorschau"
@@ -1008,27 +1015,27 @@ export function AccountingView() {
             )}
           </div>
           {/* Gesamteinkünfte — zeigt Betrieb + § 25 Lohnzettel kombiniert */}
-          {salaryTotals.count > 0 && (
+          {kpiVisible && salaryTotals.count > 0 && (
             <div className="bg-panel rounded-2xl px-5 py-4 shrink-0">
               <p className="text-[11px] font-black text-dark/40 uppercase tracking-widest mb-3.5">Gesamteinkünfte</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
                 <div>
                   <p className="text-[11px] font-semibold text-dark/40 mb-1">Betriebsgewinn</p>
-                  <p className={`text-sm sm:text-lg font-black leading-none wrap-break-word hyphens-auto ${totals.profit >= 0 ? 'text-dark' : 'text-accent'} ${!kpiVisible ? 'blur-sm select-none' : ''}`}>
+                  <p className={`text-sm sm:text-lg font-black leading-none wrap-break-word hyphens-auto ${totals.profit >= 0 ? 'text-dark' : 'text-accent'}`}>
                     {fmtMoney(totals.profit)}
                   </p>
                   <p className="text-[10px] text-dark/30 mt-1">Einnahmen − Ausgaben</p>
                 </div>
                 <div>
                   <p className="text-[11px] font-semibold text-dark/40 mb-1">§ 25 Einkünfte</p>
-                  <p className={`text-sm sm:text-lg font-black leading-none wrap-break-word hyphens-auto text-dark ${!kpiVisible ? 'blur-sm select-none' : ''}`}>
+                  <p className={`text-sm sm:text-lg font-black leading-none wrap-break-word hyphens-auto text-dark`}>
                     {fmtMoney(salaryTotals.gross)}
                   </p>
-                  <p className={`text-[10px] text-dark/30 mt-1 ${!kpiVisible ? 'blur-sm select-none' : ''}`}>LSt −{fmtMoney(salaryTotals.taxWithheld)}</p>
+                  <p className={`text-[10px] text-dark/30 mt-1`}>LSt −{fmtMoney(salaryTotals.taxWithheld)}</p>
                 </div>
                 <div className="col-span-2 sm:col-span-1 bg-accent-green/20 rounded-xl px-3 py-2.5">
                   <p className="text-[11px] font-semibold text-dark/50 mb-1">Gesamt netto</p>
-                  <p className={`text-sm sm:text-lg font-black leading-none text-dark ${!kpiVisible ? 'blur-sm select-none' : ''}`}>
+                  <p className={`text-sm sm:text-lg font-black leading-none text-dark`}>
                     {fmtMoney(totals.profit + salaryTotals.net)}
                   </p>
                   <p className="text-[10px] text-dark/30 mt-1">Betrieb + Lohnzettel</p>
@@ -1054,9 +1061,13 @@ export function AccountingView() {
                     </p>
                     <p className="text-xs text-dark/40 mt-0.5">{fmtDate(item._isReceipt ? item.date : item.issue_date)}</p>
                   </div>
-                  <p className={`text-sm font-bold shrink-0 transition-all ${item._isReceipt ? 'text-accent' : 'text-accent-green'} ${!kpiVisible ? 'blur-sm select-none' : ''}`}>
-                    {item._isReceipt ? '−' : '+'}{fmtMoney(item._isReceipt ? item.amount : docTotal(item))}
-                  </p>
+                  {kpiVisible ? (
+                    <p className={`text-sm font-bold shrink-0 ${item._isReceipt ? 'text-accent' : 'text-accent-green'}`}>
+                      {item._isReceipt ? '−' : '+'}{fmtMoney(item._isReceipt ? item.amount : docTotal(item))}
+                    </p>
+                  ) : (
+                    <p className="text-sm font-bold shrink-0 text-dark/25 tracking-widest select-none">••••</p>
+                  )}
                 </button>
               ))}
               {overviewItems.length === 0 && (

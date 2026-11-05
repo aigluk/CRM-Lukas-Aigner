@@ -76,10 +76,9 @@ export async function POST(req: NextRequest) {
     const ausFolder = monthFolder.folder('Ausgangsrechnungen')!
     const einFolder = monthFolder.folder('Eingangsrechnungen')!
 
-    // Ausgangsrechnungen: paid invoices for this month
+    // Ausgangsrechnungen: bezahlte Rechnungen + alle Stornobelege (auch ohne Geldfluss, zur Dokumentation)
     const monthInvoices = allDocs.filter(d =>
-      (d.doc_type === 'invoice' || d.doc_type === 'storno') &&
-      d.status === 'paid' &&
+      ((d.doc_type === 'invoice' && d.status === 'paid') || (d.doc_type === 'storno' && d.status !== 'draft')) &&
       inMonth(d.issue_date, year, month)
     )
 
