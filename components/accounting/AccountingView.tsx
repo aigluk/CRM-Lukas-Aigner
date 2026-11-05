@@ -777,7 +777,7 @@ export function AccountingView() {
                     {isStorno && doc.storno_of_number ? ` · Storno von ${doc.storno_of_number}` : ''}
                   </p>
                 </button>
-                <p className={`text-sm font-bold shrink-0 hidden sm:block ${isStorno ? 'text-accent' : 'text-dark'}`}>{fmtMoney(total)}</p>
+                <p className={`text-sm font-bold shrink-0 hidden sm:block ${!kpiVisible ? 'text-dark/25 tracking-widest select-none' : isStorno ? 'text-accent' : 'text-dark'}`}>{kpiVisible ? fmtMoney(total) : '••••'}</p>
                 <StatusPicker status={doc.status} storno={isStorno} onChange={s => updateDocStatus(doc.id, s)} />
                 <button
                   onClick={() => setPreviewDoc(doc)}
@@ -974,7 +974,18 @@ export function AccountingView() {
               className="w-full bg-panel rounded-xl pl-9 pr-4 py-2.5 text-sm text-dark placeholder-dark/25 outline-none focus:ring-1 focus:ring-accent transition-all"
             />
           </div>
-          <ListPeriodFilter period={listPeriod} onChange={setListPeriod} />
+          <div className="flex items-center gap-2">
+            {(tab === 'invoices' || tab === 'quotes' || tab === 'receipts') && (
+              <button
+                onClick={() => setKpiVisible(v => !v)}
+                title={kpiVisible ? 'Beträge verbergen' : 'Beträge anzeigen'}
+                className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all shrink-0 ${kpiVisible ? 'bg-panel text-dark/50 hover:text-dark' : 'bg-accent text-white hover:opacity-90'}`}
+              >
+                {kpiVisible ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            )}
+            <ListPeriodFilter period={listPeriod} onChange={setListPeriod} />
+          </div>
         </div>
       )}
       </div>{/* /shrink-0 */}
@@ -1286,7 +1297,7 @@ export function AccountingView() {
                     </div>
                     <p className="text-xs text-dark/45 mt-0.5">{fmtDate(r.date)}{r.category ? ` · ${r.category}` : ''}</p>
                   </div>
-                  <p className="text-sm font-bold text-accent shrink-0">{fmtMoney(r.amount)}</p>
+                  <p className={`text-sm font-bold shrink-0 ${kpiVisible ? 'text-accent' : 'text-dark/25 tracking-widest select-none'}`}>{kpiVisible ? fmtMoney(r.amount) : '••••'}</p>
                   <button
                     onClick={() => setPreviewReceipt(r)}
                     title="Vorschau"
