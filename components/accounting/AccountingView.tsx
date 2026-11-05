@@ -38,6 +38,38 @@ type ListPeriod = 'all' | MonthPeriod | number
 
 const MONTHS_SHORT = ['Jän','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez']
 
+/**
+ * Abo-Kosten in einem Zeitraum, Monat für Monat (inkl. Preis-Historie).
+ * Gezählt wird jeder Monat zwischen Start und Ende (inklusive), höchstens bis
+ * einschließlich des aktuellen Monats (Abos werden im Voraus abgebucht).
+ */
+function subscriptionCostInRange(sub: AccountingSubscription, rangeStart: Date, rangeEnd: Date): { months: number; amount: number } {
+  if (!sub.active) return { months: 0, amount: 0 }
+  const now = new Date()
+  const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+  const subStart = new Date(sub.start_date)
+  let end = rangeEnd < currentMonthEnd ? rangeEnd : currentMonthEnd
+  if (sub.end_date) {
+    const subEnd = new Date(sub.end_date)
+    if (subEnd < end) end = subEnd
+  }
+  const from = subStart > rangeStart ? subStart : rangeStart
+  if (from > end) return { months: 0, amount: 0 }
+  const fromY = from.getFullYear(), fromM = from.getMonth()
+  const months = (end.getFullYear() - fromY) * 12 + end.getMonth() - fromM + 1
+  const history = [...(sub.price_history ?? [])].sort((a, b) => a.effective_from.localeCompare(b.effective_from))
+  const intervalFactor = sub.interval === 'monthly' ? 1 : sub.interval === 'quarterly' ? 3 : 12
+  let amount = 0
+  for (let i = 0; i < months; i++) {
+    const d = new Date(fromY, fromM + i, 1)
+    const monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
+    const applicable = history.filter(e => e.effective_from.slice(0, 7) <= monthStr.slice(0, 7))
+    const entry = applicable.length > 0 ? applicable[applicable.length - 1] : null
+    amount += (entry ? entry.amount : sub.amount) / intervalFactor
+  }
+  return { months, amount }
+}
+
 function inListPeriod(dateStr: string | undefined, period: ListPeriod): boolean {
   if (period === 'all') return true
   const d = new Date(dateStr || '')
@@ -422,22 +454,11 @@ export function AccountingView() {
   }
 
   function subscriptionContribution(sub: AccountingSubscription, period: ListPeriod): number {
-    if (!sub.active) return 0
-    const start = new Date(sub.start_date)
-    const monthly = monthlyEquivalent(sub)
-    if (period === 'all') {
-      const now = new Date()
-      const months = Math.max(1, (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth()) + 1)
-      return monthly * months
-    }
+    if (period === 'all') return subscriptionCostInRange(sub, new Date(2000, 0, 1), new Date(2100, 0, 1)).amount
     if (typeof period === 'object') {
-      const monthEnd = new Date(period.year, period.month + 1, 0)
-      return start <= monthEnd ? monthly : 0
+      return subscriptionCostInRange(sub, new Date(period.year, period.month, 1), new Date(period.year, period.month + 1, 0)).amount
     }
-    const year = period
-    if (start.getFullYear() > year) return 0
-    const monthsActiveInYear = start.getFullYear() === year ? 12 - start.getMonth() : 12
-    return monthly * monthsActiveInYear
+    return subscriptionCostInRange(sub, new Date(period, 0, 1), new Date(period, 11, 31)).amount
   }
 
   const totals = useMemo(() => {
@@ -509,37 +530,10 @@ export function AccountingView() {
       : periodMode === 'quarter' ? new Date(periodYear, periodQuarter * 3 + 3, 0)
       : new Date(periodYear, 11, 31)
 
-    // Cap subscription months at the start of the current month — don't count future months
-    const todayMonthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-    const effectiveSubEnd = periodEnd < todayMonthStart ? periodEnd : todayMonthStart
-
-    // Build per-subscription items, month-by-month using price_history for accuracy
     const subItems = subscriptions
-      .filter(s => s.active && new Date(s.start_date) <= effectiveSubEnd)
       .map(sub => {
-        const subStart = new Date(sub.start_date)
-        const actualFrom = subStart > periodStart ? subStart : periodStart
-        // Cap at end_date if set
-        const subEndCap = sub.end_date ? new Date(sub.end_date) : effectiveSubEnd
-        const effectiveEnd = subEndCap < effectiveSubEnd ? subEndCap : effectiveSubEnd
-        const fromY = actualFrom.getFullYear(), fromM = actualFrom.getMonth()
-        const toY = effectiveEnd.getFullYear(), toM = effectiveEnd.getMonth()
-        const totalMonths = actualFrom <= effectiveEnd ? Math.max(0, (toY - fromY) * 12 + toM - fromM + 1) : 0
-
-        const history = [...(sub.price_history ?? [])].sort((a, b) => a.effective_from.localeCompare(b.effective_from))
-        const intervalFactor = sub.interval === 'monthly' ? 1 : sub.interval === 'quarterly' ? 3 : 12
-
-        let totalAmount = 0
-        for (let i = 0; i < totalMonths; i++) {
-          const monthDate = new Date(fromY, fromM + i, 1)
-          const monthStr = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}-01`
-          const applicable = history.filter(e => e.effective_from <= monthStr)
-          const priceEntry = applicable.length > 0 ? applicable[applicable.length - 1] : null
-          totalAmount += (priceEntry ? priceEntry.amount : sub.amount) / intervalFactor
-        }
-
-        const monthly = totalMonths > 0 ? totalAmount / totalMonths : 0
-        return { ...sub, months: totalMonths, monthly, amount: totalAmount }
+        const { months, amount } = subscriptionCostInRange(sub, periodStart, periodEnd)
+        return { ...sub, months, monthly: months > 0 ? amount / months : 0, amount }
       })
       .filter(x => x.amount > 0)
 
@@ -555,9 +549,11 @@ export function AccountingView() {
     const profitBeforeTax = revenueNet - expensesNet
 
     // Expense breakdown items for PDF
+    const SOCIAL_RE = /svs|sozialversicherung|sozial|ögk|oegk|gesundheitskasse|versicherung|kammer|wko|finanzamt|abgabe|steuer/i
     const expenseItems = [
       ...periodExpenses.map(r => ({
         label: r.vendor || r.category || RECEIPT_TYPE_LABELS[r.receipt_type as ReceiptType] || 'Ausgabe',
+        kind: (SOCIAL_RE.test(`${r.vendor ?? ''} ${r.category ?? ''} ${r.notes ?? ''}`) ? 'social' : 'other') as 'social' | 'other' | 'fixed',
         date: r.date,
         amount: r.amount,
         months: undefined as number | undefined,
@@ -565,6 +561,7 @@ export function AccountingView() {
       })),
       ...subItems.map(x => ({
         label: x.name,
+        kind: 'fixed' as 'social' | 'other' | 'fixed',
         date: undefined as string | undefined,
         amount: x.amount,
         months: x.months,
