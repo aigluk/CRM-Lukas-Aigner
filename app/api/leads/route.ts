@@ -53,7 +53,8 @@ export async function POST(req: NextRequest) {
 
     // Batch import
     if (Array.isArray(body.leads)) {
-      const rows = body.leads.map((l: any) => ({
+      // UI-only Felder (z.B. isDuplicate aus dem Generator) nie in die DB schreiben
+      const rows = body.leads.map(({ isDuplicate: _dup, ...l }: any) => ({
         ...l,
         user_id:     ownerId,
         status:      normalizeStatus(l.status),

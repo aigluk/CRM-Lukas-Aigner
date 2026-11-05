@@ -319,7 +319,9 @@ export function GeneratorForm() {
 
   async function saveLeads() {
     if (!result || !selectedIdx.size) return
+    // isDuplicate ist nur ein UI-Hinweis aus /api/generate, keine DB-Spalte
     const toSave = [...selectedIdx].sort((a, b) => a - b).map(i => result.leads[i]).filter(Boolean)
+      .map(lead => { const { isDuplicate: _dup, ...rest } = lead as any; return rest })
     if (!toSave.length) return
     setSaving(true)
     try {
@@ -341,7 +343,7 @@ export function GeneratorForm() {
 
   const pill = (active: boolean) =>
     `transition-all text-xs font-bold px-3 py-2 rounded-xl ${
-      active ? 'bg-accent text-white' : 'bg-dark text-white/35 hover:text-white/70'
+      active ? 'bg-accent text-white' : 'bg-dark text-white hover:bg-dark/80'
     }`
 
   const hasDefaultsHidden = !DEFAULT_LABELS.every(l => branches.some(b => b.id === l))
@@ -427,7 +429,7 @@ export function GeneratorForm() {
                       if (e.key === 'Escape') setAddingBranch(false)
                     }}
                     placeholder="Branche eingeben…"
-                    className="flex-1 bg-dark rounded-xl px-3 py-2 text-xs text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent"
+                    className="flex-1 bg-dark rounded-xl px-3 py-2 text-xs text-white placeholder-white/50 outline-none focus:ring-1 focus:ring-accent"
                   />
                   <button type="button" onClick={addBranch}
                     className="bg-accent text-white text-xs font-bold px-3 py-2 rounded-xl hover:bg-accent-hover transition-all">OK</button>
@@ -469,7 +471,7 @@ export function GeneratorForm() {
                     type="button"
                     onClick={() => { setCountryId(c.id); setCity(''); setCustomCity('') }}
                     className={`flex items-center gap-1.5 pr-7 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                      countryId === c.id ? 'bg-accent text-white' : 'bg-dark text-white/35 hover:text-white/70'
+                      countryId === c.id ? 'bg-accent text-white' : 'bg-dark text-white hover:bg-dark/80'
                     }`}
                   >
                     <span className={`text-[8px] font-black tracking-wider px-1 py-0.5 rounded ${
@@ -501,7 +503,7 @@ export function GeneratorForm() {
                       if (e.key === 'Escape') setAddingCountry(false)
                     }}
                     placeholder="Land eingeben…"
-                    className="flex-1 bg-dark rounded-xl px-3 py-2 text-xs text-white placeholder-white/20 outline-none focus:ring-1 focus:ring-accent"
+                    className="flex-1 bg-dark rounded-xl px-3 py-2 text-xs text-white placeholder-white/50 outline-none focus:ring-1 focus:ring-accent"
                   />
                   <button type="button" onClick={addCountry}
                     className="bg-accent text-white text-xs font-bold px-3 py-2 rounded-xl hover:bg-accent-hover transition-all">OK</button>
@@ -527,7 +529,7 @@ export function GeneratorForm() {
                   type="button"
                   onClick={() => { setCity(city === c ? '' : c); setCustomCity('') }}
                   className={`py-2 rounded-xl text-xs font-bold text-center truncate px-2 transition-all ${
-                    city === c ? 'bg-accent text-white' : 'bg-dark text-white/35 hover:text-white/70'
+                    city === c ? 'bg-accent text-white' : 'bg-dark text-white hover:bg-dark/80'
                   }`}
                 >
                   {c}
@@ -536,13 +538,13 @@ export function GeneratorForm() {
             </div>
 
             <div className={`flex items-center gap-2 rounded-xl px-3 py-2.5 bg-dark ${customCity ? 'ring-1 ring-accent/25' : ''}`}>
-              <MapPin size={11} className="text-white/20 shrink-0" />
+              <MapPin size={11} className="text-white/60 shrink-0" />
               <input
                 type="text"
                 value={customCity}
                 onChange={e => { setCustomCity(e.target.value); if (e.target.value) setCity('') }}
                 placeholder="Eigener Ort…"
-                className="flex-1 bg-transparent text-xs text-white placeholder-white/20 outline-none"
+                className="flex-1 bg-transparent text-xs text-white placeholder-white/50 outline-none"
               />
               {customCity && (
                 <button type="button" onClick={() => setCustomCity('')} className="text-white/25 hover:text-white/60">
@@ -570,7 +572,7 @@ export function GeneratorForm() {
                   type="button"
                   onClick={() => setRadius(r.value)}
                   className={`py-2 rounded-xl text-xs font-bold text-center transition-all ${
-                    radius === r.value ? 'bg-accent text-white' : 'bg-dark text-white/35 hover:text-white/70'
+                    radius === r.value ? 'bg-accent text-white' : 'bg-dark text-white hover:bg-dark/80'
                   }`}
                 >
                   {r.label}
@@ -635,7 +637,7 @@ export function GeneratorForm() {
                               <span className="text-white/20 text-xs shrink-0">·</span>
                               <p className="text-xs text-white/40 truncate">{loc}</p>
                               {r.radius !== '0' && (
-                                <span className="text-[10px] bg-dark text-white/25 px-1.5 py-0.5 rounded-md font-bold shrink-0">{r.radius} km</span>
+                                <span className="text-[10px] bg-dark text-white px-1.5 py-0.5 rounded-md font-bold shrink-0">{r.radius} km</span>
                               )}
                             </div>
                             <p className="text-xs text-white/20 mt-0.5 flex items-center gap-2">
@@ -645,7 +647,7 @@ export function GeneratorForm() {
                           </div>
                           <button
                             onClick={() => applyRecent(r)}
-                            className="shrink-0 flex items-center gap-1.5 bg-dark hover:bg-panel-hover text-white/40 hover:text-white text-xs font-bold px-3 py-2 rounded-xl transition-all"
+                            className="shrink-0 flex items-center gap-1.5 bg-dark hover:bg-dark/80 text-white text-xs font-bold px-3 py-2 rounded-xl transition-all"
                           >
                             <RotateCcw size={11} />
                             Wiederholen
@@ -687,18 +689,18 @@ export function GeneratorForm() {
                 {/* Filter chips */}
                 <div className="flex items-center gap-1.5 mb-3 flex-wrap">
                   <button onClick={() => setFilterMode('all')}
-                    className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-all ${filterMode === 'all' ? 'bg-accent text-white' : 'bg-dark text-white/35 hover:text-white/70'}`}>
+                    className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-all ${filterMode === 'all' ? 'bg-accent text-white' : 'bg-dark text-white hover:bg-dark/80'}`}>
                     Alle ({result.total})
                   </button>
                   {result.emailFound > 0 && (
                     <button onClick={() => setFilterMode('email')}
-                      className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-all ${filterMode === 'email' ? 'bg-accent-green text-dark' : 'bg-dark text-white/35 hover:text-white/70'}`}>
+                      className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-all ${filterMode === 'email' ? 'bg-accent-green text-dark' : 'bg-dark text-white hover:bg-dark/80'}`}>
                       Mit E-Mail ({result.emailFound})
                     </button>
                   )}
                   {result.ceoFound > 0 && (
                     <button onClick={() => setFilterMode('ceo')}
-                      className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-all ${filterMode === 'ceo' ? 'bg-dark text-white' : 'bg-dark text-white/35 hover:text-white/70'}`}>
+                      className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-all ${filterMode === 'ceo' ? 'bg-accent text-white' : 'bg-dark text-white hover:bg-dark/80'}`}>
                       Mit CEO ({result.ceoFound})
                     </button>
                   )}
