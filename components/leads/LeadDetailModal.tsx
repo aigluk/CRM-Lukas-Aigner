@@ -7,7 +7,7 @@ import { formatDate, formatRelativeDateTime } from '@/lib/utils'
 import {
   X, Edit3, Save, Trash2, Phone, Mail, Globe,
   MapPin, User, Building2, FileText, Calendar,
-  ExternalLink, CheckSquare, Square, Zap, Plus, Tag, ChevronDown, BellRing, UserPlus,
+  CheckSquare, Square, Zap, Plus, Tag, ChevronDown, BellRing, UserPlus,
 } from 'lucide-react'
 import { DatePicker, TimePicker } from '@/components/ui/DateTimePicker'
 import { useClickOutside } from '@/lib/useClickOutside'
@@ -119,35 +119,94 @@ const CALL_ITEMS = [
   'Website / Daten teilen',
 ]
 
+type ActionTone = 'accent' | 'sky' | 'dark' | 'soft'
+
+const TONE_CLS: Record<ActionTone, string> = {
+  accent: 'bg-accent text-white hover:bg-accent-hover',
+  sky:    'bg-accent-green text-white hover:opacity-90',
+  dark:   'bg-dark text-white hover:opacity-85',
+  soft:   'bg-accent/12 text-accent hover:bg-accent/20',
+}
+
+function isExternal(href: string) {
+  return href.startsWith('http')
+}
+
+/** Großer, farbiger Ein-Klick-Button (Anrufen, Mail, Website, Karte). */
+function QuickAction({
+  href, icon, label, tone,
+}: { href?: string; icon: React.ReactNode; label: string; tone: ActionTone }) {
+  if (!href) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-1 h-16 rounded-2xl bg-panel-2 text-dark/20 cursor-not-allowed select-none" title={`${label}: nicht hinterlegt`}>
+        {icon}
+        <span className="text-[11px] font-bold">{label}</span>
+      </div>
+    )
+  }
+  return (
+    <a
+      href={href}
+      target={isExternal(href) ? '_blank' : undefined}
+      rel="noopener noreferrer"
+      className={`flex flex-col items-center justify-center gap-1 h-16 rounded-2xl shadow-sm transition-all active:scale-95 ${TONE_CLS[tone]}`}
+    >
+      {icon}
+      <span className="text-[11px] font-bold">{label}</span>
+    </a>
+  )
+}
+
 function Field({
-  label, icon, value, editing, onChange, href, type = 'text',
+  label, icon, value, editing, onChange, href, type = 'text', actionIcon, tone = 'accent', actionLabel,
 }: {
   label: string; icon: React.ReactNode; value: string
   editing: boolean; onChange: (v: string) => void; href?: string; type?: string
+  actionIcon?: React.ReactNode; tone?: ActionTone; actionLabel?: string
 }) {
+  const action = actionIcon ? (
+    href && value ? (
+      <a
+        href={href}
+        target={isExternal(href) ? '_blank' : undefined}
+        rel="noopener noreferrer"
+        title={actionLabel}
+        className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-all active:scale-95 ${TONE_CLS[tone]}`}
+      >
+        {actionIcon}
+      </a>
+    ) : (
+      <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-panel-2 text-dark/15" title={`${label}: nicht hinterlegt`}>
+        {actionIcon}
+      </div>
+    )
+  ) : null
+
   return (
     <div>
-      <label className="flex items-center gap-1.5 text-xs font-bold text-dark/35 mb-1.5">
+      <label className="flex items-center gap-1.5 text-xs font-bold text-dark/40 mb-1.5">
         {icon}{label}
       </label>
-      {editing ? (
-        <input
-          type={type} value={value} onChange={e => onChange(e.target.value)}
-          className="w-full bg-panel-2 rounded-xl px-3 py-2.5 text-sm text-dark outline-none focus:ring-1 focus:ring-accent transition-all"
-        />
-      ) : href && value ? (
-        <a href={href} target={type !== 'tel' && type !== 'email' ? '_blank' : undefined}
-          rel="noopener noreferrer"
-          className="text-sm text-dark/70 hover:text-dark transition-colors flex items-center gap-1.5 group"
-        >
-          <span className="truncate">{value}</span>
-          {type !== 'tel' && type !== 'email' && (
-            <ExternalLink size={11} className="shrink-0 opacity-0 group-hover:opacity-60 transition-opacity" />
+      <div className="flex items-center gap-2">
+        <div className="min-w-0 flex-1">
+          {editing ? (
+            <input
+              type={type} value={value} onChange={e => onChange(e.target.value)}
+              className="w-full h-11 bg-panel-2 rounded-xl px-3 text-sm text-dark outline-none focus:ring-1 focus:ring-accent transition-all"
+            />
+          ) : href && value ? (
+            <a href={href} target={isExternal(href) ? '_blank' : undefined}
+              rel="noopener noreferrer"
+              className="block truncate text-sm font-semibold text-dark hover:text-accent transition-colors"
+            >
+              {value}
+            </a>
+          ) : (
+            <p className={`text-sm truncate ${value ? 'font-semibold text-dark' : 'text-dark/30'}`}>{value || '-'}</p>
           )}
-        </a>
-      ) : (
-        <p className="text-sm text-dark/50">{value || '-'}</p>
-      )}
+        </div>
+        {action}
+      </div>
     </div>
   )
 }
@@ -183,6 +242,18 @@ export function LeadDetailModal({
   function set<K extends keyof Lead>(field: K, value: Lead[K]) {
     setForm(prev => ({ ...prev, [field]: value }))
   }
+
+  // Links immer aus den aktuellen Formularwerten, damit sie auch beim Bearbeiten stimmen
+  const phoneVal   = (form.phone ?? '').trim()
+  const emailVal   = (form.email ?? form.email_general ?? '').trim()
+  const webVal     = (form.website ?? '').trim()
+  const addressVal = (form.address ?? form.region ?? '').trim()
+  const phoneHref  = phoneVal ? `tel:${phoneVal.replace(/[^\d+]/g, '')}` : undefined
+  const emailHref  = emailVal ? `mailto:${emailVal}` : undefined
+  const webHref    = webVal ? (webVal.startsWith('http') ? webVal : `https://${webVal}`) : undefined
+  const mapsHref   = addressVal || lead.city
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([lead.name, addressVal || lead.city].filter(Boolean).join(', '))}`
+    : undefined
 
   function saveReminder() {
     if (!reminderText.trim()) return
@@ -303,6 +374,13 @@ export function LeadDetailModal({
                 <Edit3 size={12} />Bearbeiten
               </button>
             )}
+          </div>
+          {/* Row 3: Ein-Klick-Kontakt, immer sichtbar */}
+          <div className="grid grid-cols-4 gap-2 mt-3">
+            <QuickAction href={phoneHref} icon={<Phone size={20} />} label="Anrufen" tone="accent" />
+            <QuickAction href={emailHref} icon={<Mail size={20} />} label="E-Mail" tone="sky" />
+            <QuickAction href={webHref} icon={<Globe size={20} />} label="Website" tone="dark" />
+            <QuickAction href={mapsHref} icon={<MapPin size={20} />} label="Karte" tone="soft" />
           </div>
         </div>
 
@@ -462,16 +540,20 @@ export function LeadDetailModal({
               value={form.ceos ?? form.owner ?? ''} editing={editing} onChange={v => set('ceos', v)} />
             <Field label="Telefon" icon={<Phone size={11} />}
               value={form.phone ?? ''} editing={editing} onChange={v => set('phone', v)}
-              href={lead.phone ? `tel:${lead.phone}` : undefined} type="tel" />
+              href={phoneHref} type="tel"
+              actionIcon={<Phone size={18} />} tone="accent" actionLabel="Anrufen" />
             <Field label="E-Mail" icon={<Mail size={11} />}
               value={form.email ?? form.email_general ?? ''} editing={editing} onChange={v => set('email', v)}
-              href={lead.email || lead.email_general ? `mailto:${lead.email || lead.email_general}` : undefined} type="email" />
+              href={emailHref} type="email"
+              actionIcon={<Mail size={18} />} tone="sky" actionLabel="E-Mail schreiben" />
             <Field label="Adresse" icon={<MapPin size={11} />}
-              value={form.address ?? form.region ?? ''} editing={editing} onChange={v => set('address', v)} />
+              value={form.address ?? form.region ?? ''} editing={editing} onChange={v => set('address', v)}
+              href={mapsHref}
+              actionIcon={<MapPin size={18} />} tone="soft" actionLabel="In Google Maps öffnen" />
             <Field label="Website" icon={<Globe size={11} />}
               value={form.website ?? ''} editing={editing} onChange={v => set('website', v)}
-              href={lead.website ? (lead.website.startsWith('http') ? lead.website : `https://${lead.website}`) : undefined}
-              type="url" />
+              href={webHref} type="url"
+              actionIcon={<Globe size={18} />} tone="dark" actionLabel="Website öffnen" />
 
             {/* Branche — editable with datalist suggestions */}
             <div>
@@ -486,14 +568,14 @@ export function LeadDetailModal({
                     onChange={e => set('branche', e.target.value as Lead['branche'])}
                     list="branche-suggestions"
                     placeholder="z. B. Photovoltaik"
-                    className="w-full bg-panel-2 rounded-xl px-3 py-2.5 text-sm text-dark outline-none focus:ring-1 focus:ring-accent transition-all"
+                    className="w-full h-11 bg-panel-2 rounded-xl px-3 text-sm text-dark outline-none focus:ring-1 focus:ring-accent transition-all"
                   />
                   <datalist id="branche-suggestions">
                     {branches.map(b => <option key={b} value={b} />)}
                   </datalist>
                 </>
               ) : (
-                <p className="text-sm text-dark/50">{lead.branche || '-'}</p>
+                <p className={`text-sm ${lead.branche ? 'font-semibold text-dark' : 'text-dark/30'}`}>{lead.branche || '-'}</p>
               )}
             </div>
           </div>

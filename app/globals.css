@@ -153,6 +153,12 @@
   main .bg-accent .text-white             { color: #FFFFFF; }
   main .bg-accent .text-white\/40         { color: rgba(255,255,255,0.40); }
   main .bg-accent .text-white\/60         { color: rgba(255,255,255,0.60); }
+  main .bg-accent .text-white\/50         { color: rgba(255,255,255,0.50); }
+  main .bg-accent .text-white\/70         { color: rgba(255,255,255,0.70); }
+  main .bg-accent .text-white\/80         { color: rgba(255,255,255,0.80); }
+  main .bg-accent.text-white\/60          { color: rgba(255,255,255,0.60); }
+  main .bg-accent.text-white\/70          { color: rgba(255,255,255,0.70); }
+  main .bg-accent.text-white\/80          { color: rgba(255,255,255,0.80); }
   main .bg-accent .hover\:text-white:hover { color: #FFFFFF; }
 
   /* ── Step 5: restore white on bg-accent-green ─────────────────────── */

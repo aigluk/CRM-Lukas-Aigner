@@ -88,7 +88,7 @@ export function LeadTableHeader({
     <div className="grid grid-cols-[36px_1fr_32px_32px_32px_16px] sm:grid-cols-[36px_1fr_auto_32px_32px_32px_32px_16px] gap-3 items-center px-4 sm:px-5 min-h-16 bg-accent rounded-t-2xl shrink-0">
       <Circle selected={allSelected} partial={someSelected} onAccent onClick={e => { e.stopPropagation(); onToggleAll() }} />
       <span className="text-sm font-bold text-white">Unternehmen</span>
-      <span className="hidden sm:block text-xs font-bold text-white/70">Status / Bearbeiter</span>
+      <span className="hidden sm:block text-xs font-bold text-white">Status / Bearbeiter</span>
       <span /><span /><span />
       <span className="hidden sm:block" />
       <span />
@@ -284,9 +284,9 @@ export function LeadTable({
                     rel="noopener noreferrer"
                     onClick={e => e.stopPropagation()}
                     title={lead.website}
-                    className="w-8 h-8 rounded-full bg-panel-2 flex items-center justify-center hover:bg-panel-hover transition-all active:scale-90"
+                    className="w-8 h-8 rounded-full bg-dark flex items-center justify-center hover:opacity-85 transition-all active:scale-90"
                   >
-                    <Globe size={13} className="text-dark/60" strokeWidth={2.5} />
+                    <Globe size={13} className="text-white" strokeWidth={2.5} />
                   </a>
                 ) : (
                   <div className="w-8 h-8 rounded-full bg-panel-2 flex items-center justify-center">
