@@ -61,10 +61,18 @@ function extractPersonData(place: any) {
   return { email_general, email_ceo, ceoName }
 }
 
-async function lookupFirmenbuch(companyName: string, apiKey: string): Promise<any> {
+/**
+ * Firmenbuch (AT) über opendata.host: liefert Firmenname, FN, Status und Geschäftsanschrift.
+ * Geschäftsführer liefert diese Schnittstelle NICHT, die kommen aus dem Impressum.
+ * Mit FN (aus dem Impressum) wird exakt gesucht, sonst per Namensanfang.
+ */
+async function lookupFirmenbuch(companyName: string, fn: string | null, apiKey: string): Promise<{ address: string | null; fn: string | null; officialName: string | null } | null> {
+  if (!apiKey) return null
   try {
     const basicAuth = Buffer.from(`${apiKey}:`).toString('base64')
-    const params = new URLSearchParams({ 'company-name': companyName, country: 'at', limit: '5' })
+    const params = new URLSearchParams({ country: 'at', 'reg-no-class': 'at-fb', limit: '5' })
+    if (fn) params.set('reg-no', fn.toLowerCase())
+    else params.set('company-name', companyName)
     const r = await fetch(`https://api.opendata.host/1.0/registered-companies/find?${params}`, {
       headers: { Authorization: `Basic ${basicAuth}`, Accept: 'application/json' },
       signal: AbortSignal.timeout(4000),
@@ -72,13 +80,20 @@ async function lookupFirmenbuch(companyName: string, apiKey: string): Promise<an
     if (!r.ok) return null
     const data = await r.json()
     if (!data.companies?.length) return null
-    const company = data.companies.find((c: any) => c['reg-status'] === 'registered') ?? data.companies[0]
+    // Ohne FN nur übernehmen, wenn der Name eindeutig passt (sonst falsche Firma)
+    const norm = (x: string) => x.toLowerCase().replace(/[^a-zäöüß0-9]/g, '')
+    const company = fn
+      ? data.companies[0]
+      : data.companies.find((c: any) => c['reg-status'] === 'registered' && norm(c['business-name'] ?? '').startsWith(norm(companyName).slice(0, 12)))
+    if (!company || company['reg-status'] !== 'registered') return null
     const addr = company['business-address'] ?? {}
-    const fullAddress = [addr['street-address'], addr['street-number'], addr['postal-code'], addr.city].filter(Boolean).join(', ')
-    const gf = (company.officers ?? []).find((o: any) => /(geschäftsführer|gf\b|ceo|inhaber|vorstand)/i.test(o.role ?? ''))
+    const street = [addr['street-address'], addr['street-number']].filter(Boolean).join(' ')
+    const cityPart = [addr['postal-code'], addr.city].filter(Boolean).join(' ')
+    const fullAddress = [street, cityPart].filter(Boolean).join(', ')
     return {
       address: fullAddress || null,
-      ceo: gf ? `${gf['first-name'] ?? ''} ${gf['last-name'] ?? ''}`.trim() : null,
+      fn: company['reg-no'] ? `FN ${company['reg-no']}` : null,
+      officialName: company['business-name'] ?? null,
     }
   } catch { return null }
 }
@@ -90,7 +105,6 @@ function extractText(html: string): string {
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
-    .slice(0, 2000)
 }
 
 function normalizePhone(phone: string): string {
@@ -102,64 +116,143 @@ function isAustrianMobile(phone: string): boolean {
   return /^(06|\+436|00436)/.test(n)
 }
 
-async function enrichWithWebsite(website: string | null): Promise<{ phone: string | null; ceo: string | null } | null> {
-  const anthropicKey = process.env.ANTHROPIC_API_KEY
-  if (!website || !anthropicKey) return null
+const FN_REGEX = /\bFN\s*[:.]?\s*(\d{1,6}\s?[a-z])\b/i
+const PHONE_REGEX = /(?:\+|00)?\d[\d\s/().-]{7,}\d/g
+const IMPRESSUM_LINK = /href=["']([^"'#]*(?:impressum|imprint|legal-notice|kontakt|contact)[^"']*)["']/gi
+
+async function fetchHtml(url: string): Promise<string | null> {
   try {
-    // Fetch website HTML (follows redirects by default)
-    const siteRes = await fetch(website, {
+    const res = await fetch(url, {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; LeadBot/1.0)', Accept: 'text/html' },
-      signal: AbortSignal.timeout(4000),
+      signal: AbortSignal.timeout(5000),
     })
-    if (!siteRes.ok) return null
-    const html = await siteRes.text()
-    const websiteText = extractText(html)
-    if (websiteText.length < 100) return null
+    if (!res.ok) return null
+    return await res.text()
+  } catch { return null }
+}
 
-    // Extract CEO name + direct phone via Claude
-    const prompt = `Analysiere diese Firmenwebsite und extrahiere NUR:
-1. Die direkte Telefonnummer oder Mobilnummer des Geschäftsführers/Inhabers/CEO (NICHT die allgemeine Firmennummer)
-2. Den vollständigen Namen des Geschäftsführers/Inhabers/CEO (nur wenn klar erkennbar)
+/** Plausibler Personenname: 2 bis 5 Wörter, nur Buchstaben, keine Sätze. */
+function cleanPersonName(raw: string | null | undefined): string | null {
+  if (!raw) return null
+  const n = raw.replace(/^(herr|frau|mag\.?|dr\.?|ing\.?|di\.?|dipl\.-ing\.?|bsc|msc|mba)\s+/gi, '').trim()
+  if (/^(leer|none|keine|n\/a|unbekannt|-)$/i.test(n)) return null
+  if (/[:;!?*]|\d/.test(n)) return null
+  const words = n.split(/\s+/)
+  if (words.length < 2 || words.length > 5) return null
+  if (!words.every(w => /^[A-ZÄÖÜ][\p{L}'.-]*$/u.test(w))) return null
+  return n
+}
 
-Antworte im Format:
-PHONE: [Nummer oder leer]
-CEO: [Name oder leer]
+type WebEnrichment = {
+  ceo: string | null
+  ceoPhone: string | null
+  ceoEmail: string | null
+  email: string | null
+  phone: string | null
+  fn: string | null
+}
 
-Wenn keine Direktnummer gefunden, lass PHONE leer. Nur echte persönliche Nummern angeben.
+/**
+ * Liest Startseite + Impressum/Kontakt. Das Impressum ist in AT/DE gesetzlich
+ * vorgeschrieben (§ 5 ECG, § 14 UGB) und die genaueste Quelle für Firmendaten.
+ */
+async function enrichWithWebsite(website: string | null): Promise<WebEnrichment | null> {
+  if (!website) return null
+  const homeHtml = await fetchHtml(website)
+  if (!homeHtml) return null
 
-Website-Inhalt:
-${websiteText}`
+  // Impressum- und Kontaktseiten finden (max. 2)
+  const links: string[] = []
+  for (const m of homeHtml.matchAll(IMPRESSUM_LINK)) {
+    try {
+      const u = new URL(m[1], website)
+      if (u.hostname.replace(/^www\./, '') !== new URL(website).hostname.replace(/^www\./, '')) continue
+      if (!links.includes(u.toString())) links.push(u.toString())
+    } catch {}
+  }
+  links.sort((a, b) => (/impressum|imprint/i.test(b) ? 1 : 0) - (/impressum|imprint/i.test(a) ? 1 : 0))
+  const subPages = (await Promise.all(links.slice(0, 2).map(fetchHtml))).filter(Boolean) as string[]
 
+  const homeText = extractText(homeHtml)
+  const subText = subPages.map(extractText).join('\n---\n')
+  const allText = `${subText}\n---\n${homeText}`
+
+  // Deterministisch: FN-Nummer direkt per Regex (zuverlässiger als KI)
+  const fnMatch = allText.match(FN_REGEX)
+  const fn = fnMatch ? fnMatch[1].replace(/\s/g, '').toLowerCase() : null
+
+  const result: WebEnrichment = { ceo: null, ceoPhone: null, ceoEmail: null, email: null, phone: null, fn }
+
+  // Deterministisch aus dem Impressum (funktioniert auch ohne KI)
+  const src = subText || homeText
+  const gfMatch = src.match(/(?:Geschäftsführ(?:er|erin|ung)|Inhaber(?:in)?|Managing Director|CEO|Vertretungsbefugt(?:e|er)?)\s*(?:\([^)]*\))?\s*[:\-]?\s*((?:(?:Mag|Dr|Ing|DI|Dipl\.-Ing|BSc|MSc|MBA)\.?\s+)*[A-ZÄÖÜ][\p{L}'-]+(?:\s+[A-ZÄÖÜ][\p{L}'.-]+){1,3})/u)
+  if (gfMatch) result.ceo = cleanPersonName(gfMatch[1].split(/\s+(?:Tel|Telefon|E-Mail|Email|Mail|UID|FN|Firmenbuch|Sitz|Adresse)\b/i)[0])
+  const telMatch = src.match(/(?:Tel(?:efon)?|Phone|T)\.?\s*[:.]?\s*((?:\+|00)?\d[\d\s/()-]{6,}\d)/i)
+  if (telMatch) {
+    const tokens = telMatch[1].trim().split(/\s+/)
+    while (tokens.length > 2 && tokens[tokens.length - 1].length === 1 && tokens[tokens.length - 2].length === 1) tokens.pop()
+    const tel = tokens.join(' ')
+    if (tel.replace(/\D/g, '').length >= 7 && tel.replace(/\D/g, '').length <= 15) result.phone = tel
+  }
+  // E-Mail: zuerst mailto-Links (Impressum vor Startseite), dann Text
+  const domain = new URL(website).hostname.replace(/^www\./, '')
+  const mailtos = [...subPages, homeHtml]
+    .flatMap(h => [...h.matchAll(/mailto:([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})/g)].map(m => m[1].toLowerCase()))
+  const textMails = (allText.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g) ?? []).map(m => m.toLowerCase())
+  const mails = [...new Set([...mailtos, ...textMails])].filter(m => EMAIL_REGEX.test(m) && !/\.(png|jpg|jpeg|gif|webp|svg)$/i.test(m))
+  result.email = mails.find(m => m.endsWith(domain) && GENERIC_PREFIX.test(m)) ?? mails.find(m => m.endsWith(domain)) ?? mails[0] ?? null
+  if (result.ceo) {
+    const last = result.ceo.split(/\s+/).pop()!.toLowerCase()
+    const first = result.ceo.split(/\s+/)[0].toLowerCase()
+    result.ceoEmail = mails.find(m => { const local = m.split('@')[0]; return !GENERIC_PREFIX.test(m) && (local.includes(last) || local.startsWith(first)) }) ?? null
+  }
+
+  const anthropicKey = process.env.ANTHROPIC_API_KEY
+  if (!anthropicKey || allText.length < 80) return result
+
+  const prompt = `Du bekommst Text aus Impressum, Kontaktseite und Startseite einer Firmenwebsite.
+Extrahiere NUR Angaben, die wörtlich im Text stehen. Erfinde nichts. Wenn etwas fehlt: null.
+
+Antworte ausschließlich mit JSON in dieser Form:
+{"ceo": "Vorname Nachname des Geschäftsführers/Inhabers oder null",
+ "ceo_phone": "Telefonnummer, die ausdrücklich dem Geschäftsführer/Inhaber zugeordnet ist, oder null",
+ "ceo_email": "E-Mail, die ausdrücklich dem Geschäftsführer/Inhaber gehört, oder null",
+ "email": "allgemeine Firmen-E-Mail aus dem Impressum oder null",
+ "phone": "allgemeine Firmen-Telefonnummer aus dem Impressum oder null"}
+
+Text:
+${allText.slice(0, 6000)}`
+
+  try {
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: {
-        'x-api-key': anthropicKey,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
+      headers: { 'x-api-key': anthropicKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 150,
+        model: 'claude-haiku-5-5',
+        max_tokens: 250,
         messages: [{ role: 'user', content: prompt }],
       }),
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(12000),
     })
-    if (!aiRes.ok) return null
+    if (!aiRes.ok) return result
     const aiData = await aiRes.json()
     const text: string = aiData.content?.[0]?.text ?? ''
+    const json = JSON.parse(text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1))
 
-    const phoneMatch = text.match(/PHONE:\s*(.+)/i)
-    const ceoMatch   = text.match(/CEO:\s*(.+)/i)
+    // Nur übernehmen, was wirklich im Text vorkommt (Schutz gegen erfundene Werte)
+    const digits = (x: string) => x.replace(/\D/g, '')
+    const textDigits = digits(allText)
+    const inText = (v: unknown) => typeof v === 'string' && v.trim() && allText.toLowerCase().includes(v.trim().toLowerCase())
+    const phoneInText = (v: unknown) => typeof v === 'string' && digits(v).length >= 7 && textDigits.includes(digits(v).slice(-7))
 
-    let phone = phoneMatch?.[1]?.trim() || null
-    if (phone && phone.replace(/\D/g, '').length < 6) phone = null
+    result.ceo      = (inText(json.ceo) ? cleanPersonName(json.ceo) : null) ?? result.ceo
+    result.ceoPhone = phoneInText(json.ceo_phone) ? String(json.ceo_phone).trim() : null
+    result.ceoEmail = (inText(json.ceo_email) && EMAIL_REGEX.test(String(json.ceo_email).trim()) ? String(json.ceo_email).trim().toLowerCase() : null) ?? result.ceoEmail
+    result.email    = (inText(json.email) && EMAIL_REGEX.test(String(json.email).trim()) ? String(json.email).trim().toLowerCase() : null) ?? result.email
+    result.phone    = (phoneInText(json.phone) ? String(json.phone).trim() : null) ?? result.phone
+  } catch { /* KI-Antwort unbrauchbar: nur deterministische Werte behalten */ }
 
-    let ceo = ceoMatch?.[1]?.trim() || null
-    if (ceo && (/^(leer|none|keine|n\/a)/i.test(ceo) || ceo.split(/\s+/).length < 2)) ceo = null
-
-    if (!phone && !ceo) return null
-    return { phone, ceo }
-  } catch { return null }
+  return result
 }
 
 // Country code to German country name for precise Google Maps locations
@@ -265,7 +358,7 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const outscraperKey = process.env.OUTSCRAPER_API_KEY
-  const opendataKey   = process.env.OPENDATA_HOST_API_KEY ?? 'F6F1-D72F-7FEF-468A-82AC-B620-3091-B593'
+  const opendataKey   = process.env.OPENDATA_HOST_API_KEY ?? ''
 
   if (!outscraperKey) return NextResponse.json({ error: 'Outscraper API Key fehlt.' }, { status: 500 })
 
@@ -355,30 +448,38 @@ export async function POST(req: NextRequest) {
       }
     })
 
-  // Parallel enrichment: Firmenbuch + Website (Claude) laufen pro Lead gleichzeitig
+  // Anreicherung pro Lead: erst Website + Impressum, dann Firmenbuch (exakt per FN, wenn gefunden)
   await Promise.all(leads.map(async (lead: any) => {
-    const [fb, web] = await Promise.all([
-      lookupFirmenbuch(lead.name, opendataKey),
-      enrichWithWebsite(lead.website),
-    ])
+    const web = await enrichWithWebsite(lead.website)
+    const fb = cc === 'AT' ? await lookupFirmenbuch(lead.name, web?.fn ?? null, opendataKey) : null
+    const sources: string[] = []
+
     if (fb) {
       if (fb.address) lead.region = fb.address
-      if (fb.ceo && fb.ceo.split(/\s+/).length >= 2 && !lead.ceos) lead.ceos = fb.ceo
+      sources.push(`Firmenbuch ${fb.fn ?? ''}`.trim())
+    } else if (web?.fn) {
+      sources.push(`FN ${web.fn}`)
     }
     if (web) {
-      if (web.ceo && !lead.ceos) lead.ceos = web.ceo
-      if (web.phone) {
-        const samePhone = lead.phone && normalizePhone(web.phone) === normalizePhone(lead.phone)
-        if (!samePhone) {
-          if (isAustrianMobile(web.phone)) {
-            // Österreichische Mobilnummer = sehr wahrscheinlich Direktnummer des Inhabers
-            lead.phone = web.phone
-          } else {
-            lead.notes = `Direktnummer: ${web.phone}${lead.notes ? `\n${lead.notes}` : ''}`
-          }
+      const name = cleanPersonName(lead.ceos) ?? web.ceo
+      lead.ceos = name ?? null
+      if (!lead.email && web.email) { lead.email = web.email; lead.email_general = web.email }
+      if (web.ceoEmail && web.ceoEmail !== lead.email) lead.email_ceo = web.ceoEmail
+      if (!lead.phone && web.phone) lead.phone = web.phone
+      const direct = web.ceoPhone
+      if (direct && !(lead.phone && normalizePhone(direct) === normalizePhone(lead.phone))) {
+        if (isAustrianMobile(direct)) {
+          lead.notes = `Firmennummer: ${lead.phone}${lead.notes ? `\n${lead.notes}` : ''}`
+          lead.phone = direct
+        } else {
+          lead.notes = `Direktnummer GF: ${direct}${lead.notes ? `\n${lead.notes}` : ''}`
         }
       }
+      if (web.ceo || web.email || web.phone) sources.push('Impressum')
+    } else {
+      lead.ceos = cleanPersonName(lead.ceos)
     }
+    if (sources.length) lead.notes = `Quelle: ${sources.join(', ')}${lead.notes ? `\n${lead.notes}` : ''}`
   }))
 
   const ceoFound   = leads.filter((l: any) => l.ceos).length

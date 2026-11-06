@@ -443,7 +443,7 @@ export function SettingsView() {
                 <div
                   key={u.id}
                   onClick={() => u.email !== currentEmail && setEditingUser(u)}
-                  className={`flex items-center gap-3 bg-dark rounded-xl px-3.5 py-3 ${u.email !== currentEmail ? 'cursor-pointer hover:bg-white/5 transition-colors' : ''}`}
+                  className={`flex items-center gap-3 bg-dark rounded-xl px-3.5 py-3 ${u.email !== currentEmail ? 'cursor-pointer hover:bg-dark/85 hover:ring-2 hover:ring-accent transition-all' : ''}`}
                 >
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold text-white truncate">
@@ -504,7 +504,7 @@ export function SettingsView() {
                 disabled={required}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left ${
                   required ? 'opacity-40 cursor-not-allowed' :
-                  visible ? 'bg-accent/10 hover:bg-accent/15' : 'bg-dark hover:bg-panel-hover'
+                  visible ? 'bg-accent/10 hover:bg-accent/15' : 'bg-dark hover:bg-dark/80'
                 }`}
               >
                 <Icon size={15} className={visible ? 'text-accent' : 'text-white/25'} strokeWidth={2.2} />
